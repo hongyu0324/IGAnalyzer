@@ -25,3 +25,4 @@ D:\Hongyu\Project\IGAnalyzer\bin\Debug\net9.0-windows\ICSharpCode.SharpZipLib.dl
 D:\Hongyu\Project\IGAnalyzer\obj\Debug\net9.0-windows\IGAnalyzer.FormIGAnalyzer.resources
 D:\Hongyu\Project\IGAnalyzer\obj\Debug\net9.0-windows\IGAnalyzer.csproj.GenerateResource.cache
 D:\Hongyu\Project\IGAnalyzer\obj\Debug\net9.0-windows\IGAnalyzer.FormListView.resources
+D:\Hongyu\Project\IGAnalyzer\obj\Debug\net9.0-windows\IGAnalyzer.sourcelink.json

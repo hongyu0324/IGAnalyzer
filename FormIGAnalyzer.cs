@@ -1448,13 +1448,22 @@ public partial class FormIGAnalyzer : Form
 
     private async Task<string> CreateFUME2(string profileName)
     {
-        string fume2 = string.Empty;
+
         string fumeDetail = string.Empty;
         string pathInfo = string.Empty;
         List<Tuple<string, string, string>> fumeListTuple = new List<Tuple<string, string, string>>();
 
         StructureDefinition sd = new StructureDefinition();
         sd = await GetStructureDefinition(profileName);
+        if (sd == null)
+        {
+            MessageBox.Show("Failed to resolve the StructureDefinition.");
+            return string.Empty;
+        }
+        string fume2 = "Instance:" + Environment.NewLine;
+        fume2 = string.Empty;
+        fume2 += "InstanceOf: " + sd.Type + Environment.NewLine;
+
         foreach (var e in sd.Differential.Element)
         {
             var pathList = e.Path.Split(".").ToList();
@@ -1522,7 +1531,6 @@ public partial class FormIGAnalyzer : Form
                 else continue;
             }
             pathInfo = GetPostionStar(cnt, path);
-            fume2 += pathInfo + "[" + type + "]" + "[" + e.Path + "]" + Environment.NewLine;
             Tuple<string, string, string> fumeTuple = new Tuple<string, string, string>(pathInfo, type, e.Path);
             fumeListTuple.Add(fumeTuple);
         }
@@ -1530,7 +1538,8 @@ public partial class FormIGAnalyzer : Form
         fumeListTuple = RefineFUME(fumeListTuple);
         fumeListTuple = GetFUMEValue(fumeListTuple);
         fumeListTuple = GetFUMEPattern(sd, fumeListTuple);
-        fume2 = string.Empty;
+        fumeListTuple = GetFUMECodeable(profileName, fumeListTuple);
+
         foreach (var fume in fumeListTuple)
         {
             fume2 += fume.Item1 + Environment.NewLine;
@@ -1540,7 +1549,84 @@ public partial class FormIGAnalyzer : Form
         return fume2;
     }
 
-    private List<Tuple<string, string, string>> GetFUMEPattern(StructureDefinition sd,List<Tuple<string, string, string>> fumeListTuple)
+    private List<Tuple<string, string, string>> GetFUMECodeable(string profileName,List<Tuple<string, string, string>> fumeListTuple)
+    {
+        // Clean the FUME list
+        // This is a placeholder implementation, replace with actual logic
+        List<Tuple<string, string, string>> codeableFUME = new List<Tuple<string, string, string>>();
+
+        for (int i = 0; i < fumeListTuple.Count; i++)
+        {
+            var fume = fumeListTuple[i];
+            string fumeInfo = fume.Item1;
+            string type = fume.Item2;
+            string path = fume.Item3;
+            
+            string system = string.Empty;
+            string code = string.Empty;
+            bool isCodeable = false;
+
+            if (type == "CodeableConcept")
+            {
+                List<string> pathList = path.Split(".").ToList();
+                pathList.RemoveAt(0);
+                path = string.Join(".", pathList);
+                if (path.EndsWith("[x]"))
+                {
+                    path = path.Replace("[x]", "") + "CodeableConcept";
+                }
+                foreach (ListViewItem item in lvStaging.Items)
+                {
+                    string applyModelPath = item.SubItems[2].Text;
+                    if (path == applyModelPath)
+                    {
+                        path = profileName + "." + path;
+                        system = urlList[path];
+                        code = item.SubItems[1].Text;
+                        isCodeable = true;
+                        break;
+                    }
+                }
+                if (isCodeable == true)
+                {
+                    for (int j = i; j < i + 4; j++)
+                    {
+                        path = fumeListTuple[j].Item3;
+                        type = fumeListTuple[j].Item2;
+                        if (type == "code")
+                        {
+                            fumeInfo = fumeListTuple[j].Item1;
+                            Tuple<string, string, string> fumeTuple = new Tuple<string, string, string>(fumeInfo + " = " + code , type, path);
+                            codeableFUME.Add(fumeTuple);
+                        }
+                        else if (type == "uri")
+                        {
+                            fumeInfo = fumeListTuple[j].Item1;
+                            Tuple<string, string, string> fumeTuple = new Tuple<string, string, string>(fumeInfo + " = " + "\"" + system + "\"", type, path);
+                            codeableFUME.Add(fumeTuple);
+                        }
+                        else
+                        {
+                            codeableFUME.Add(fumeListTuple[j]);
+                        }
+                    }
+                    i = i + 3;
+                } 
+                else
+                {
+                    codeableFUME.Add(fume);
+                }
+            }
+            else
+            {
+                codeableFUME.Add(fume);
+            }   
+
+        }
+
+        return codeableFUME;
+    }
+    private List<Tuple<string, string, string>> GetFUMEPattern(StructureDefinition sd, List<Tuple<string, string, string>> fumeListTuple)
     {
         List<Tuple<string, string, string>> patternFUME = new List<Tuple<string, string, string>>();
 
@@ -1563,13 +1649,13 @@ public partial class FormIGAnalyzer : Form
                         string fumeInfo = fume.Item1;
                         string type = fume.Item2;
                         string pathFUME = fume.Item3;
-                        patternFUME.Add(new Tuple<string, string, string>(fumeInfo + " = " + pattern, type, pathFUME));
+                        patternFUME.Add(new Tuple<string, string, string>(fumeInfo + " = " + "\"" + pattern + "\"", type, pathFUME));
                         isPattern = true;
                     }
                 }
             }
             if (isPattern == false) patternFUME.Add(fumeListTuple[i]);
-        }   
+        }
         return patternFUME;
     }
 
@@ -1837,7 +1923,6 @@ public partial class FormIGAnalyzer : Form
 
             // GetPostionStar前必須修正path名稱才能得到正確FHIR Data所需要的Element呈現方式
             pathInfo = GetPostionStar(cnt, path);
-
 
             if (type == "Reference")
             {
