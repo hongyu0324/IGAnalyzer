@@ -428,6 +428,7 @@ partial class FormIGAnalyzer : Form
         tabStaging.TabIndex = 4;
         tabStaging.Text = "Staging";
         tabStaging.UseVisualStyleBackColor = true;
+        tabStaging.Enter += tabStaging_Enter;
         // 
         // splitContainer1
         // 

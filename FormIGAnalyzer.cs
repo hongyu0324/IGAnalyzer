@@ -9,9 +9,11 @@ using System;
 using System.Collections.Generic;
 
 using System.Resources;
+using System.Threading.Tasks;
 
 
 namespace IGAnalyzer;
+
 public partial class FormIGAnalyzer : Form
 {
     private string profilePath = string.Empty;
@@ -218,7 +220,7 @@ public partial class FormIGAnalyzer : Form
         foreach (var profile in profiles)
         {
             lbProfile.Items.Add(profile);
-            lbStaging.Items.Add(profile);
+            //lbStaging.Items.Add(profile);
         }
 
         foreach (var bundle in bundles)
@@ -1090,7 +1092,7 @@ public partial class FormIGAnalyzer : Form
         lvStaging.Items.Clear();
         lvStaging.Columns.Clear();
         txtFHIRData.Text = string.Empty;
-        
+
         lvStaging.Columns.Add("Name", 400);
         lvStaging.Columns.Add("ApplyModel", 500);
         lvStaging.Columns.Add("Path", 400);
@@ -1150,9 +1152,9 @@ public partial class FormIGAnalyzer : Form
             //serialize the file content to a dictionary
             var fileData = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(fileContent);
             // create a Dictionary to store the data
-            
+
             Dictionary<string, string> data = new Dictionary<string, string>();
-            
+
             foreach (var q in qList)
             {
                 if (q.Item2.Contains(itemName))
@@ -1176,7 +1178,7 @@ public partial class FormIGAnalyzer : Form
                     }
                 }
             }
-            
+
             // transform the dictionary to json
             string json = Newtonsoft.Json.JsonConvert.SerializeObject(data, Newtonsoft.Json.Formatting.Indented);
             // display json in textBox
@@ -1549,7 +1551,7 @@ public partial class FormIGAnalyzer : Form
         return fume2;
     }
 
-    private List<Tuple<string, string, string>> GetFUMECodeable(string profileName,List<Tuple<string, string, string>> fumeListTuple)
+    private List<Tuple<string, string, string>> GetFUMECodeable(string profileName, List<Tuple<string, string, string>> fumeListTuple)
     {
         // Clean the FUME list
         // This is a placeholder implementation, replace with actual logic
@@ -1561,7 +1563,7 @@ public partial class FormIGAnalyzer : Form
             string fumeInfo = fume.Item1;
             string type = fume.Item2;
             string path = fume.Item3;
-            
+
             string system = string.Empty;
             string code = string.Empty;
             bool isCodeable = false;
@@ -1581,7 +1583,14 @@ public partial class FormIGAnalyzer : Form
                     if (path == applyModelPath)
                     {
                         path = profileName + "." + path;
-                        system = urlList[path];
+                        if (urlList.ContainsKey(path))
+                        {
+                            system = urlList[path];
+                        }
+                        else
+                        {
+                            system = string.Empty;
+                        }
                         code = item.SubItems[1].Text;
                         isCodeable = true;
                         break;
@@ -1596,7 +1605,7 @@ public partial class FormIGAnalyzer : Form
                         if (type == "code")
                         {
                             fumeInfo = fumeListTuple[j].Item1;
-                            Tuple<string, string, string> fumeTuple = new Tuple<string, string, string>(fumeInfo + " = " + code , type, path);
+                            Tuple<string, string, string> fumeTuple = new Tuple<string, string, string>(fumeInfo + " = " + code, type, path);
                             codeableFUME.Add(fumeTuple);
                         }
                         else if (type == "uri")
@@ -1611,7 +1620,7 @@ public partial class FormIGAnalyzer : Form
                         }
                     }
                     i = i + 3;
-                } 
+                }
                 else
                 {
                     codeableFUME.Add(fume);
@@ -1620,7 +1629,7 @@ public partial class FormIGAnalyzer : Form
             else
             {
                 codeableFUME.Add(fume);
-            }   
+            }
 
         }
 
@@ -1642,6 +1651,44 @@ public partial class FormIGAnalyzer : Form
                 if (obj != null && obj.Pattern != null)
                 {
                     var value = obj.Pattern;
+                    string patternType = value.TypeName ?? string.Empty;
+                    if (patternType == "CodeableConcept")
+                    {
+                        var patternCodeableConcept = obj.Pattern as CodeableConcept;
+                        if (patternCodeableConcept != null)
+                        {
+                            var coding = patternCodeableConcept.Coding.FirstOrDefault() as Coding;
+                            if (coding != null)
+                            {
+                                string system = coding.System;
+                                string code = coding.Code;
+                                for (int j = i; j < i + 3; j++)
+                                {
+                                    isPattern = true;
+                                    Tuple<string, string, string> fumeTuple = fumeListTuple[j];
+                                    string pathFUME = fumeListTuple[j].Item3;
+                                    string type = fumeListTuple[j].Item2;
+                                    if (type == "code")
+                                    {
+                                        string fumeInfo = fumeListTuple[j].Item1;
+                                        fumeTuple = new Tuple<string, string, string>(fumeInfo + " = " + "\"" + code + "\"", type, pathFUME);
+                                        patternFUME.Add(fumeTuple);
+                                    }
+                                    else if (type == "uri")
+                                    {
+                                        string fumeInfo = fumeListTuple[j].Item1;
+                                        fumeTuple = new Tuple<string, string, string>(fumeInfo + " = " + "\"" + system + "\"", type, pathFUME);
+                                        patternFUME.Add(fumeTuple);
+                                    }
+                                    else
+                                    {
+                                        patternFUME.Add(fumeTuple);
+                                    }
+                                }
+                                i = i + 3;
+                            }
+                        }
+                    }
                     string pattern = value != null ? value.ToString() ?? string.Empty : string.Empty;
                     if (pattern != string.Empty)
                     {
@@ -1691,6 +1738,17 @@ public partial class FormIGAnalyzer : Form
                 var updatedFume = new Tuple<string, string, string>(fumeInfo, fume.Item2, fume.Item3);
                 valuedFUME.Add(updatedFume);
             }
+            else if (type == "decimal" || type == "integer" || type == "boolean" || type == "string")
+            {
+                var updatedFume = new Tuple<string, string, string>(fume.Item1 + " = " + GetStagingApplyModel(path), fume.Item2, fume.Item3);
+                valuedFUME.Add(updatedFume);
+            }
+            else if (type == "date" || type == "base64Binary" || type == "url")
+            {
+                var updatedFume = new Tuple<string, string, string>(fume.Item1 + " = " + GetStagingApplyModel(path), fume.Item2, fume.Item3);
+                valuedFUME.Add(updatedFume);
+            }
+            
             else
             {
                 valuedFUME.Add(fume);
@@ -1715,7 +1773,7 @@ public partial class FormIGAnalyzer : Form
                 {
                     refinedFUME.Add(fumeAddTuple);
                     fumeAddTuple = new Tuple<string, string, string>("", "", "");
-                }           
+                }
             }
             var fume = fumeListTuple[i];
             string fumeInfo = fume.Item1;
@@ -1781,22 +1839,22 @@ public partial class FormIGAnalyzer : Form
 
             if (type == "CodeableConcept")
             {
-                Tuple<bool,List<int>> codeableTuple = CheckCodeableConcept(i, refinedFUME);
+                Tuple<bool, List<int>> codeableTuple = CheckCodeableConcept(i, refinedFUME);
                 bool isCodeableConcept = codeableTuple.Item1;
                 List<int> codeableConceptList = codeableTuple.Item2;
                 //if (!isCodeableConcept) continue;
                 for (int j = 0; j < codeableConceptList.Count; j++)
                 {
-                    int index = codeableConceptList[j]-j;
+                    int index = codeableConceptList[j] - j;
                     refinedFUME.RemoveAt(index);
                 }
             }
-            
+
         }
         return refinedFUME;
     }
 
-    private Tuple<bool,List<int>> CheckCodeableConcept(int index, List<Tuple<string, string, string>> fumeListTuple)
+    private Tuple<bool, List<int>> CheckCodeableConcept(int index, List<Tuple<string, string, string>> fumeListTuple)
     {
         List<int> codeableConceptList = new List<int>();
         // Check if the type is CodeableConcept
@@ -1805,12 +1863,12 @@ public partial class FormIGAnalyzer : Form
         int indexCoding = index + 1;
         int indexSystm = index + 2;
         int indexCode = index + 3;
-        string path = fumeListTuple[index+1].Item3;
+        string path = fumeListTuple[index + 1].Item3;
         bool isCodeable = true;
         if (fumeListTuple[index].Item2 != "CodeableConcept") isCodeableConcept = false;
-        if (fumeListTuple[indexCoding].Item2 != "coding")  isCodeableConcept = false;
-        if (fumeListTuple[indexSystm].Item2 != "system")  isCodeableConcept = false;
-        if (fumeListTuple[indexCode].Item2 != "code")  isCodeableConcept = false;
+        if (fumeListTuple[indexCoding].Item2 != "coding") isCodeableConcept = false;
+        if (fumeListTuple[indexSystm].Item2 != "system") isCodeableConcept = false;
+        if (fumeListTuple[indexCode].Item2 != "code") isCodeableConcept = false;
 
         int indexCheck = index + 4;
         if (indexCheck >= fumeListTuple.Count) isCodeable = false;
@@ -2044,13 +2102,13 @@ public partial class FormIGAnalyzer : Form
         List<Tuple<string, string, string>> targetFumeTupleList = new List<Tuple<string, string, string>>();
 
         targetFumeTupleList = fumeTupleList;
-        if(targetFumeTupleList[0].Item1.Length == 0)
+        if (targetFumeTupleList[0].Item1.Length == 0)
         {
             targetFumeTupleList.RemoveAt(0);
         }
         for (int i = 1; i < targetFumeTupleList.Count; i++)
         {
-            string fume1 = targetFumeTupleList[i-1].Item1;
+            string fume1 = targetFumeTupleList[i - 1].Item1;
             string fume2 = targetFumeTupleList[i].Item1;
             string path1 = targetFumeTupleList[i - 1].Item3;
             string path2 = targetFumeTupleList[i].Item3;
@@ -2059,7 +2117,7 @@ public partial class FormIGAnalyzer : Form
                 targetFumeTupleList.RemoveAt(i);
                 i--;
             }
-            if(path2.EndsWith("coding") == true && path2.Contains(path1) == false)
+            if (path2.EndsWith("coding") == true && path2.Contains(path1) == false)
             {
                 string fume = fume2.Replace("coding", "code");
                 fume = fume.Substring(2);
@@ -2068,7 +2126,8 @@ public partial class FormIGAnalyzer : Form
                 targetFumeTupleList.Insert(i, fumeTuple);
                 i++;
             }
-            if(fume2.Trim().EndsWith("=")){
+            if (fume2.Trim().EndsWith("="))
+            {
                 targetFumeTupleList.RemoveAt(i);
                 i--;
             }
@@ -2078,9 +2137,9 @@ public partial class FormIGAnalyzer : Form
                 i--;
             }
         }
-       
+
         // Remove duplicates
-        
+
 
         return targetFumeTupleList;
     }
@@ -2199,7 +2258,7 @@ public partial class FormIGAnalyzer : Form
 
         sm.Meta.VersionId = "1.0";
         sm.Meta.LastUpdated = DateTimeOffset.Now;
-        
+
         sm.Url = "http://tmhtc.net/StructureMap/" + sm.Id;
         sm.Name = lbStaging.SelectedItem?.ToString() ?? string.Empty;
         sm.Title = lbStaging.SelectedItem?.ToString() ?? string.Empty;
@@ -2212,7 +2271,7 @@ public partial class FormIGAnalyzer : Form
         sm.UseContext = new List<UsageContext>();
         UsageContext uc = new UsageContext();
         CodeableConcept cc = new CodeableConcept();
-      
+
         Coding coding = new Coding();
         coding.System = "http://snomed.info/sct";
         coding.Code = "706594005";
@@ -2220,9 +2279,9 @@ public partial class FormIGAnalyzer : Form
         cc.Coding.Add(coding);
 
         uc.Code = cc.Coding.FirstOrDefault();
-        
 
-       
+
+
         sm.Group = new List<StructureMap.GroupComponent>();
 
         StructureMap.GroupComponent group = new StructureMap.GroupComponent();
@@ -2241,8 +2300,8 @@ public partial class FormIGAnalyzer : Form
         Extension ext = new Extension();
 
         ext.Url = "http://hl7.org/fhir/StructureDefinition/StructureMap-structure";
-        
-  
+
+
 
         var expression = new Expression();
         expression.Language = "application/vnd.outburn.fume";
@@ -2260,10 +2319,49 @@ public partial class FormIGAnalyzer : Form
 
     }
 
-
-    private void btnSaveFHIR_Click(object sender, EventArgs e)
+    private async void btnSaveFHIR_Click(object sender, EventArgs e)
     {
-        
+        string jsonFHIR = txtFHIRData.Text;
 
-    }        // Serialize the questionnaire data to JSON可顯示中文
+        if (string.IsNullOrEmpty(jsonFHIR))
+        {
+            MessageBox.Show("Please generate FHIR data first.");
+            return;
+        }
+        // Upload the FHIR data to the server using existed client
+        FhirClient client = new FhirClient(txtFHIRServer.Text);
+
+        //Serialize the JSON string to a FHIR resource
+        var resource = new FhirJsonParser().Parse<Resource>(jsonFHIR);
+        // Save the resource to the server using "put" method
+
+        var result = await client.UpdateAsync(resource);
+        if (result != null)
+        {
+            MessageBox.Show("FHIR data saved successfully. Resource id :" + result.Id);
+            txtFHIRData.Text = result.ToJson();
+        }
+        else
+        {
+            MessageBox.Show("Failed to save FHIR data.");
+        }
+    }
+
+    private void tabStaging_Enter(object sender, EventArgs e)
+    {
+        lbStaging.Items.Clear();
+        foreach (var profile in profiles)
+        {
+            // check if the profile is contained in the qList
+            foreach (var q in qList)
+            {
+                if (q.Item2.Contains(profile))
+                {
+                    lbStaging.Items.Add(profile);
+                    break;
+                }
+            }
+
+        }
+    }
 }
