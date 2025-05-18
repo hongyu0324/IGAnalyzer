@@ -404,6 +404,15 @@ public partial class FormIGAnalyzer : Form
         lvElement.Columns.Add("Definition", 500);
         lvElement.Columns.Add("Min", 100);
         lvElement.Columns.Add("Max", 100);
+
+        lvConstraint.Items.Clear();
+        
+        lvConstraint.Columns.Clear();
+        lvConstraint.Columns.Add("Key", 400);
+        lvConstraint.Columns.Add("Human", 400);
+        lvConstraint.Columns.Add("Expression", 400);
+
+
         if (rbApplyModel.Checked)
         {
             lvElement.Columns.Add("ApplyModel", 500);
@@ -514,6 +523,17 @@ public partial class FormIGAnalyzer : Form
                     item.SubItems.Add(element.Binding.ValueSet);
                     lvProfile.Items.Add(item);
                 }
+                if (element.Constraint != null)
+                {
+                    foreach (var constraint in element.Constraint)
+                    {
+                        // add item to listview
+                        ListViewItem item = new ListViewItem(constraint.Key);
+                        item.SubItems.Add(constraint.Human);
+                        item.SubItems.Add(constraint.Expression);
+                        lvConstraint.Items.Add(item);
+                    }
+                }
 
             }
 
@@ -550,10 +570,9 @@ public partial class FormIGAnalyzer : Form
             {
                 if (q.Item1.Contains(itemName))
                 {
-                    //txtApplyModel.Text += q.Item1 + " | " + q.Item2 + " | " + q.Item3 + " | " + q.Item4 + Environment.NewLine;
                     // add item to listview
                     ListViewItem item = new ListViewItem(q.Item1.Split('|')[0].Trim());
-                    //item.SubItems.Add(q.Item1.Split('|')[1].Trim().Replace(itemName + ".", ""));
+
                     item.SubItems.Add(q.Item1.Split('|')[1].Trim());
                     item.SubItems.Add(q.Item2);
                     string path = q.Item3;
@@ -586,7 +605,7 @@ public partial class FormIGAnalyzer : Form
                         path = path.Replace( "(" + rule + ")", "");
                     }
                     item.SubItems.Add(path);
-                    //string type = GetSnapshotType(q.Item3);
+
                     item.SubItems.Add(q.Item4);
                     string code = q.Item2 + "." + q.Item3;
                     //check if urlMap contains code
@@ -597,7 +616,6 @@ public partial class FormIGAnalyzer : Form
                         item.SubItems.Add(url);
                     }
                     //  URL問題，未來修改
-
                     if (q.Item3.Contains("http") && !q.Item3.Contains("StructureDefinition"))
                     {
                         // extract the URL from the string
@@ -614,12 +632,13 @@ public partial class FormIGAnalyzer : Form
                         }
                         item.SubItems.Add(url);
                     }
-                    if(rule != string.Empty)
+                    // URL問題，未來修改
+                    if (rule != string.Empty)
                     {
-                        if (url == string.Empty)item.SubItems.Add(string.Empty);
+                        if (url == string.Empty) item.SubItems.Add(string.Empty);
                         item.SubItems.Add(rule.Replace(")", ""));
                     }
-                    // URL問題，未來修改
+                    
                     lvApplyModel.Items.Add(item);
                     
 

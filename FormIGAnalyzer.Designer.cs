@@ -44,7 +44,6 @@ partial class FormIGAnalyzer : Form
         lbProfile = new ListBox();
         splitContainer9 = new SplitContainer();
         lvElement = new ListView();
-        lvProfile = new ListView();
         tabApplyModel = new TabPage();
         splitContainer7 = new SplitContainer();
         lbApplyModel = new ListBox();
@@ -64,8 +63,10 @@ partial class FormIGAnalyzer : Form
         splitContainer3 = new SplitContainer();
         splitContainer4 = new SplitContainer();
         txtStaging = new TextBox();
+        btnFUME = new Button();
         btnFHIRData = new Button();
         txtFume = new TextBox();
+        btnSaveFHIR = new Button();
         txtFHIRData = new TextBox();
         tabBundle = new TabPage();
         splitContainer5 = new SplitContainer();
@@ -92,8 +93,11 @@ partial class FormIGAnalyzer : Form
         rbDifferential = new RadioButton();
         rbSnapshot = new RadioButton();
         rbApplyModel = new RadioButton();
-        btnFUME = new Button();
-        btnSaveFHIR = new Button();
+        splitContainer11 = new SplitContainer();
+        lvProfile = new ListView();
+        lvConstraint = new ListView();
+        label5 = new Label();
+        txtFUMEServer = new TextBox();
         tabIG.SuspendLayout();
         tabProfile.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)splitContainer8).BeginInit();
@@ -143,6 +147,10 @@ partial class FormIGAnalyzer : Form
         splitContainer6.SuspendLayout();
         tabMsg.SuspendLayout();
         tabConfiguration.SuspendLayout();
+        ((System.ComponentModel.ISupportInitialize)splitContainer11).BeginInit();
+        splitContainer11.Panel1.SuspendLayout();
+        splitContainer11.Panel2.SuspendLayout();
+        splitContainer11.SuspendLayout();
         SuspendLayout();
         // 
         // btnClose
@@ -251,7 +259,7 @@ partial class FormIGAnalyzer : Form
         // 
         // splitContainer9.Panel2
         // 
-        splitContainer9.Panel2.Controls.Add(lvProfile);
+        splitContainer9.Panel2.Controls.Add(splitContainer11);
         splitContainer9.Size = new Size(780, 365);
         splitContainer9.SplitterDistance = 207;
         splitContainer9.TabIndex = 0;
@@ -267,18 +275,6 @@ partial class FormIGAnalyzer : Form
         lvElement.TabIndex = 0;
         lvElement.UseCompatibleStateImageBehavior = false;
         lvElement.View = View.Details;
-        // 
-        // lvProfile
-        // 
-        lvProfile.Dock = DockStyle.Fill;
-        lvProfile.FullRowSelect = true;
-        lvProfile.GridLines = true;
-        lvProfile.Location = new Point(0, 0);
-        lvProfile.Name = "lvProfile";
-        lvProfile.Size = new Size(780, 154);
-        lvProfile.TabIndex = 0;
-        lvProfile.UseCompatibleStateImageBehavior = false;
-        lvProfile.View = View.Details;
         // 
         // tabApplyModel
         // 
@@ -537,6 +533,17 @@ partial class FormIGAnalyzer : Form
         txtStaging.TabIndex = 0;
         txtStaging.TextChanged += textBox1_TextChanged;
         // 
+        // btnFUME
+        // 
+        btnFUME.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+        btnFUME.Location = new Point(103, 119);
+        btnFUME.Name = "btnFUME";
+        btnFUME.Size = new Size(112, 34);
+        btnFUME.TabIndex = 2;
+        btnFUME.Text = "FUME";
+        btnFUME.UseVisualStyleBackColor = true;
+        btnFUME.Click += btnFUME_Click;
+        // 
         // btnFHIRData
         // 
         btnFHIRData.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
@@ -558,6 +565,17 @@ partial class FormIGAnalyzer : Form
         txtFume.ScrollBars = ScrollBars.Both;
         txtFume.Size = new Size(330, 118);
         txtFume.TabIndex = 0;
+        // 
+        // btnSaveFHIR
+        // 
+        btnSaveFHIR.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+        btnSaveFHIR.Location = new Point(319, 216);
+        btnSaveFHIR.Name = "btnSaveFHIR";
+        btnSaveFHIR.Size = new Size(112, 34);
+        btnSaveFHIR.TabIndex = 1;
+        btnSaveFHIR.Text = "Upload";
+        btnSaveFHIR.UseVisualStyleBackColor = true;
+        btnSaveFHIR.Click += btnSaveFHIR_Click;
         // 
         // txtFHIRData
         // 
@@ -654,6 +672,8 @@ partial class FormIGAnalyzer : Form
         // 
         // tabConfiguration
         // 
+        tabConfiguration.Controls.Add(txtFUMEServer);
+        tabConfiguration.Controls.Add(label5);
         tabConfiguration.Controls.Add(rbUser);
         tabConfiguration.Controls.Add(rbAdmin);
         tabConfiguration.Controls.Add(label4);
@@ -676,7 +696,7 @@ partial class FormIGAnalyzer : Form
         // rbUser
         // 
         rbUser.AutoSize = true;
-        rbUser.Location = new Point(371, 211);
+        rbUser.Location = new Point(371, 258);
         rbUser.Name = "rbUser";
         rbUser.Size = new Size(73, 27);
         rbUser.TabIndex = 11;
@@ -687,7 +707,7 @@ partial class FormIGAnalyzer : Form
         // 
         rbAdmin.AutoSize = true;
         rbAdmin.Checked = true;
-        rbAdmin.Location = new Point(212, 213);
+        rbAdmin.Location = new Point(212, 260);
         rbAdmin.Name = "rbAdmin";
         rbAdmin.Size = new Size(153, 27);
         rbAdmin.TabIndex = 10;
@@ -698,7 +718,7 @@ partial class FormIGAnalyzer : Form
         // label4
         // 
         label4.AutoSize = true;
-        label4.Location = new Point(54, 213);
+        label4.Location = new Point(54, 260);
         label4.Name = "label4";
         label4.Size = new Size(100, 23);
         label4.TabIndex = 9;
@@ -706,7 +726,7 @@ partial class FormIGAnalyzer : Form
         // 
         // btnDataDir
         // 
-        btnDataDir.Location = new Point(618, 167);
+        btnDataDir.Location = new Point(618, 214);
         btnDataDir.Name = "btnDataDir";
         btnDataDir.Size = new Size(66, 34);
         btnDataDir.TabIndex = 8;
@@ -715,7 +735,7 @@ partial class FormIGAnalyzer : Form
         // 
         // txtDataDirectory
         // 
-        txtDataDirectory.Location = new Point(212, 167);
+        txtDataDirectory.Location = new Point(212, 214);
         txtDataDirectory.Name = "txtDataDirectory";
         txtDataDirectory.Size = new Size(400, 30);
         txtDataDirectory.TabIndex = 7;
@@ -723,7 +743,7 @@ partial class FormIGAnalyzer : Form
         // label3
         // 
         label3.AutoSize = true;
-        label3.Location = new Point(54, 167);
+        label3.Location = new Point(54, 214);
         label3.Name = "label3";
         label3.Size = new Size(100, 23);
         label3.TabIndex = 6;
@@ -733,7 +753,7 @@ partial class FormIGAnalyzer : Form
         // 
         cmbIG.FormattingEnabled = true;
         cmbIG.Items.AddRange(new object[] { "pas", "ngs", "emr-dms", "emr-pmr", "emr-ic", "emr-image", "emr-ep", "emr-ds" });
-        cmbIG.Location = new Point(212, 119);
+        cmbIG.Location = new Point(212, 166);
         cmbIG.Name = "cmbIG";
         cmbIG.Size = new Size(200, 31);
         cmbIG.TabIndex = 5;
@@ -743,7 +763,7 @@ partial class FormIGAnalyzer : Form
         // label2
         // 
         label2.AutoSize = true;
-        label2.Location = new Point(54, 122);
+        label2.Location = new Point(54, 169);
         label2.Name = "label2";
         label2.Size = new Size(100, 23);
         label2.TabIndex = 4;
@@ -752,7 +772,7 @@ partial class FormIGAnalyzer : Form
         // cmbHosp
         // 
         cmbHosp.FormattingEnabled = true;
-        cmbHosp.Location = new Point(212, 76);
+        cmbHosp.Location = new Point(212, 123);
         cmbHosp.Name = "cmbHosp";
         cmbHosp.Size = new Size(146, 31);
         cmbHosp.TabIndex = 3;
@@ -760,7 +780,7 @@ partial class FormIGAnalyzer : Form
         // lblHosp
         // 
         lblHosp.AutoSize = true;
-        lblHosp.Location = new Point(54, 76);
+        lblHosp.Location = new Point(54, 123);
         lblHosp.Name = "lblHosp";
         lblHosp.Size = new Size(136, 23);
         lblHosp.TabIndex = 2;
@@ -834,27 +854,64 @@ partial class FormIGAnalyzer : Form
         rbApplyModel.Visible = false;
         rbApplyModel.CheckedChanged += lbProfile_SelectedIndexChanged;
         // 
-        // btnFUME
+        // splitContainer11
         // 
-        btnFUME.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-        btnFUME.Location = new Point(103, 119);
-        btnFUME.Name = "btnFUME";
-        btnFUME.Size = new Size(112, 34);
-        btnFUME.TabIndex = 2;
-        btnFUME.Text = "FUME";
-        btnFUME.UseVisualStyleBackColor = true;
-        btnFUME.Click += btnFUME_Click;
+        splitContainer11.Dock = DockStyle.Fill;
+        splitContainer11.Location = new Point(0, 0);
+        splitContainer11.Name = "splitContainer11";
+        splitContainer11.Orientation = Orientation.Horizontal;
         // 
-        // btnSaveFHIR
+        // splitContainer11.Panel1
         // 
-        btnSaveFHIR.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-        btnSaveFHIR.Location = new Point(319, 216);
-        btnSaveFHIR.Name = "btnSaveFHIR";
-        btnSaveFHIR.Size = new Size(112, 34);
-        btnSaveFHIR.TabIndex = 1;
-        btnSaveFHIR.Text = "Upload";
-        btnSaveFHIR.UseVisualStyleBackColor = true;
-        btnSaveFHIR.Click += btnSaveFHIR_Click;
+        splitContainer11.Panel1.Controls.Add(lvProfile);
+        // 
+        // splitContainer11.Panel2
+        // 
+        splitContainer11.Panel2.Controls.Add(lvConstraint);
+        splitContainer11.Size = new Size(780, 154);
+        splitContainer11.SplitterDistance = 62;
+        splitContainer11.TabIndex = 0;
+        // 
+        // lvProfile
+        // 
+        lvProfile.Dock = DockStyle.Fill;
+        lvProfile.FullRowSelect = true;
+        lvProfile.GridLines = true;
+        lvProfile.Location = new Point(0, 0);
+        lvProfile.Name = "lvProfile";
+        lvProfile.Size = new Size(780, 62);
+        lvProfile.TabIndex = 1;
+        lvProfile.UseCompatibleStateImageBehavior = false;
+        lvProfile.View = View.Details;
+        // 
+        // lvConstraint
+        // 
+        lvConstraint.Dock = DockStyle.Fill;
+        lvConstraint.FullRowSelect = true;
+        lvConstraint.GridLines = true;
+        lvConstraint.Location = new Point(0, 0);
+        lvConstraint.Name = "lvConstraint";
+        lvConstraint.Size = new Size(780, 88);
+        lvConstraint.TabIndex = 0;
+        lvConstraint.UseCompatibleStateImageBehavior = false;
+        lvConstraint.View = View.Details;
+        // 
+        // label5
+        // 
+        label5.AutoSize = true;
+        label5.Location = new Point(54, 77);
+        label5.Name = "label5";
+        label5.Size = new Size(126, 23);
+        label5.TabIndex = 12;
+        label5.Text = "FUME Server :";
+        // 
+        // txtFUMEServer
+        // 
+        txtFUMEServer.Location = new Point(212, 77);
+        txtFUMEServer.Name = "txtFUMEServer";
+        txtFUMEServer.Size = new Size(263, 30);
+        txtFUMEServer.TabIndex = 13;
+        txtFUMEServer.Text = "http://localhost:42020/";
         // 
         // FormIGAnalyzer
         // 
@@ -930,6 +987,10 @@ partial class FormIGAnalyzer : Form
         tabMsg.PerformLayout();
         tabConfiguration.ResumeLayout(false);
         tabConfiguration.PerformLayout();
+        splitContainer11.Panel1.ResumeLayout(false);
+        splitContainer11.Panel2.ResumeLayout(false);
+        ((System.ComponentModel.ISupportInitialize)splitContainer11).EndInit();
+        splitContainer11.ResumeLayout(false);
         ResumeLayout(false);
         PerformLayout();
     }
@@ -999,7 +1060,6 @@ partial class FormIGAnalyzer : Form
     private SplitContainer splitContainer9;
     private ListBox lbProfile;
     private ListView lvElement;
-    private ListView lvProfile;
     private SplitContainer splitContainer10;
     private ListView lvApplyModel;
     private SplitContainer splitQuestionnaire;
@@ -1010,4 +1070,9 @@ partial class FormIGAnalyzer : Form
     private TextBox txtQuestionnaire;
     private Button btnFUME;
     private Button btnSaveFHIR;
+    private SplitContainer splitContainer11;
+    private ListView lvProfile;
+    private ListView lvConstraint;
+    private Label label5;
+    private TextBox txtFUMEServer;
 }
