@@ -404,7 +404,7 @@ partial class FormIGAnalyzer : Form
         btnLoad.Name = "btnLoad";
         btnLoad.Size = new Size(112, 34);
         btnLoad.TabIndex = 1;
-        btnLoad.Text = "匯入";
+        btnLoad.Text = "修正";
         btnLoad.UseVisualStyleBackColor = true;
         btnLoad.Click += btnLoad_Click;
         // 

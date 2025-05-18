@@ -158,6 +158,22 @@ public partial class FormIGAnalyzer : Form
         return logicName;
     }
 
+    /// <summary>
+    /// 處理「選擇」按鈕的點擊事件，允許使用者選擇 IG 套件檔案，並處理所選套件以擷取並顯示相關的 FHIR profiles、bundles 和 models，
+    /// 並將擷取到的資訊填入各個 UI 元件。
+    ///
+    /// 此方法執行以下步驟：
+    /// 1. 開啟檔案對話框，讓使用者選擇 .tgz 格式的 IG 套件檔案。
+    /// 2. 初始化 resolver，並從所選套件取得 canonical URI 清單。
+    /// 3. 根據命名規則與邏輯，過濾並分類 profiles 與 bundles。
+    /// 4. 將 profiles 與 bundles 顯示於 UI 清單中。
+    /// 5. 初始化一組預設的 ValueSet URL，供後續使用。
+    /// 6. 解析每個 profile 的 StructureDefinition，並擷取 value set 綁定資訊。
+    /// 7. 解析 apply model 的 StructureDefinition，並將 apply model 元素及其對應 mapping 資訊顯示於 UI。
+    /// 8. 處理並顯示處理過程中遇到的錯誤訊息。
+    /// </summary>
+    /// <param name="sender">事件來源。</param>
+    /// <param name="e">包含事件資料的 <see cref="EventArgs"/> 物件。</param>
     private async void btnSelect_ClickAsync(object? sender, EventArgs e)
     {
         ofdPackage.InitialDirectory = profilePath;
@@ -392,6 +408,10 @@ public partial class FormIGAnalyzer : Form
         {
             lvElement.Columns.Add("ApplyModel", 500);
         }
+        else
+        {
+            lvElement.Columns.Add("Slicing", 500);
+        }
 
         rbDifferential.Visible = true;
         rbSnapshot.Visible = true;
@@ -462,6 +482,24 @@ public partial class FormIGAnalyzer : Form
                             }
                         }
                     }
+                    else
+                    {
+                        if (element.Type.Count > 1 || element.Slicing != null)
+                        {
+                            string slice = string.Empty;
+                            foreach (var sliceType in element.Type)
+                            {
+                                slice += sliceType.Code + " | ";
+                            }
+                            //remove the last " | "
+                            slice = slice.Substring(0, slice.Length - 3);
+                            itemElement.SubItems.Add(slice);
+                        }
+                        else
+                        {
+                            itemElement.SubItems.Add(string.Empty);
+                        }
+                    }
                     lvElement.Items.Add(itemElement);
                 }
                 catch (Exception ex)
@@ -501,6 +539,8 @@ public partial class FormIGAnalyzer : Form
         lvApplyModel.Columns.Add("Path", 400);
         lvApplyModel.Columns.Add("Type", 200);
         lvApplyModel.Columns.Add("ValueSet", 600);
+        lvApplyModel.Columns.Add("Rule", 600);
+
         if (lbApplyModel.SelectedItem != null)
         {
             string itemName = lbApplyModel.SelectedItem?.ToString()?.Split('|')[0].Trim() ?? string.Empty;
@@ -516,7 +556,37 @@ public partial class FormIGAnalyzer : Form
                     //item.SubItems.Add(q.Item1.Split('|')[1].Trim().Replace(itemName + ".", ""));
                     item.SubItems.Add(q.Item1.Split('|')[1].Trim());
                     item.SubItems.Add(q.Item2);
-                    item.SubItems.Add(q.Item3);
+                    string path = q.Item3;
+                    string rule = string.Empty;
+                    if (path.Contains("where"))
+                    {
+                        var splitList = path.Split("where").ToList();
+                        rule = splitList[1];
+                        //get position of "(" and ")" 
+                        int start = rule.IndexOf("(");
+                        int end = rule.IndexOf(")");
+                        if (start != -1 && end != -1)
+                        {
+                            rule = rule.Substring(start + 1, end - start - 1);
+                        }
+                        path = path.Replace(".where" + "(" + rule + ")", "");
+                    }
+                    else if (path.Contains("(") && path.Contains(")"))
+                    {
+                        var splitList = path.Split("(").ToList();
+                        path = splitList[0];
+                        rule = splitList[1];
+                        //get position of "(" and ")" 
+                        int start = rule.IndexOf("(");
+                        int end = rule.IndexOf(")");
+                        if (start != -1 && end != -1)
+                        {
+                            rule = rule.Substring(start + 1, end - start - 1);
+                        }
+                        path = path.Replace( "(" + rule + ")", "");
+                    }
+                    item.SubItems.Add(path);
+                    //string type = GetSnapshotType(q.Item3);
                     item.SubItems.Add(q.Item4);
                     string code = q.Item2 + "." + q.Item3;
                     //check if urlMap contains code
@@ -542,12 +612,17 @@ public partial class FormIGAnalyzer : Form
                                 //url = url.Replace("StructureDefinition", "ValueSet");
                             }
                         }
-
                         item.SubItems.Add(url);
                     }
-
+                    if(rule != string.Empty)
+                    {
+                        if (url == string.Empty)item.SubItems.Add(string.Empty);
+                        item.SubItems.Add(rule.Replace(")", ""));
+                    }
                     // URL問題，未來修改
                     lvApplyModel.Items.Add(item);
+                    
+
                     var qItem = new Tuple<string, string, string, string, string>(q.Item1, q.Item2, q.Item3, q.Item4, url);
 
                     qItemList.Add(qItem);
@@ -564,6 +639,7 @@ public partial class FormIGAnalyzer : Form
         }
     }
 
+    
     private void listView1_SelectedIndexChanged(object sender, EventArgs e)
     {
 
@@ -971,6 +1047,8 @@ public partial class FormIGAnalyzer : Form
             textBox.Width = 600; // Set the width of the TextBox
             textBox.AutoSize = true; // Set the TextBox to auto-size based on its content
             textBox.Location = new Point(xPos, yPos); // Set the location of the TextBox
+            //textBox.Multiline = true; // Set the TextBox to multiline
+        
             textBoxList.Add(textBox);
             form.Controls.Add(textBox);
             yPos += height + 10; // Move down for the next label
@@ -1069,9 +1147,41 @@ public partial class FormIGAnalyzer : Form
         }
     }
 
-    private void btnLoad_Click(object sender, EventArgs e)
+    private async void btnLoad_Click(object sender, EventArgs e)
     {
-        MessageBox.Show("Load JSON file to Questionnaire.");
+        StructureDefinition sd = new StructureDefinition();
+        //
+
+        var qListPlus = qList;
+        // order by profile name
+        qListPlus = qListPlus.OrderBy(x => x.Item2).ToList();
+        string profileName = qListPlus[0].Item2;
+        sd = await GetStructureDefinition(profileName);
+
+        foreach (ListViewItem item in lvApplyModel.Items)
+        {
+            string applyModel = item.SubItems[1].Text;
+            string profile = item.SubItems[2].Text;
+            string path = item.SubItems[3].Text;
+            string type = item.SubItems[4].Text;
+            if(path.Contains(")")) continue;
+            sd = await GetStructureDefinition(profile);
+            if (sd != null)
+            {
+                //path = profile.Split("-")[0] + "." + path;
+                path = sd.Type + "." + path;
+                string rule = "StructureDefinition.snapshot.element.where(path = '" + path + "')";
+                var obj = sd.Select(rule).FirstOrDefault() as ElementDefinition;
+                if (obj != null)
+                {
+                    string typePlus = obj.Type != null && obj.Type.Any() ? obj.Type.FirstOrDefault()?.Code ?? string.Empty : string.Empty;
+                    if(type != typePlus) {
+                        item.SubItems[4].Text = typePlus;
+                        txtMsg.Text = txtMsg.Text + "ApplyModel: " + applyModel +  "  Type: (" + type + " , " + typePlus + ")" + Environment.NewLine;
+                    }
+                }
+            }
+        }
     }
 
     private void btnSave_Click(object sender, EventArgs e)
@@ -1278,8 +1388,59 @@ public partial class FormIGAnalyzer : Form
     {
 
     }
+    private async void btnFHIRData_Click(object sender, EventArgs e)
+    {
+        string jsonFHIR = string.Empty;
+        // call FUME Server http://127.0.0.1:42420/Mapping/<Map ID>
 
-    private void btnFHIRData_Click(object sender, EventArgs e)
+        HttpClient fumeClient = new HttpClient();
+
+        string url = "http://127.0.0.1:42420/Mapping/";
+        string mapID = lbStaging.SelectedItem?.ToString() ?? string.Empty;
+        mapID = mapID.Replace("-", "");
+        url += mapID;
+
+        fumeClient.BaseAddress = new Uri(url);
+
+        string staging = txtStaging.Text;
+
+        //using POST command to send the data
+        var content = new StringContent(staging, System.Text.Encoding.UTF8, "application/json");
+
+        var response = await fumeClient.PostAsync(url, content);
+        if (response.IsSuccessStatusCode)
+        {
+            // Read the response content
+            var responseContent = await response.Content.ReadAsStringAsync();
+            // Display the response content in the TextBox
+            jsonFHIR = responseContent;
+        }
+        else
+        {
+            // Handle error response
+            MessageBox.Show("Error: " + response.StatusCode);
+        }
+
+        if (jsonFHIR != string.Empty)
+        {
+            // Deserialize the JSON string into FHIR resource
+            var fhirResource = new FhirJsonParser().Parse<Resource>(jsonFHIR);
+
+            // Serialize the FHIR resource to JSON
+            var json = new FhirJsonSerializer(new SerializerSettings()
+            {
+                Pretty = true,
+            }).SerializeToString(fhirResource);
+            // Display the JSON string in the TextBox
+            txtFHIRData.Text = json;
+        }
+        else
+        {
+            MessageBox.Show("No data returned from FUME server.");
+        }
+    }
+
+    private void btnFHIRData_Click2(object sender, EventArgs e)
     {
         string fume = txtFume.Text + "*" + Environment.NewLine;
         var fumeList = fume.Split(Environment.NewLine).ToList();
@@ -1504,8 +1665,9 @@ public partial class FormIGAnalyzer : Form
                 if (type == "dateTime")
                 {
                     path = path.Replace("[x]", "") + "DateTime";
-                }
-                else if (type == "CodeableConcept" || type == "Quantity")
+                } 
+                //else if (type == "CodeableConcept" || type == "Quantity") //Slicing造成的問題，待解決
+                else if (type == "CodeableConcept")
                 {
                     path = "valueCodeableConcept";
                     type = "CodeableConcept";
@@ -1598,6 +1760,13 @@ public partial class FormIGAnalyzer : Form
                 }
                 if (isCodeable == true)
                 {
+                    /*
+                    if (i + 3 >= fumeListTuple.Count)
+                    {
+                        codeableFUME.Add(fume);
+                        break;
+                    }
+                    */
                     for (int j = i; j < i + 4; j++)
                     {
                         path = fumeListTuple[j].Item3;
@@ -1748,7 +1917,7 @@ public partial class FormIGAnalyzer : Form
                 var updatedFume = new Tuple<string, string, string>(fume.Item1 + " = " + GetStagingApplyModel(path), fume.Item2, fume.Item3);
                 valuedFUME.Add(updatedFume);
             }
-            
+
             else
             {
                 valuedFUME.Add(fume);
@@ -1790,6 +1959,10 @@ public partial class FormIGAnalyzer : Form
                 {
                     var fume1 = fumeListTuple[i + 1];
                     type1 = fume1.Item2;
+                }
+                else
+                {
+                    type1 = string.Empty; //最後一個元素，type = CodeableConcept
                 }
                 if (type1 != "Coding")
                 {
@@ -1891,211 +2064,7 @@ public partial class FormIGAnalyzer : Form
         return codeableConcept;
     }
 
-    private async Task<string> CreateFUME(string profileName)
-    {
-        List<Tuple<string, string, string>> fumeTupleList = new List<Tuple<string, string, string>>();
-
-        // Generate FUME from the profile
-        // This is a placeholder implementation, replace with actual logic
-        StructureDefinition sd = new StructureDefinition();
-        sd = await GetStructureDefinition(profileName);
-
-        //RefineProfile(sd);
-
-        string resourceType = sd.Type;
-
-        string fume = "Instance:" + Environment.NewLine;
-        fume = string.Empty;
-        fume += "InstanceOf: " + resourceType + Environment.NewLine;
-        int ncnt = 0;
-        int codeIndex = 0;
-        for (int i = 0; i < sd.Differential.Element.Count; i++)
-        {
-            string applyModel = string.Empty;
-
-            var e = sd.Differential.Element[i];
-            string pathOri = e.Path;
-            if (i < sd.Differential.Element.Count - 1)
-            {
-                var ne = sd.Differential.Element[i + 1];
-                ncnt = ne.Path.Split('.').Length;
-            }
-            int cnt = e.Path.Split('.').Length;
-            string path = e.Path.Replace(resourceType + ".", "");
-            string pathInfo = string.Empty;
-            path = e.Path.Split('.')[cnt - 1];
-
-            string type = e.Type.FirstOrDefault()?.Code ?? string.Empty;
-            if (type == string.Empty)
-            {
-                string rule = "StructureDefinition.snapshot.element.where(path = '" + path + "')";
-                var obj = sd.Select(rule).FirstOrDefault() as ElementDefinition;
-                if (obj != null)
-                {
-                    type = obj.Type != null ? obj.Type.FirstOrDefault()?.Code ?? string.Empty : string.Empty;
-                }
-            }
-            if (type == string.Empty)
-            {
-                foreach (ListViewItem item in lvStaging.Items)
-                {
-                    if (item.SubItems[2].Text == path)
-                    {
-                        type = item.SubItems[3].Text;
-                        break;
-                    }
-
-                }
-            }
-
-            if (type == "Quantity") type = "CodeableConcept"; // 2023-10-03 hard code for now, slicing is not supported yet
-            if (path.EndsWith("[x]"))
-            {
-                if (type == "dateTime")
-                {
-                    path = path.Replace("[x]", "") + "DateTime";
-                }
-                else if (type == "CodeableConcept") path = "valueCodeableConcept";
-                else if (type == "string") path = "valueString";
-                //else if (type == "boolean") path = "valueBoolean";
-                //else if (type == "integer") path = "valueInteger";
-                //else if (type == "decimal") path = "valueDecimal";
-                //else if (type == "uri") path = "valueUri";
-                //else if (type == "base64Binary") path = "valueBase64Binary";
-                //else if (type == "code") path = "valueCode";
-                //else if (type == "oid") path = "valueOid";
-                //else if (type == "uuid") path = "valueUuid";
-                //else if (type == "Attachment") path = "valueAttachment";
-                //else if (type == "Reference") path = "valueReference";
-                //else if (type == "date") path = "valueDate";
-                //else if (type == "time") path = "valueTime";
-                //else if (type == "Address") path = "valueAddress";
-                //else if (type == "HumanName") path = "valueHumanName";
-                //else if (type == "ContactPoint") path = "valueContactPoint";
-                //else if (type == "Identifier") path = "valueIdentifier";
-                //else if (type == "Period") path = "valuePeriod";
-                //else if (type == "Range") path = "valueRange";
-                //else if (type == "Ratio") path = "valueRatio";
-                else continue;
-            }
-
-            // GetPostionStar前必須修正path名稱才能得到正確FHIR Data所需要的Element呈現方式
-            pathInfo = GetPostionStar(cnt, path);
-
-            if (type == "Reference")
-            {
-                pathInfo += Environment.NewLine;
-                pathInfo += GetPostionStar(cnt + 1, "reference") + " = ";
-                if (path == "subject")
-                {
-                    pathInfo += "patient";
-                }
-                else
-                {
-                    //pathInfo += path;
-                }
-                pathInfo += GetStagingApplyModel(path) + Environment.NewLine;
-            }
-            else if (type == "dateTime")
-            {
-                pathInfo += " = ";
-                pathInfo += GetStagingApplyModel(path) + Environment.NewLine;
-            }
-            else if (e.Binding != null)
-            {
-                //if(i-codeIndex < 2) continue;
-                pathInfo += Environment.NewLine;
-                pathInfo += GetPostionStar(cnt + 1, "coding") + Environment.NewLine;
-                pathInfo += GetPostionStar(cnt + 2, "system") + " = " + "\"" + e.Binding.ValueSet + "\"" + Environment.NewLine;
-                pathInfo += GetPostionStar(cnt + 2, "code") + " = " + GetStagingApplyModel(path) + Environment.NewLine;
-                //pathInfo += GetPostionStar(cnt + 2, "display") + " = " + Environment.NewLine;
-                codeIndex = i;
-            }
-            else if (type == "CodeableConcept")
-            {
-                //if(i-codeIndex < 2) continue;
-                pathInfo += Environment.NewLine;
-                pathInfo += GetPostionStar(cnt + 1, "coding") + Environment.NewLine;
-                string valueSet = e.Binding?.ValueSet ?? "url";
-                pathInfo += GetPostionStar(cnt + 2, "system") + " = " + "\"" + valueSet + "\"" + Environment.NewLine;
-                pathInfo += GetPostionStar(cnt + 2, "code") + " = " + GetStagingApplyModel(path) + Environment.NewLine;
-                //pathInfo += GetPostionStar(cnt + 2, "display") + " = " + Environment.NewLine;
-                codeIndex = i;
-            }
-            else if (type == "string" && e.Binding == null)
-            {
-                pathInfo += " = ";
-                pathInfo += GetStagingApplyModel(path) + Environment.NewLine;
-            }
-            /*
-            else if (type == "boolean" && e.Binding == null)
-            {
-                pathInfo += " = ";
-                pathInfo += GetStagingApplyModel(path) + Environment.NewLine;
-            }
-            else if (type == "integer" && e.Binding == null)
-            {
-                pathInfo += " = ";
-                pathInfo += GetStagingApplyModel(path) + Environment.NewLine;
-            }
-            else if (type == "decimal" && e.Binding == null)
-            {
-                pathInfo += " = ";
-                pathInfo += GetStagingApplyModel(path) + Environment.NewLine;
-            }
-            */
-
-            //else{
-            //    if(ncnt <= cnt) pathInfo += " = ";
-            //}
-
-            if (e.Pattern != null)
-            {
-                string typePattern = e.Pattern.TypeName ?? string.Empty;
-                if (typePattern == "CodeableConcept")
-                {
-                    var pattern = e.Pattern as CodeableConcept;
-                    if (pattern != null)
-                    {
-                        pathInfo += Environment.NewLine;
-                        foreach (var coding in pattern.Coding)
-                        {
-                            pathInfo += GetPostionStar(cnt + 1, "coding") + Environment.NewLine;
-                            pathInfo += GetPostionStar(cnt + 2, "system") + " = " + "\"" + coding.System + "\"" + Environment.NewLine;
-                            pathInfo += GetPostionStar(cnt + 2, "code") + " = " + "\"" + coding.Code + "\"" + Environment.NewLine;
-                            //pathInfo += GetPostionStar(cnt + 2, "display") + " = " + "\"" + coding.Display + "\"" + Environment.NewLine;
-                        }
-                    }
-                    else
-                    {
-                        MessageBox.Show("CodeableConcept is not supported yet.");
-                    }
-                }
-                else
-                {
-                    string pattern = e.Pattern != null ? e.Pattern.ToString() ?? string.Empty : string.Empty;
-                    pathInfo += " = \"" + pattern + "\"";
-                }
-            }
-
-            Tuple<string, string, string> fumeTuple = new Tuple<string, string, string>(pathInfo, type, pathOri);
-            fumeTupleList.Add(fumeTuple);
-        }
-        foreach (var fumeTuple in fumeTupleList)
-        {
-            txtMsg.Text += fumeTuple.Item2 + " ### " + fumeTuple.Item3 + Environment.NewLine;
-        }
-        fumeTupleList = CleanFumeTupleList(fumeTupleList);
-        foreach (var fumeTuple in fumeTupleList)
-        {
-            fume += fumeTuple.Item1;
-
-            if (fumeTuple.Item1.EndsWith(Environment.NewLine) == false) fume += Environment.NewLine;
-            txtMsg.Text += fumeTuple.Item2 + " ### " + fumeTuple.Item3 + Environment.NewLine;
-        }
-        return fume;
-    }
-
+    
     private List<Tuple<string, string, string>> CleanFumeTupleList(List<Tuple<string, string, string>> fumeTupleList)
     {
         // Clean up the fumeTupleList
@@ -2248,75 +2217,32 @@ public partial class FormIGAnalyzer : Form
     {
 
     }
-
     private void btnFUME_Click(object sender, EventArgs e)
     {
-        StructureMap sm = new StructureMap();
-        //add id
-        sm.Id = lbStaging.SelectedItem?.ToString() ?? string.Empty;
-        sm.Meta = new Meta();
+        // read FUME template from  D:\Hongyu\Project\data\IGAnalyzer\fume\template.json
+        string fumeTemplate = File.ReadAllText(@"D:\Hongyu\Project\data\IGAnalyzer\fume\template.json");
 
-        sm.Meta.VersionId = "1.0";
-        sm.Meta.LastUpdated = DateTimeOffset.Now;
+        // Deserialize the JSON string to a FHIR resource
+        StructureMap map = new FhirJsonParser().Parse<StructureMap>(fumeTemplate);
 
-        sm.Url = "http://tmhtc.net/StructureMap/" + sm.Id;
-        sm.Name = lbStaging.SelectedItem?.ToString() ?? string.Empty;
-        sm.Title = lbStaging.SelectedItem?.ToString() ?? string.Empty;
-        sm.Status = PublicationStatus.Active;
-        sm.Description = "HIS資料轉換，來源為Staging資料";
-        sm.Purpose = "簡易型FHIR Gateway";
-
-        sm.Date = DateTimeOffset.Now.ToString("o");
-
-        sm.UseContext = new List<UsageContext>();
-        UsageContext uc = new UsageContext();
-        CodeableConcept cc = new CodeableConcept();
-
-        Coding coding = new Coding();
-        coding.System = "http://snomed.info/sct";
-        coding.Code = "706594005";
-        coding.Display = "Information system software";
-        cc.Coding.Add(coding);
-
-        uc.Code = cc.Coding.FirstOrDefault();
-
-
-
-        sm.Group = new List<StructureMap.GroupComponent>();
-
-        StructureMap.GroupComponent group = new StructureMap.GroupComponent();
-        group.Name = "test";
-        group.Rule = new List<StructureMap.RuleComponent>();
-        StructureMap.RuleComponent rule = new StructureMap.RuleComponent();
-
-        rule.Name = "test";
-        rule.Source = new List<StructureMap.SourceComponent>();
-        StructureMap.SourceComponent source = new StructureMap.SourceComponent();
-        source.Context = "input";
-
-        rule.Source.Add(source);
-
-        rule.Extension = new List<Extension>();
-        Extension ext = new Extension();
-
-        ext.Url = "http://hl7.org/fhir/StructureDefinition/StructureMap-structure";
-
-
+        map.Id = lbStaging.SelectedItem?.ToString() ?? string.Empty;
+        map.Id = map.Id.Replace("-", "");
 
         var expression = new Expression();
         expression.Language = "application/vnd.outburn.fume";
         expression.Expression_ = txtFume.Text;
-        ext.Value = expression;
 
-        rule.Extension.Add(ext);
+        var meta = new Meta();
+        meta.VersionId = "1.0";
+        meta.LastUpdated = DateTimeOffset.Now;
+        meta.Source = "http://tmhtc.net/StructureMap/" + map.Id;
+        map.Meta = meta;
 
-        group.Rule.Add(rule);
-        sm.Group.Add(group);
-
+        // Add the expression to the StructureMap
+        map.Group[0].Rule[0].Extension[0].Value = expression;
         // Serialize the StructureMap to JSON
-        var json = new FhirJsonSerializer(new SerializerSettings() { Pretty = true }).SerializeToString(sm);
+        var json = new FhirJsonSerializer(new SerializerSettings() { Pretty = true }).SerializeToString(map);
         txtFHIRData.Text = json;
-
     }
 
     private async void btnSaveFHIR_Click(object sender, EventArgs e)
