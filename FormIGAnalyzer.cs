@@ -32,6 +32,8 @@ public partial class FormIGAnalyzer : Form
     private List<string> profiles = new List<String>();
     private List<string> bundles = new List<String>();
 
+
+    //sliceList == <profileName, path, slice>   
     private List<Tuple<string, string, string>> slicingList = new List<Tuple<string, string, string>>();
 
     private string profileDirectory = "profiles\\";
@@ -359,11 +361,11 @@ public partial class FormIGAnalyzer : Form
     {
         string q3 = igPath;
         if (q3.Contains("基因突變類型")) q3 = "component.interpretation";
-        if (q3 == "item.quantity.unit")q3 = "item.quantity.code";
+        if (q3 == "item.quantity.unit") q3 = "item.quantity.code";
         if (q3 == "dosageInstruction.doseAndRate.doseQuantity.unit") q3 = "dosageInstruction.doseAndRate.doseQuantity.code";
         if (q3 == "ingredient.quantity.numerator.unit") q3 = "ingredient.quantity.numerator.code";
         if (q3 == "contnet.url") q3 = "content.url";
-    
+
         return q3;
     }
 
@@ -555,7 +557,7 @@ public partial class FormIGAnalyzer : Form
     private string GetElementSlicing(ElementDefinition element)
     {
         string slice = string.Empty;
-        if (element.Type.Count > 1 )
+        if (element.Type.Count > 1)
         {
             slice += "Type : ";
             foreach (var sliceType in element.Type)
@@ -565,12 +567,12 @@ public partial class FormIGAnalyzer : Form
 
         }
 
-        if(element.Slicing != null)
+        if (element.Slicing != null)
         {
             slice += "Slicing : ";
             foreach (var s in element.Slicing.Discriminator)
             {
-                slice += s.Path + " | ";
+                slice += s.Path + " , " + (s.Type.HasValue ? s.Type.Value.ToString() : string.Empty) + " | ";
             }
         }
 
@@ -578,8 +580,8 @@ public partial class FormIGAnalyzer : Form
         {
             slice = slice.Substring(0, slice.Length - 3);
         }
-        
-        
+
+
         return slice;
     }
 
@@ -618,7 +620,7 @@ public partial class FormIGAnalyzer : Form
                     string path = q.Item3;
                     string rule = GetRuleByPath(path);
                     if (path.Contains("where"))
-                    {      
+                    {
                         path = path.Replace(".where" + "(" + rule + ")", "");
                     }
                     else if (path.Contains("(") && path.Contains(")"))
@@ -716,7 +718,7 @@ public partial class FormIGAnalyzer : Form
             }
         }
         */
-        if(rule.EndsWith(")"))
+        if (rule.EndsWith(")"))
         {
             rule = rule.Substring(0, rule.Length - 1);
         }
@@ -1149,7 +1151,7 @@ public partial class FormIGAnalyzer : Form
                 string profile = lvApplyModel.SelectedItems[0].SubItems[2].Text;
                 string path = lvApplyModel.SelectedItems[0].SubItems[3].Text;
                 string slice = GetSlicingByProfilePath(profile, path);
-                
+
                 if (slice != string.Empty && slice.StartsWith("Type"))
                 {
                     slice = slice.Replace("Type : ", "").Trim();
@@ -1394,7 +1396,7 @@ public partial class FormIGAnalyzer : Form
                     string path = q.Item3;
                     string rule = GetRuleByPath(path);
                     if (path.Contains("where"))
-                    {      
+                    {
                         path = path.Replace(".where" + "(" + rule + ")", "");
                     }
                     // remove content after the first "("  
@@ -1402,7 +1404,7 @@ public partial class FormIGAnalyzer : Form
                     {
                         path = path.Substring(0, path.IndexOf("("));
                     }
-                    
+
                     item.SubItems.Add(path);
                     item.SubItems.Add(q.Item4);
                     item.SubItems.Add(rule);
@@ -1715,7 +1717,7 @@ public partial class FormIGAnalyzer : Form
     {
         string applyModel = string.Empty;
 
-        
+
         string itemRule = string.Empty;
         foreach (ListViewItem item in lvStaging.Items)
         {
@@ -1730,7 +1732,7 @@ public partial class FormIGAnalyzer : Form
             }
         }
         applyModel = applyModel.Replace(".", "");
-        
+
         return applyModel;
     }
 
@@ -1824,10 +1826,10 @@ public partial class FormIGAnalyzer : Form
             // GetPostionStar前必須修正path名稱才能得到正確FHIR Data所需要的Element呈現方式
             if (path.EndsWith("[x]"))
             {
-                if (type == "dateTime")path = path.Replace("[x]", "") + "DateTime";
-                else if (type == "Period")path = path.Replace("[x]", "") + "Period";
-                else if (type == "Quantity")path = path.Replace("[x]", "") + "Quantity";
-                else if (type == "CodeableConcept") path = path.Replace("[x]", "") +  "CodeableConcept";
+                if (type == "dateTime") path = path.Replace("[x]", "") + "DateTime";
+                else if (type == "Period") path = path.Replace("[x]", "") + "Period";
+                else if (type == "Quantity") path = path.Replace("[x]", "") + "Quantity";
+                else if (type == "CodeableConcept") path = path.Replace("[x]", "") + "CodeableConcept";
                 else if (type == "string") path = "valueString";
                 else if (type == "integer") path = "valueInteger";
                 else if (type == "decimal") path = "valueDecimal";
@@ -1853,7 +1855,7 @@ public partial class FormIGAnalyzer : Form
             Tuple<string, string, string> fumeTuple = new Tuple<string, string, string>(pathInfo, type, e.Path);
             fumeListTuple.Add(fumeTuple);
         }
-        fumeListTuple = CleanFumeTupleList(fumeListTuple);
+        fumeListTuple = CleanFumeTupleList(fumeListTuple); // ==> 問題可能是Slicing所造成，先取消操作
         fumeListTuple = RefineFUME(fumeListTuple);
         fumeListTuple = GetFUMEPattern(sd, fumeListTuple);
         fumeListTuple = GetFUMECodeable(profileName, fumeListTuple);
@@ -1861,6 +1863,7 @@ public partial class FormIGAnalyzer : Form
         fumeListTuple = GetFUMEPeriod(fumeListTuple);
         fumeListTuple = GetFUMECoding(fumeListTuple);
         fumeListTuple = GetFUMEValue(fumeListTuple);
+        fumeListTuple = GetFUMESlice(fumeListTuple);
         //fumeListTuple = GetFUMEValueWithRule(fumeListTuple);
 
         foreach (var fume in fumeListTuple)
@@ -1868,10 +1871,73 @@ public partial class FormIGAnalyzer : Form
             fume2 += fume.Item1 + Environment.NewLine;
             fumeDetail += fume.Item1 + " __ [" + fume.Item2 + "]" + " __ [" + fume.Item3 + "]" + Environment.NewLine;
         }
-        txtFHIRData.Text = fumeDetail;
+        //txtFHIRData.Text = fumeDetail;
         return fume2;
     }
+    /*
+        private List<string> CtreateFumeSlice(string profileName, string path)
+        {
+            List<string> sliceList = new List<string>();
+            StructureDefinition sd = new StructureDefinition();
+            sd = GetStructureDefinition(profileName).Result;
 
+
+            return sliceList;
+        }
+        */
+    private List<Tuple<string, string, string>> GetFUMESlice(List<Tuple<string, string, string>> fumeListTuple)
+    {
+        List<Tuple<string, string, string>> sliceFUME = new List<Tuple<string, string, string>>();
+        string profileName = lbStaging.SelectedItem?.ToString()?.Split('|')[0].Trim() ?? string.Empty;
+        List<Tuple<string, string>> profileSliceList = new List<Tuple<string, string>>();
+        //txtMsg.Text = string.Empty;
+        foreach (var s in slicingList)
+        {
+            string profile = s.Item1;
+            string path = s.Item2;
+            string slice = s.Item3;
+            if (profile == profileName)
+            {
+                profileSliceList.Add(new Tuple<string, string>(path, slice));
+            }
+        }
+
+        for (int i = 0; i < fumeListTuple.Count; i++)
+        {
+            var fume = fumeListTuple[i];
+            var fumeInfo = fume.Item1;
+            var type = fume.Item2;
+            var path = fume.Item3;
+            List<string> pathList = path.Split(".").ToList();
+            pathList.RemoveAt(0);
+            path = string.Join(".", pathList);
+            path = path.Replace("[x]", "");
+            bool isSlice = false;
+            if (profileSliceList.Count > 0)
+            {
+                foreach (var s in profileSliceList)
+                {
+                    if (path.Contains(s.Item1))
+                    {
+                        isSlice = true;
+                        txtMsg.Text = txtMsg.Text + "Slice: " + s.Item2 + "  Path: " + fume.Item3 + Environment.NewLine;
+                    }
+                }
+            }
+            if (isSlice == true)
+            {
+                string fumeSInfo = "S" + fume.Item1;
+                Tuple<string, string, string> sliceTuple = new Tuple<string, string, string>(fumeSInfo, type, fume.Item3);
+                //sliceFUME.Add(sliceTuple);
+            }
+            else
+            {
+                sliceFUME.Add(fume);
+            }
+        }
+        CreateFUMESlice("Claim-twpas","supportingInfo");
+        return sliceFUME;
+    }
     private List<Tuple<string, string, string>> GetFUMECoding(List<Tuple<string, string, string>> fumeListTuple)
     {
         List<Tuple<string, string, string>> codingFUME = new List<Tuple<string, string, string>>();
@@ -1907,7 +1973,7 @@ public partial class FormIGAnalyzer : Form
                 }
                 else
                 {
-                    
+
                 }
             }
             else
@@ -1917,7 +1983,7 @@ public partial class FormIGAnalyzer : Form
         }
         return codingFUME;
     }
-    
+
     private List<Tuple<string, string, string>> GetFUMEPeriod(List<Tuple<string, string, string>> fumeListTuple)
     {
         List<Tuple<string, string, string>> periodFUME = new List<Tuple<string, string, string>>();
@@ -2003,7 +2069,7 @@ public partial class FormIGAnalyzer : Form
                 }
                 else
                 {
-                    
+
                     for (int j = 1; j < cnt; j++)
                     {
                         path = fumeListTuple[i + j].Item3;
@@ -2014,7 +2080,7 @@ public partial class FormIGAnalyzer : Form
                         quantityFUME.Add(fumeTuple);
                     }
                     i = i + cnt - 1;
-                    
+
                 }
             }
             else
@@ -2086,7 +2152,7 @@ public partial class FormIGAnalyzer : Form
                         if (type == "code")
                         {
                             fumeInfo = fumeListTuple[j].Item1;
-                            Tuple<string, string, string> fumeTuple = new Tuple<string, string, string>(fumeInfo + " = " +  code  , type, path);
+                            Tuple<string, string, string> fumeTuple = new Tuple<string, string, string>(fumeInfo + " = " + code, type, path);
                             codeableFUME.Add(fumeTuple);
                         }
                         else if (type == "uri")
@@ -2095,7 +2161,7 @@ public partial class FormIGAnalyzer : Form
                             Tuple<string, string, string> fumeTuple = new Tuple<string, string, string>(fumeInfo, type, path);
                             if (fumeInfo.Contains("=") == false)
                             {
-                                 fumeTuple = new Tuple<string, string, string>(fumeInfo + " = " + "\"" + system + "\"", type, path);
+                                fumeTuple = new Tuple<string, string, string>(fumeInfo + " = " + "\"" + system + "\"", type, path);
                             }
                             codeableFUME.Add(fumeTuple);
                         }
@@ -2285,7 +2351,7 @@ public partial class FormIGAnalyzer : Form
                 {
                     valuedFUME.Add(fume);
                     continue;
-                } 
+                }
                 var updatedFume = new Tuple<string, string, string>(fume.Item1 + " = " + GetStagingApplyModel(path), fume.Item2, fume.Item3);
                 valuedFUME.Add(updatedFume);
             }
@@ -2306,15 +2372,15 @@ public partial class FormIGAnalyzer : Form
 
         StructureDefinition sd = new StructureDefinition();
         string profileName = lbStaging.SelectedItem != null ? lbStaging.SelectedItem.ToString() ?? string.Empty : string.Empty;
-        
+
         sd = GetStructureDefinition(profileName).Result;
         if (sd == null)
         {
             MessageBox.Show("Failed to resolve the StructureDefinition.");
             return ruleFUME;
         }
-        
-        for(int i = 0; i < fumeListTuple.Count; i++)
+
+        for (int i = 0; i < fumeListTuple.Count; i++)
         {
             var fume = fumeListTuple[i];
             string rule = "StructureDefinition.differential.element.where(path = '" + fume.Item3 + "')";
@@ -2354,7 +2420,7 @@ public partial class FormIGAnalyzer : Form
             if (isRule == false)
             {
                 ruleFUME.Add(fume);
-            }  
+            }
 
         }
         return ruleFUME;
@@ -2776,7 +2842,7 @@ public partial class FormIGAnalyzer : Form
         if (path.Contains("[x]"))
         {
             if (type == "dateTime") pathX = path.Replace("[x]", "") + "DateTime";
-            else if (type =="Reference") pathX = path + ".reference";
+            else if (type == "Reference") pathX = path + ".reference";
             else if (type == "string") pathX = path.Replace("[x]", "") + "String";
             else if (type == "integer") pathX = path.Replace("[x]", "") + "Integer";
             else if (type == "decimal") pathX = path.Replace("[x]", "") + "Decimal";
@@ -2786,7 +2852,7 @@ public partial class FormIGAnalyzer : Form
             else if (type == "code") pathX = path.Replace("[x]", "") + "Code";
             else if (type == "oid") pathX = path.Replace("[x]", "") + "Oid";
             else if (type == "uuid") pathX = path.Replace("[x]", "") + "Uuid";
-            
+
         }
         else
         {
@@ -2929,5 +2995,172 @@ public partial class FormIGAnalyzer : Form
             }
         }
     }
-           
+
+    List<string> CreateFUMESlice(string profileName, string pathSlice)
+    {
+
+        StructureDefinition sd = GetStructureDefinition(profileName).Result;
+
+        pathSlice = sd.Type + "." + pathSlice;
+        //string path = string.Empty;
+        int cnt = 0;
+        bool isSliceHeader = false;
+        string dpath = string.Empty;
+        string dtype = string.Empty;
+        string typeValue = string.Empty;
+        List<Tuple<string, string>> sliceTemplates = new List<Tuple<string, string>>();
+        List<string> sliceList = new List<string>();
+        for (int i = 0; i < sd.Differential.Element.Count; i++)
+        {
+            var e = sd.Differential.Element[i];
+
+            string path = e.Path;
+            string type = e.Type.FirstOrDefault()?.Code ?? string.Empty;
+            string name = e.SliceName;
+            string pattern = e.Pattern?.ToString() ?? string.Empty;
+            string max = e.Max ?? string.Empty;
+
+
+            if (max == "0") continue;
+
+            if (path.Contains(pathSlice))
+            {
+                if (e.Slicing != null)
+                {
+                    foreach (var d in e.Slicing.Discriminator)
+                    {
+                        dpath = d.Path;
+                        dtype = d.Type?.ToString() ?? string.Empty;
+                        isSliceHeader = true;
+                        continue;
+                    }
+                }
+
+                if (name != null && name != string.Empty)
+                {
+                    isSliceHeader = false;
+                    cnt++;
+                    //string fume = sliceList[0] + " = " + cnt.ToString();
+                }
+
+                List<string> pathList = new List<string>();
+                pathList = path.Split('.').ToList();
+                int level = pathList.Count - 2;
+                pathList.RemoveAt(0);
+                path = string.Join(".", pathList);
+                string sapce = new string(' ', level * 2);
+                path = sapce + "*" + path.Split(".").Last();
+
+                if (isSliceHeader)
+                {
+                    if (type == string.Empty)
+                    {
+                        string rule = "StructureDefinition.snapshot.element.where(path = '" + e.Path + "')";
+                        var obj = sd.Select(rule).FirstOrDefault() as ElementDefinition;
+                        if (obj != null && obj.Type != null && obj.Type.Any())
+                        {
+                            type = obj.Type.FirstOrDefault()?.Code ?? string.Empty;
+                        }
+                        else
+                        {
+                            type = string.Empty;
+                        }
+                    }
+                    Tuple<string, string> template = new Tuple<string, string>(path, type);
+                    sliceTemplates.Add(template);
+                }
+                else
+                {
+                    if (name != null && name != string.Empty)
+                    {
+                        string fume = path;
+                        sliceList.Add(fume);
+                        string pathTemplate = sliceTemplates[1].Item1;
+                        List<string> pathListTemplate = new List<string>();
+                        pathListTemplate = path.Split('.').ToList();
+                        pathListTemplate.RemoveAt(0);
+                        int levelTemplate = pathListTemplate.Count - 2;
+                        string sapceTemplate = new string(' ', level * 2);
+                        fume = pathTemplate + " = " + cnt.ToString();
+                        sliceList.Add(fume);
+                        typeValue = string.Empty;
+                    }
+                    else if (pattern != string.Empty)
+                    {
+                        string patternType = e.Pattern?.TypeName ?? string.Empty;
+                        if (patternType == "CodeableConcept")
+                        {
+                            var patternCodeableConcept = e.Pattern as CodeableConcept;
+                            if (patternCodeableConcept != null)
+                            {
+                                var codingObj = patternCodeableConcept.Coding.FirstOrDefault();
+                                string system = codingObj?.System ?? string.Empty;
+                                string code = codingObj?.Code ?? string.Empty;
+
+                                string fume = path;
+                                sliceList.Add(fume);
+
+                                string pathname = path.Replace("*", "").Trim();
+                                string coding = "  " + path.Replace(pathname, "coding");
+                                sliceList.Add(coding);
+                                string systemPath = "    " + path.Replace(pathname, "system") + " = " + system;
+                                string codePath = "    " + path.Replace(pathname, "code") + " = " + code;
+                                sliceList.Add(systemPath);
+                                sliceList.Add(codePath);
+                            }
+                        }
+                        else if (patternType == "Quantity")
+                        {
+
+                        }
+                        else
+                        {
+                            //pattern = pattern.Replace("\"", "");
+                            path = path.Replace("[x]", typeValue);
+
+                            string fume = path + " = " + pattern;
+                            sliceList.Add(fume);
+                        }
+                    }
+                    else if (type != string.Empty)
+                    {
+                        typeValue = type;
+                        // make first caracter of type to upper case
+                        type = char.ToUpper(type[0]) + type.Substring(1);
+                        path = path.Replace("[x]", type);
+                        string fume = path + " = " + type;
+                        sliceList.Add(fume);
+                        if(type == "Reference")
+                        {
+                            string pathname = path.Replace("*", "").Trim();
+                            string fumeReference  = "  "+ path.Replace(pathname, "reference");   
+                            sliceList.Add(fumeReference);
+                        }
+                    }
+                    else
+                    {
+                        if (typeValue != string.Empty)
+                        {
+                            path = path.Replace("[x]", typeValue);
+                            string fume = path + " = " + typeValue;
+                            sliceList.Add(fume);
+
+                        }
+                        else
+                        {
+                            string fume = path;
+                            sliceList.Add(fume);
+                        }
+                    }
+                }
+            }
+            string slice = string.Empty;
+            foreach (var s in sliceList)
+            {
+                slice += s + Environment.NewLine;
+            }
+            txtFHIRData.Text = slice;
+        }
+        return sliceList;
+    }
 }
