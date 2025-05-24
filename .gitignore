@@ -1,5 +1,4 @@
 # test data
-*.json 
 *.txt
 
 # BlueJ files
@@ -17,5 +16,8 @@
 *.exe
 
 #build directory
-bin/
-obj/
+bin*
+obj/*
+.vs/IGAnalyzer/CopilotIndices/*
+bin/Debug/net9.0-windows/*.dll
+
