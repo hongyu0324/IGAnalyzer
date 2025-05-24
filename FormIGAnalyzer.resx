@@ -124,15 +124,6 @@
     <value>181, 17</value>
   </metadata>
   <metadata name="$this.TrayHeight" type="System.Int32, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>323</value>
+    <value>83</value>
   </metadata>
-  <data name="DataDirectory" type="System.String, mscorlib">
-    <value>D:\Hongyu\Project\data\IGAnalyzer\</value>
-  </data>
-  <data name="IGName" type="System.String, mscorlib">
-    <value>pas</value>
-  </data>
-  <data name="FHIRServer" type="System.String, mscorlib">
-    <value>http://localhost:8080/fhir/</value>
-  </data>
 </root>

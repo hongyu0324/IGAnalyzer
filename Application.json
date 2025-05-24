@@ -1,0 +1,5 @@
+{
+    "DataDirectory" : "D:\\Hongyu\\Project\\data\\IGAnalyzer\\",
+    "FHIRServer": "http://localhost:8080/fhir",
+    "IGName": "pas"
+}

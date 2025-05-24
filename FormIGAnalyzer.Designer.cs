@@ -65,7 +65,11 @@ partial class FormIGAnalyzer : Form
         lvStaging = new ListView();
         splitContainer3 = new SplitContainer();
         splitContainer4 = new SplitContainer();
+        btnConfirm = new Button();
+        btnStagingSave = new Button();
+        btnStagingLoad = new Button();
         txtStaging = new TextBox();
+        lbFUME = new ListBox();
         btnFUME = new Button();
         btnFHIRData = new Button();
         txtFume = new TextBox();
@@ -98,9 +102,7 @@ partial class FormIGAnalyzer : Form
         rbDifferential = new RadioButton();
         rbSnapshot = new RadioButton();
         rbApplyModel = new RadioButton();
-        btnStagingLoad = new Button();
-        btnStagingSave = new Button();
-        btnConfirm = new Button();
+        tabIGList = new TabPage();
         tabIG.SuspendLayout();
         tabProfile.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)splitContainer8).BeginInit();
@@ -206,6 +208,7 @@ partial class FormIGAnalyzer : Form
         tabIG.Controls.Add(tabBundle);
         tabIG.Controls.Add(tabMsg);
         tabIG.Controls.Add(tabConfiguration);
+        tabIG.Controls.Add(tabIGList);
         tabIG.Location = new Point(12, 65);
         tabIG.Name = "tabIG";
         tabIG.SelectedIndex = 0;
@@ -527,6 +530,9 @@ partial class FormIGAnalyzer : Form
         lvStaging.TabIndex = 0;
         lvStaging.UseCompatibleStateImageBehavior = false;
         lvStaging.View = View.Details;
+        //lvStaging.SelectedIndexChanged += lvStaging_SelectedIndexChanged;
+        lvStaging.Click += lvStaging_SelectedIndexChanged;
+        lvStaging.DoubleClick += lvStaging_DoubleClick;
         // 
         // splitContainer3
         // 
@@ -562,12 +568,42 @@ partial class FormIGAnalyzer : Form
         // 
         // splitContainer4.Panel2
         // 
+        splitContainer4.Panel2.Controls.Add(lbFUME);
         splitContainer4.Panel2.Controls.Add(btnFUME);
         splitContainer4.Panel2.Controls.Add(btnFHIRData);
         splitContainer4.Panel2.Controls.Add(txtFume);
         splitContainer4.Size = new Size(391, 253);
         splitContainer4.SplitterDistance = 140;
         splitContainer4.TabIndex = 0;
+        // 
+        // btnConfirm
+        // 
+        btnConfirm.Location = new Point(3, 13);
+        btnConfirm.Name = "btnConfirm";
+        btnConfirm.Size = new Size(112, 34);
+        btnConfirm.TabIndex = 3;
+        btnConfirm.Text = "檢查";
+        btnConfirm.UseVisualStyleBackColor = true;
+        btnConfirm.Click += btnConfirm_Click;
+        // 
+        // btnStagingSave
+        // 
+        btnStagingSave.Location = new Point(266, 13);
+        btnStagingSave.Name = "btnStagingSave";
+        btnStagingSave.Size = new Size(112, 34);
+        btnStagingSave.TabIndex = 2;
+        btnStagingSave.Text = "儲存";
+        btnStagingSave.UseVisualStyleBackColor = true;
+        // 
+        // btnStagingLoad
+        // 
+        btnStagingLoad.Location = new Point(121, 13);
+        btnStagingLoad.Name = "btnStagingLoad";
+        btnStagingLoad.Size = new Size(112, 34);
+        btnStagingLoad.TabIndex = 1;
+        btnStagingLoad.Text = "修正";
+        btnStagingLoad.UseVisualStyleBackColor = true;
+        btnStagingLoad.Click += btnStagingLoad_Click;
         // 
         // txtStaging
         // 
@@ -580,6 +616,18 @@ partial class FormIGAnalyzer : Form
         txtStaging.Size = new Size(391, 87);
         txtStaging.TabIndex = 0;
         txtStaging.TextChanged += textBox1_TextChanged;
+        // 
+        // lbFUME
+        // 
+        lbFUME.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+        lbFUME.BorderStyle = BorderStyle.FixedSingle;
+        lbFUME.FormattingEnabled = true;
+        lbFUME.Location = new Point(0, 0);
+        lbFUME.Name = "lbFUME";
+        lbFUME.ScrollAlwaysVisible = true;
+        lbFUME.Size = new Size(391, 71);
+        lbFUME.TabIndex = 3;
+        lbFUME.DoubleClick += lbFUME_DoubleClick;
         // 
         // btnFUME
         // 
@@ -605,7 +653,7 @@ partial class FormIGAnalyzer : Form
         // 
         // txtFume
         // 
-        txtFume.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+        txtFume.Anchor = AnchorStyles.None;
         txtFume.BorderStyle = BorderStyle.FixedSingle;
         txtFume.Location = new Point(3, -1);
         txtFume.Multiline = true;
@@ -613,6 +661,7 @@ partial class FormIGAnalyzer : Form
         txtFume.ScrollBars = ScrollBars.Both;
         txtFume.Size = new Size(385, 71);
         txtFume.TabIndex = 0;
+        txtFume.Visible = false;
         // 
         // btnSaveFHIR
         // 
@@ -919,37 +968,14 @@ partial class FormIGAnalyzer : Form
         rbApplyModel.Visible = false;
         rbApplyModel.CheckedChanged += lbProfile_SelectedIndexChanged;
         // 
-        // btnStagingLoad
+        // tabIGList
         // 
-        btnStagingLoad.Location = new Point(121, 13);
-        btnStagingLoad.Name = "btnStagingLoad";
-        btnStagingLoad.Size = new Size(112, 34);
-        btnStagingLoad.TabIndex = 1;
-        btnStagingLoad.Text = "修正";
-        btnStagingLoad.UseVisualStyleBackColor = true;
-        btnStagingLoad.Anchor = AnchorStyles.Top | AnchorStyles.Left;
-        btnStagingLoad.Click += btnStagingLoad_Click;
-        // 
-        // btnStagingSave
-        // 
-        btnStagingSave.Location = new Point(266, 13);
-        btnStagingSave.Name = "btnStagingSave";
-        btnStagingSave.Size = new Size(112, 34);
-        btnStagingSave.TabIndex = 2;
-        btnStagingSave.Text = "儲存";
-        btnStagingSave.UseVisualStyleBackColor = true;
-        btnStagingSave.Anchor = AnchorStyles.Top | AnchorStyles.Left;
-        // 
-        // btnConfirm
-        // 
-        btnConfirm.Anchor = AnchorStyles.Top | AnchorStyles.Left;
-        btnConfirm.Location = new Point(3, 13);
-        btnConfirm.Name = "btnConfirm";
-        btnConfirm.Size = new Size(112, 34);
-        btnConfirm.TabIndex = 3;
-        btnConfirm.Text = "檢查";
-        btnConfirm.UseVisualStyleBackColor = true;
-        btnConfirm.Click += btnConfirm_Click;
+        tabIGList.Location = new Point(4, 32);
+        tabIGList.Name = "tabIGList";
+        tabIGList.Size = new Size(937, 365);
+        tabIGList.TabIndex = 7;
+        tabIGList.Text = "IG List";
+        tabIGList.UseVisualStyleBackColor = true;
         // 
         // FormIGAnalyzer
         // 
@@ -1116,4 +1142,6 @@ partial class FormIGAnalyzer : Form
     private Button btnConfirm;
     private Button btnStagingSave;
     private Button btnStagingLoad;
+    private ListBox lbFUME;
+    private TabPage tabIGList;
 }

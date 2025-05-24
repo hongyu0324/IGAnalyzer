@@ -46,10 +46,10 @@ public partial class FormIGAnalyzer : Form
 
     //private string fumeDirectory = "fume\\";
 
-    
+
     private string dataDirectory = string.Empty;
     private string fhirServer = string.Empty;
-    
+
     private FhirClient? client;
     private string applyModel = "";
     public FormIGAnalyzer()
@@ -70,7 +70,7 @@ public partial class FormIGAnalyzer : Form
         //string defaultProfilePath = Path.Combine(txtDataDirectory.Text, profileDirectory, "default-profile.json");
         // Assuming Application.json is in the same directory as the executable
         string defaultProfilePath = Path.Combine(Application.StartupPath, "Application.json");
-       
+
 
         if (!File.Exists(defaultProfilePath))
         {
@@ -112,13 +112,13 @@ public partial class FormIGAnalyzer : Form
             {
                 MessageBox.Show("FHIRServer not found in the default profile.");
             }
-            
+
         }
         catch (Exception ex)
         {
             MessageBox.Show("Error reading default profile: " + ex.Message);
         }
-       
+
     }
 
     private void Initial()
@@ -1915,10 +1915,11 @@ public partial class FormIGAnalyzer : Form
         fumeListTuple = GetFUMEValue(fumeListTuple);
         fumeListTuple = GetFUMESlice(fumeListTuple);
         //fumeListTuple = GetFUMEValueWithRule(fumeListTuple);
-
+        lbFUME.Items.Clear();
         foreach (var fume in fumeListTuple)
         {
             fume2 += fume.Item1 + Environment.NewLine;
+            lbFUME.Items.Add(fume.Item1);
             fumeDetail += fume.Item1 + "[" + fume.Item2 + "]" + "[" + fume.Item3 + "]" + Environment.NewLine;
         }
         txtFHIRData.Text = fumeDetail;
@@ -1984,13 +1985,13 @@ public partial class FormIGAnalyzer : Form
                     if (path == s.Item1 && isAdded == false)
                     {
                         List<Tuple<string, string, string>> sliceList = CreateFUMESlice(profileName, path);
-                        sliceList = GetFUMESliceValue(sliceList,path);
+                        sliceList = GetFUMESliceValue(sliceList, path);
                         sliceFUME.AddRange(sliceList);
                         isAdded = true;
                     }
                     if (path.Contains(s.Item1))
                     {
-                        isSlice = true;                         
+                        isSlice = true;
                     }
                 }
             }
@@ -2020,7 +2021,7 @@ public partial class FormIGAnalyzer : Form
         for (int i = 0; i < lvStaging.Items.Count; i++)
         {
             string pathItem = lvStaging.Items[i].SubItems[2].Text.Trim();
-            if(pathItem.Contains(path) == false) continue;
+            if (pathItem.Contains(path) == false) continue;
 
             string rule = lvStaging.Items[i].SubItems[4].Text.Trim();
             string applyModel = lvStaging.Items[i].SubItems[1].Text;
@@ -2080,7 +2081,7 @@ public partial class FormIGAnalyzer : Form
             }
         }
 
-        return sliceFUME; 
+        return sliceFUME;
     }
     private List<Tuple<string, string, string>> GetFUMESliceValue2(List<Tuple<string, string, string>> fumeListTuple)
     {
@@ -3173,7 +3174,18 @@ public partial class FormIGAnalyzer : Form
         }
     }
 
-    List<Tuple<string,string,string>> CreateFUMESlice(string profileName, string pathSlice)
+    private string RemoveFistPart(string path)
+    {
+        // Remove the first part of the path
+        if (path.Contains("."))
+        {
+            List<string> pathList = path.Split('.').ToList();
+            pathList.RemoveAt(0);
+            path = string.Join(".", pathList);
+        }
+        return path;
+    }
+    List<Tuple<string, string, string>> CreateFUMESlice(string profileName, string pathSlice)
     {
 
         StructureDefinition sd = GetStructureDefinition(profileName).Result;
@@ -3189,7 +3201,7 @@ public partial class FormIGAnalyzer : Form
         string nameX = string.Empty;
         List<Tuple<string, string>> sliceTemplates = new List<Tuple<string, string>>();
         List<Tuple<string, string, string>> sliceFume = new List<Tuple<string, string, string>>();
-        
+
         for (int i = 0; i < sd.Differential.Element.Count; i++)
         {
             var e = sd.Differential.Element[i];
@@ -3199,7 +3211,6 @@ public partial class FormIGAnalyzer : Form
             string name = e.SliceName;
             string pattern = e.Pattern?.ToString() ?? string.Empty;
             string max = e.Max ?? string.Empty;
-
 
             if (max == "0") continue;
 
@@ -3251,6 +3262,18 @@ public partial class FormIGAnalyzer : Form
                 }
                 else
                 {
+                    /*
+                    * supportingInfo[BackboneElement][Claim.supportingInfo]  ==> name != null && name != string.Empty
+                        * sequence = 1[positiveInt][Claim.supportingInfo]    ==> name != null && name != string.Empty
+                        * category[CodeableConcept][Claim.supportingInfo.category] ==> pattern != string.Empty
+                            * coding[Coding][Claim.supportingInfo.category.coding]
+                            * system = "https://twcore.mohw.gov.tw/ig/pas/CodeSystem/nhi-supporting-info-type"[uri][Claim.supportingInfo.category.coding.system]
+                            * code = "weight"[code][Claim.supportingInfo.category.coding.code]
+                        * valueQuantity[Quantity][Claim.supportingInfo.valueQuantity] ==> typeValue != string.Empty
+                            * value = patientweight[Quantity][Claim.supportingInfo.valueQuantity.value]  typeValue != string.Empty
+                            * system = "http://unitsofmeasure.org"[][Claim.supportingInfo.value[x].system] typeValue == string.Empty
+                            * code = "kg"[][Claim.supportingInfo.value[x].code] typeValue == string.Empty
+                    */
                     if (name != null && name != string.Empty)
                     {
                         string fume = path;
@@ -3298,7 +3321,7 @@ public partial class FormIGAnalyzer : Form
                                 sliceFume.Add(fumeTuple);
 
                                 string codePath = "    " + path.Replace(pathname, "code") + " = " + "\"" + code + "\"";
-            
+
                                 fumeTuple = new Tuple<string, string, string>(codePath, "code", e.Path + ".coding.code");
                                 sliceFume.Add(fumeTuple);
 
@@ -3337,14 +3360,14 @@ public partial class FormIGAnalyzer : Form
                             string pathname = path.Replace("*", "").Trim();
                             string fumeReference = "  " + path.Replace(pathname, "reference");
                             //fumeReference = fumeReference + " : " + pathX + " = " + "'" + nameX + "'";
-                            
+
                             fumePath = e.Path.Replace("[x]", type);
                             fumeTuple = new Tuple<string, string, string>(fumeReference, "Reference", fumePath + ".reference");
                             sliceFume.Add(fumeTuple);
                         }
                     }
                     else
-                    { 
+                    {
                         if (typeValue != string.Empty)
                         {
                             path = path.Replace("[x]", typeValue);
@@ -3371,5 +3394,85 @@ public partial class FormIGAnalyzer : Form
             txtFHIRData.Text = slice;
         }
         return sliceFume;
+    }
+
+    private void lbFUME_DoubleClick(object sender, EventArgs e)
+    {
+        // Get the selected item
+        string selectedItem = lbFUME.SelectedItem?.ToString() ?? string.Empty;
+        if (string.IsNullOrEmpty(selectedItem))
+        {
+            MessageBox.Show("Please select a FUME item.");
+            return;
+        }
+        else
+        {
+            MessageBox.Show("Selected FUME item: " + selectedItem);
+        }
+    }
+    private void lvStaging_DoubleClick(object sender, EventArgs e)
+    {
+
+
+    }
+    
+    private void lvStaging_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        // show the selected item in the text box
+        if (lvStaging.SelectedItems.Count > 0)
+        {
+            ListViewItem item = lvStaging.SelectedItems[0];
+            string applyModel = item.SubItems[1].Text;
+            for (int i = 0; i < lbFUME.Items.Count; i++)
+            {
+                var itemFUME = lbFUME.Items[i];
+                string? fume = itemFUME?.ToString();
+                if (!string.IsNullOrEmpty(fume))
+                {
+                    if (fume.Contains(applyModel))
+                    {
+                        lbFUME.SelectedItem = itemFUME;
+                        string staging = txtStaging.Text;
+                        int index = staging.IndexOf(applyModel);
+                        if (index >= 0)
+                        {
+                            txtStaging.SelectionStart = index-1;
+                            txtStaging.SelectionLength = applyModel.Length;
+                            txtStaging.ScrollToCaret();
+                            // get the following text after the applyModel
+                            string followingText = txtStaging.Text.Substring(index + applyModel.Length);
+                            // Find the next line break after the applyModel
+                            int nextLineBreak = followingText.IndexOf(Environment.NewLine);
+                            if (nextLineBreak >= 0)
+                            {
+                                // Select the text until the next line break
+                                txtStaging.SelectionLength += nextLineBreak + Environment.NewLine.Length;
+                            }
+                            else
+                            {
+                                // Select until the end of the text
+                                txtStaging.SelectionLength = txtStaging.Text.Length - index;
+                            }
+                            // Set focus to the txtStaging
+                            txtStaging.Focus();
+                        }
+                        else
+                        {
+                            txtStaging.SelectionStart = 0;
+                            txtStaging.SelectionLength = 0;
+                        }
+                        break;
+                    }
+                    else
+                    {
+                        lbFUME.SelectedItem = null;
+                    }
+                }
+            }
+        }
+        else
+        {
+            lbFUME.SelectedItem = null;
+        }
     }
 }
