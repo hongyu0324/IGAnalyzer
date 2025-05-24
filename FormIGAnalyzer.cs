@@ -46,18 +46,17 @@ public partial class FormIGAnalyzer : Form
 
     //private string fumeDirectory = "fume\\";
 
-    private ResourceManager rm = new ResourceManager("IGAnalyzer.FormIGAnalyzer", typeof(FormIGAnalyzer).Assembly);
-
+    
+    private string dataDirectory = string.Empty;
+    private string fhirServer = string.Empty;
+    
     private FhirClient? client;
     private string applyModel = "";
     public FormIGAnalyzer()
     {
         InitializeComponent();
-        igName = rm.GetString("IGName") ?? string.Empty;
-        igName = "pas";
-        profileDirectory = "D:\\Hongyu\\Project\\data\\IGAnalyzer";
-        //read profilePath from resource From IGAnalyzer.Properties.Resources
-        txtDataDirectory.Text = rm.GetString("DataDirectory") ?? string.Empty;
+        ReadDefaultProfile();
+
         profilePath = txtDataDirectory.Text + profileDirectory + igName;
         profileName = "https://twcore.mohw.gov.tw/ig/" + igName + "/StructureDefinition";
         FormListView form = new FormListView();
@@ -66,7 +65,60 @@ public partial class FormIGAnalyzer : Form
 
     private void ReadDefaultProfile()
     {
+        // Read the default profile from the Application.json file
 
+        //string defaultProfilePath = Path.Combine(txtDataDirectory.Text, profileDirectory, "default-profile.json");
+        // Assuming Application.json is in the same directory as the executable
+        string defaultProfilePath = Path.Combine(Application.StartupPath, "Application.json");
+       
+
+        if (!File.Exists(defaultProfilePath))
+        {
+            MessageBox.Show("Default profile file not found: " + defaultProfilePath);
+            return;
+        }
+        try
+        {
+            string jsonContent = File.ReadAllText(defaultProfilePath);
+            var defaultProfile = JsonConvert.DeserializeObject<Dictionary<string, string>>(jsonContent);
+            // Get  IG name from the Json file
+            if (defaultProfile != null && defaultProfile.ContainsKey("IGName"))
+            {
+                igName = defaultProfile["IGName"];
+                cmbIG.Text = igName;
+            }
+            else
+            {
+                MessageBox.Show("IGName not found in the default profile.");
+            }
+            // Get  DataDirectory from the Json file
+            if (defaultProfile != null && defaultProfile.ContainsKey("DataDirectory"))
+            {
+                dataDirectory = defaultProfile["DataDirectory"];
+                txtDataDirectory.Text = dataDirectory;
+                profilePath = dataDirectory + profileDirectory + igName;
+            }
+            else
+            {
+                MessageBox.Show("DataDirectory not found in the default profile.");
+            }
+            // Get  FHIRServer from the Json file
+            if (defaultProfile != null && defaultProfile.ContainsKey("FHIRServer"))
+            {
+                fhirServer = defaultProfile["FHIRServer"];
+                txtFHIRServer.Text = fhirServer;
+            }
+            else
+            {
+                MessageBox.Show("FHIRServer not found in the default profile.");
+            }
+            
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Error reading default profile: " + ex.Message);
+        }
+       
     }
 
     private void Initial()
@@ -88,8 +140,6 @@ public partial class FormIGAnalyzer : Form
         lvProfile.Items.Clear();
         lvApplyModel.Items.Clear();
         lvElement.Items.Clear();
-        string fhirServer = rm.GetString("FHIRServer") ?? string.Empty;
-        //string fhirServer = "http://localhost:8080/fhir/";
         client = new FhirClient(fhirServer);
     }
     private void cmbIG_SelectedIndexChanged(object? sender, EventArgs e)
@@ -1869,9 +1919,9 @@ public partial class FormIGAnalyzer : Form
         foreach (var fume in fumeListTuple)
         {
             fume2 += fume.Item1 + Environment.NewLine;
-            fumeDetail += fume.Item1 + " __ [" + fume.Item2 + "]" + " __ [" + fume.Item3 + "]" + Environment.NewLine;
+            fumeDetail += fume.Item1 + "[" + fume.Item2 + "]" + "[" + fume.Item3 + "]" + Environment.NewLine;
         }
-        //txtFHIRData.Text = fumeDetail;
+        txtFHIRData.Text = fumeDetail;
         return fume2;
     }
     /*
@@ -1896,12 +1946,25 @@ public partial class FormIGAnalyzer : Form
             string profile = s.Item1;
             string path = s.Item2;
             string slice = s.Item3;
+            string sliceHead = string.Empty;
+            string sliceTail = string.Empty;
+            string slicePath = string.Empty;
+            string sliceType = string.Empty;
+            if (!string.IsNullOrEmpty(slice))
+            {
+                sliceHead = slice.Split(":").FirstOrDefault()?.Trim() ?? string.Empty;
+                sliceTail = slice.Split(":").LastOrDefault()?.Trim() ?? string.Empty;
+                slicePath = sliceTail.Split(",").FirstOrDefault()?.Trim() ?? string.Empty;
+                sliceType = sliceTail.Split(",").LastOrDefault()?.Trim() ?? string.Empty;
+            }
+
             if (profile == profileName)
             {
-                profileSliceList.Add(new Tuple<string, string>(path, slice));
+                if (sliceType == "Value") profileSliceList.Add(new Tuple<string, string>(path, slice));
             }
         }
 
+        bool isAdded = false;
         for (int i = 0; i < fumeListTuple.Count; i++)
         {
             var fume = fumeListTuple[i];
@@ -1913,29 +1976,143 @@ public partial class FormIGAnalyzer : Form
             path = string.Join(".", pathList);
             path = path.Replace("[x]", "");
             bool isSlice = false;
+
             if (profileSliceList.Count > 0)
             {
                 foreach (var s in profileSliceList)
                 {
+                    if (path == s.Item1 && isAdded == false)
+                    {
+                        List<Tuple<string, string, string>> sliceList = CreateFUMESlice(profileName, path);
+                        sliceList = GetFUMESliceValue(sliceList,path);
+                        sliceFUME.AddRange(sliceList);
+                        isAdded = true;
+                    }
                     if (path.Contains(s.Item1))
                     {
-                        isSlice = true;
-                        txtMsg.Text = txtMsg.Text + "Slice: " + s.Item2 + "  Path: " + fume.Item3 + Environment.NewLine;
+                        isSlice = true;                         
                     }
                 }
             }
             if (isSlice == true)
             {
-                string fumeSInfo = "S" + fume.Item1;
-                Tuple<string, string, string> sliceTuple = new Tuple<string, string, string>(fumeSInfo, type, fume.Item3);
+                //string fumeSInfo = "S" + fume.Item1;
+                //Tuple<string, string, string> sliceTuple = new Tuple<string, string, string>(fumeSInfo, type, fume.Item3);
                 //sliceFUME.Add(sliceTuple);
             }
             else
             {
+                isAdded = false;
                 sliceFUME.Add(fume);
             }
         }
-        CreateFUMESlice("Claim-twpas","supportingInfo");
+        return sliceFUME;
+    }
+
+    private List<Tuple<string, string, string>> GetFUMESliceValue(List<Tuple<string, string, string>> fumeListTuple, string path)
+    {
+        List<Tuple<string, string, string>> sliceFUME = new List<Tuple<string, string, string>>();
+        for (int i = 0; i < fumeListTuple.Count; i++)
+        {
+            var fume = fumeListTuple[i];
+            sliceFUME.Add(fume);
+        }
+        for (int i = 0; i < lvStaging.Items.Count; i++)
+        {
+            string pathItem = lvStaging.Items[i].SubItems[2].Text.Trim();
+            if(pathItem.Contains(path) == false) continue;
+
+            string rule = lvStaging.Items[i].SubItems[4].Text.Trim();
+            string applyModel = lvStaging.Items[i].SubItems[1].Text;
+            if (rule == string.Empty) continue;
+            string rulePath = string.Empty;
+            string ruleValue = string.Empty;
+            var ruleParts = rule?.Split("=");
+            if (ruleParts != null && ruleParts.Length > 0 && ruleParts[0] != null)
+            {
+                rulePath = ruleParts[0].Trim();
+                ruleValue = ruleParts[1].Trim();
+                ruleValue = ruleValue.Replace("'", "").Trim();
+            }
+            bool isFind = false;
+            for (int j = 0; j < sliceFUME.Count; j++)
+            {
+                var fume = sliceFUME[j];
+                var fumeInfo = fume.Item1;
+                if (isFind == false)
+                {
+
+                    var pathFUME = fume.Item3;
+                    List<string> pathList = pathFUME.Split(".").ToList();
+                    //pathList.RemoveAt(0);
+                    //pathList.RemoveAt(0);
+                    pathFUME = string.Join(".", pathList);
+
+                    string valueFUME = string.Empty;
+                    var valueParts = fumeInfo.Split("=");
+                    var lastValuePart = valueParts != null && valueParts.Length > 0 ? valueParts.LastOrDefault() : null;
+                    if (lastValuePart != null)
+                    {
+                        valueFUME = lastValuePart.Trim();
+                        valueFUME = valueFUME.Replace("\"", "").Trim();
+                    }
+
+                    if (pathFUME.Contains(rulePath) && valueFUME == ruleValue)
+                    {
+                        isFind = true;
+                        continue;
+                    }
+                }
+                if (isFind == true)
+                {
+                    string fumeInfoPath = fume.Item3;
+                    List<string> pathListFUME = fumeInfoPath.Split(".").ToList();
+                    pathListFUME.RemoveAt(0);
+                    fumeInfoPath = string.Join(".", pathListFUME);
+
+                    if (pathItem == fumeInfoPath)
+                    {
+                        fumeInfo = fumeInfo + " = " + applyModel;
+                        sliceFUME[j] = new Tuple<string, string, string>(fumeInfo, fume.Item2, fume.Item3);
+                        isFind = false;
+                    }
+                }
+            }
+        }
+
+        return sliceFUME; 
+    }
+    private List<Tuple<string, string, string>> GetFUMESliceValue2(List<Tuple<string, string, string>> fumeListTuple)
+    {
+        List<Tuple<string, string, string>> sliceFUME = new List<Tuple<string, string, string>>();
+
+        for (int i = 0; i < fumeListTuple.Count; i++)
+        {
+            var fume = fumeListTuple[i];
+            var fumeInfo = fume.Item1;
+            var rulePart = fumeInfo.Split(":").LastOrDefault();
+            var rule = rulePart != null ? rulePart.Trim() : string.Empty;
+            var type = fume.Item2;
+            var path = fume.Item3;
+            List<string> pathList = path.Split(".").ToList();
+            pathList.RemoveAt(0);
+            path = string.Join(".", pathList);
+
+            for (int j = 0; j < lvStaging.Items.Count; j++)
+            {
+                if (lvStaging.Items[j].SubItems[2].Text.Contains(path))
+                {
+                    if (lvStaging.Items[j].SubItems[4].Text.Contains(rule))
+                    {
+                        fumeInfo = fumeInfo.Replace(rule, lvStaging.Items[j].SubItems[1].Text);
+                        fumeInfo = fumeInfo.Replace(":", "=");
+                    }
+                }
+            }
+            Tuple<string, string, string> fumeTuple = new Tuple<string, string, string>(fumeInfo, type, path);
+            sliceFUME.Add(fumeTuple);
+        }
+
         return sliceFUME;
     }
     private List<Tuple<string, string, string>> GetFUMECoding(List<Tuple<string, string, string>> fumeListTuple)
@@ -2996,7 +3173,7 @@ public partial class FormIGAnalyzer : Form
         }
     }
 
-    List<string> CreateFUMESlice(string profileName, string pathSlice)
+    List<Tuple<string,string,string>> CreateFUMESlice(string profileName, string pathSlice)
     {
 
         StructureDefinition sd = GetStructureDefinition(profileName).Result;
@@ -3008,8 +3185,11 @@ public partial class FormIGAnalyzer : Form
         string dpath = string.Empty;
         string dtype = string.Empty;
         string typeValue = string.Empty;
+        string pathX = string.Empty;
+        string nameX = string.Empty;
         List<Tuple<string, string>> sliceTemplates = new List<Tuple<string, string>>();
-        List<string> sliceList = new List<string>();
+        List<Tuple<string, string, string>> sliceFume = new List<Tuple<string, string, string>>();
+        
         for (int i = 0; i < sd.Differential.Element.Count; i++)
         {
             var e = sd.Differential.Element[i];
@@ -3049,7 +3229,7 @@ public partial class FormIGAnalyzer : Form
                 pathList.RemoveAt(0);
                 path = string.Join(".", pathList);
                 string sapce = new string(' ', level * 2);
-                path = sapce + "*" + path.Split(".").Last();
+                path = sapce + "* " + path.Split(".").Last();
 
                 if (isSliceHeader)
                 {
@@ -3074,16 +3254,23 @@ public partial class FormIGAnalyzer : Form
                     if (name != null && name != string.Empty)
                     {
                         string fume = path;
-                        sliceList.Add(fume);
-                        string pathTemplate = sliceTemplates[1].Item1;
-                        List<string> pathListTemplate = new List<string>();
-                        pathListTemplate = path.Split('.').ToList();
-                        pathListTemplate.RemoveAt(0);
-                        int levelTemplate = pathListTemplate.Count - 2;
-                        string sapceTemplate = new string(' ', level * 2);
-                        fume = pathTemplate + " = " + cnt.ToString();
-                        sliceList.Add(fume);
+                        Tuple<string, string, string> fumeTuple = new Tuple<string, string, string>(fume, "BackboneElement", e.Path); // hard code
+                        sliceFume.Add(fumeTuple);
+                        if (sliceTemplates.Count > 2)
+                        {
+                            string pathTemplate = sliceTemplates[1].Item1; // hard code
+                            List<string> pathListTemplate = new List<string>();
+                            pathListTemplate = path.Split('.').ToList();
+                            pathListTemplate.RemoveAt(0);
+                            int levelTemplate = pathListTemplate.Count - 2;
+                            string sapceTemplate = new string(' ', level * 2);
+                            fume = pathTemplate + " = " + cnt.ToString();
+                            fume = sapceTemplate + fume;
+                            Tuple<string, string, string> fumeTupleTemplate = new Tuple<string, string, string>(fume, "positiveInt", e.Path);  // hard code
+                            sliceFume.Add(fumeTupleTemplate);
+                        }
                         typeValue = string.Empty;
+                        nameX = name;
                     }
                     else if (pattern != string.Empty)
                     {
@@ -3098,15 +3285,25 @@ public partial class FormIGAnalyzer : Form
                                 string code = codingObj?.Code ?? string.Empty;
 
                                 string fume = path;
-                                sliceList.Add(fume);
+                                Tuple<string, string, string> fumeTuple = new Tuple<string, string, string>(fume, patternType, e.Path);
+                                sliceFume.Add(fumeTuple);
 
                                 string pathname = path.Replace("*", "").Trim();
                                 string coding = "  " + path.Replace(pathname, "coding");
-                                sliceList.Add(coding);
-                                string systemPath = "    " + path.Replace(pathname, "system") + " = " + system;
-                                string codePath = "    " + path.Replace(pathname, "code") + " = " + code;
-                                sliceList.Add(systemPath);
-                                sliceList.Add(codePath);
+                                fumeTuple = new Tuple<string, string, string>(coding, "Coding", e.Path + ".coding");
+                                sliceFume.Add(fumeTuple);
+
+                                string systemPath = "    " + path.Replace(pathname, "system") + " = " + "\"" + system + "\"";
+                                fumeTuple = new Tuple<string, string, string>(systemPath, "uri", e.Path + ".coding.system");
+                                sliceFume.Add(fumeTuple);
+
+                                string codePath = "    " + path.Replace(pathname, "code") + " = " + "\"" + code + "\"";
+            
+                                fumeTuple = new Tuple<string, string, string>(codePath, "code", e.Path + ".coding.code");
+                                sliceFume.Add(fumeTuple);
+
+                                pathX = pathname + ".coding.code";
+
                             }
                         }
                         else if (patternType == "Quantity")
@@ -3117,9 +3314,9 @@ public partial class FormIGAnalyzer : Form
                         {
                             //pattern = pattern.Replace("\"", "");
                             path = path.Replace("[x]", typeValue);
-
-                            string fume = path + " = " + pattern;
-                            sliceList.Add(fume);
+                            string fume = path + " = " + "\"" + pattern + "\"";
+                            Tuple<string, string, string> fumeTuple = new Tuple<string, string, string>(fume, type, e.Path);
+                            sliceFume.Add(fumeTuple);
                         }
                     }
                     else if (type != string.Empty)
@@ -3128,39 +3325,51 @@ public partial class FormIGAnalyzer : Form
                         // make first caracter of type to upper case
                         type = char.ToUpper(type[0]) + type.Substring(1);
                         path = path.Replace("[x]", type);
-                        string fume = path + " = " + type;
-                        sliceList.Add(fume);
-                        if(type == "Reference")
+                        //string fume = path + " = " + type;
+                        //string fume = path + " = " + pathX;
+                        string fume = path;
+                        string fumePath = e.Path.Replace("[x]", type);
+                        Tuple<string, string, string> fumeTuple = new Tuple<string, string, string>(fume, type, fumePath);
+                        sliceFume.Add(fumeTuple);
+
+                        if (type == "Reference")
                         {
                             string pathname = path.Replace("*", "").Trim();
-                            string fumeReference  = "  "+ path.Replace(pathname, "reference");   
-                            sliceList.Add(fumeReference);
+                            string fumeReference = "  " + path.Replace(pathname, "reference");
+                            //fumeReference = fumeReference + " : " + pathX + " = " + "'" + nameX + "'";
+                            
+                            fumePath = e.Path.Replace("[x]", type);
+                            fumeTuple = new Tuple<string, string, string>(fumeReference, "Reference", fumePath + ".reference");
+                            sliceFume.Add(fumeTuple);
                         }
                     }
                     else
-                    {
+                    { 
                         if (typeValue != string.Empty)
                         {
                             path = path.Replace("[x]", typeValue);
-                            string fume = path + " = " + typeValue;
-                            sliceList.Add(fume);
-
+                            //string fume = path + " : " + pathX +" = " + "'" + nameX + "'";
+                            string fume = path;
+                            string fumePath = e.Path.Replace("[x]", typeValue);
+                            Tuple<string, string, string> fumeTuple = new Tuple<string, string, string>(fume, typeValue, fumePath);
+                            sliceFume.Add(fumeTuple);
                         }
                         else
                         {
                             string fume = path;
-                            sliceList.Add(fume);
+                            Tuple<string, string, string> fumeTuple = new Tuple<string, string, string>(fume, type, e.Path);
+                            sliceFume.Add(fumeTuple);
                         }
                     }
                 }
             }
             string slice = string.Empty;
-            foreach (var s in sliceList)
+            foreach (var s in sliceFume)
             {
-                slice += s + Environment.NewLine;
+                slice += s.Item1 + "[" + s.Item2 + "]" + "[" + s.Item3 + "]" + Environment.NewLine;
             }
             txtFHIRData.Text = slice;
         }
-        return sliceList;
+        return sliceFume;
     }
 }
