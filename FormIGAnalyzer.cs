@@ -3185,7 +3185,49 @@ public partial class FormIGAnalyzer : Form
         }
         return path;
     }
-    List<Tuple<string, string, string>> CreateFUMESlice(string profileName, string pathSlice)
+
+    private List<Tuple<string, string, string>> CreateFUMESliceExtension(string root,string profileFullName,int level)
+    {
+        // Create FUME for Extension slice
+        string profileName = profileFullName.Split("/").Last();
+        StructureDefinition sd = GetStructureDefinition(profileName).Result;
+        List<Tuple<string, string, string>> extensionFume = new List<Tuple<string, string, string>>();
+        string space = new string(' ', level * 2);
+
+        for (int i = 1; i < sd.Differential.Element.Count; i++) // Start from 1 to skip the root element
+        {
+            var e = sd.Differential.Element[i];
+            if (e.Max == "0") continue;
+            string path = RemoveFistPart(e.Path);
+            string fumeInfo = "* " + path;
+            var fixedObj = e.Fixed;
+            if (fixedObj != null)
+            {
+                fumeInfo = space + fumeInfo + " = " + "\"" + fixedObj.ToString() + "\"";
+                string type = fixedObj.TypeName;
+                Tuple<string, string, string> fumeTuple = new Tuple<string, string, string>(fumeInfo, type, root + "."+ path);
+                extensionFume.Add(fumeTuple);
+            }
+            else
+            {
+                string type = e.Type.FirstOrDefault()?.Code ?? string.Empty;
+                if (type == "Reference")
+                {
+                    fumeInfo = space + fumeInfo.Replace("[x]", type);
+                    path = path.Replace("[x]", type);
+                    Tuple<string, string, string> fumeTuple = new Tuple<string, string, string>(fumeInfo, type, root + "." + path);
+                    extensionFume.Add(fumeTuple);
+                    string fumeName = fumeInfo.Replace("*", "").Trim();
+                    fumeInfo = space + fumeInfo.Replace(fumeName, "reference");
+                    fumeTuple = new Tuple<string, string, string>(fumeInfo, "Reference", root + "." + path + ".reference");
+                    extensionFume.Add(fumeTuple);
+                }
+            }
+        }
+        return extensionFume;
+    }
+    
+    List<Tuple<string, string, string>> CreateFUMESlice( string profileName, string pathSlice)
     {
 
         StructureDefinition sd = GetStructureDefinition(profileName).Result;
@@ -3294,6 +3336,34 @@ public partial class FormIGAnalyzer : Form
                         }
                         typeValue = string.Empty;
                         nameX = name;
+                        // type == "Extension"
+                        if (type == "Extension")
+                        {
+                            
+                            string profileExtension = e.Type.FirstOrDefault()?.Profile?.FirstOrDefault() ?? string.Empty;
+                            if (profileExtension.Contains("us"))
+                            {
+                                //Hard code for US Da Vinci Extension
+                                /*
+                                * diagnosis[BackboneElement][Claim.diagnosis]
+                                    * extension[BackboneElement][Claim.diagnosis.extension]
+                                        * url = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-diagnosisRecordedDate"[uri][Claim.diagnosis.extension.url]
+                                        * valueDate = diagnosisdiagDate[date][Claim.diagnosis.extension.valueDate]
+                                */
+                                string daFume = "    * " + "url" + " = " + "\"" + profileExtension + "\"";
+                                Tuple<string, string, string> daTuple = new Tuple<string, string, string>(daFume, "uri", e.Path + ".url");
+                                sliceFume.Add(daTuple);
+                                daFume = "    * " + "valueDate";
+                                daTuple = new Tuple<string, string, string>(daFume, "date", e.Path + ".valueDate");
+                                sliceFume.Add(daTuple);
+                            }
+                            else
+                            {
+                                List<Tuple<string, string, string>> extensionFume = new List<Tuple<string, string, string>>();
+                                extensionFume = CreateFUMESliceExtension(e.Path, profileExtension, level + 1);
+                                sliceFume.AddRange(extensionFume);
+                            }
+                        }
                     }
                     else if (pattern != string.Empty)
                     {

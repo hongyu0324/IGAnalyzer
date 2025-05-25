@@ -1,0 +1,35 @@
+qList 是 FormIGAnalyzer.cs 類別中的一個私有成員變數，其型別為 List<Tuple<string, string, string, string>>。它主要用於儲存從 "ApplyModel" FHIR StructureDefinition 解析出來的元素對應資訊。
+
+具體來說，qList 中的每一個 Tuple 物件都代表 "ApplyModel" 中一個元素與其他 FHIR Profile 中元素的對應關係。這個 Tuple 包含四個字串項目：
+
+Item1 (string): 代表 "ApplyModel" 中元素的描述性字串。通常由該元素的 Short 描述和其在 "ApplyModel" 中的 Path 組成，格式類似於 "元素簡短描述 | ApplyModel.元素路徑"。
+Item2 (string): "ApplyModel" 元素所對應到的目標 FHIR Profile 的名稱。
+Item3 (string): "ApplyModel" 元素在目標 FHIR Profile (Item2) 中的 FHIRPath 或簡化路徑。
+Item4 (string): "ApplyModel" 元素的 FHIR 資料型別 (例如：string, CodeableConcept, Reference 等)。
+qList 的初始化與資料填入：
+
+在 FormIGAnalyzer 的建構函式中，qList 被初始化為一個空的 List。
+在 Initial() 方法中，qList.Clear() 會被呼叫，清空其內容。
+主要的資料填入發生在 btnSelect_ClickAsync 事件處理方法中。當使用者選擇一個 IG 套件檔案後，程式會解析 "ApplyModel" 的 StructureDefinition。對於 "ApplyModel" 中的每一個元素 (element)，如果它有對應 (mapping) 到其他的 Profile，程式就會建立一個新的 Tuple 並將上述四項資訊填入，然後將此 Tuple 加入到 qList 中。
+qList 的主要用途：
+
+qList 儲存的對應資訊在應用程式的หลาย個地方被使用：
+
+填入 lvApplyModel (ListView)：
+
+當使用者在 lbApplyModel (ListBox) 中選擇一個 "ApplyModel" 的頂層元素時，lbApplyModel_SelectedIndexChanged 事件會被觸發。
+此事件處理函式會遍歷 qList，找出所有 Item1 (ApplyModel 元素描述) 與所選項目相關的 Tuple。
+然後，它會使用這些 Tuple 中的資訊 (Item1 到 Item4) 以及從 urlList (另一個儲存 ValueSet URL 的字典) 中查詢到的 ValueSet URL 來填入 lvApplyModel ListView，向使用者展示 "ApplyModel" 中各個子元素及其對應的 Profile、路徑、型別和可能的 ValueSet。
+產生 FHIR Questionnaire：
+
+在 lbApplyModel_SelectedIndexChanged 中，篩選出的 qList 相關資訊（特別是 Item1 作為問題文字、Item4 作為問題型別，以及查詢到的 ValueSet URL）會被傳遞給 fhirOperator.GenerateQuestionnaire 方法，用來動態產生一個 FHIR Questionnaire 的 JSON 表示，並顯示在 txtQuestionnaire (TextBox) 中。
+btnRefresh_Click 事件也會使用 lvApplyModel 中當前顯示的資料（這些資料最初來源於 qList）來重新產生 Questionnaire。
+填入 lvStaging (ListView)：
+
+當使用者在 "Staging" 索引標籤頁的 lbStaging (ListBox) 中選擇一個 Profile 時，lbStaging_SelectedIndexChanged 事件會被觸發。
+此函式會遍歷 qList，找出所有 Item2 (目標 Profile 名稱) 與所選 Profile 相關的 Tuple。
+然後，它會使用這些 Tuple 的資訊來填入 lvStaging ListView，顯示哪些 "ApplyModel" 中的欄位對應到這個選定的 Profile。
+過濾 lbStaging 的 Profile 清單：
+
+當使用者進入 "Staging" 索引標籤頁時 (tabStaging_Enter 事件)，程式會遍歷所有已知的 Profiles。對於每個 Profile，它會檢查 qList 中是否有任何 Tuple 的 Item2 (目標 Profile 名稱) 包含該 Profile。如果存在這樣的對應關係，則該 Profile 會被加入到 lbStaging 供使用者選擇。
+總結來說，qList 是一個核心的資料結構，它橋接了 "ApplyModel" 的定義與其他具體 FHIR Profiles 之間的對應關係。這些資訊對於理解 "ApplyModel" 的結構、動態產生使用者介面（如問卷）、以及在不同 Profile 之間轉換或準備資料（如 Staging）都至關重要。

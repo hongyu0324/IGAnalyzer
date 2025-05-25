@@ -1,0 +1,86 @@
+private void btnFUME_Click2(object sender, EventArgs e)
+    {
+        StructureMap sm = new StructureMap();
+        //add id
+        string id = lbStaging.SelectedItem?.ToString() ?? string.Empty;
+        sm.Id = id.Replace("-", "");
+        sm.Meta = new Meta();
+
+        sm.Meta.VersionId = "1.0";
+        sm.Meta.LastUpdated = DateTimeOffset.Now;
+
+        sm.Url = "http://tmhtc.net/StructureMap/" + sm.Id;
+        sm.Name = lbStaging.SelectedItem?.ToString() ?? string.Empty;
+        sm.Title = lbStaging.SelectedItem?.ToString() ?? string.Empty;
+        sm.Status = PublicationStatus.Active;
+        sm.Description = "HIS資料轉換，來源為Staging資料";
+        sm.Purpose = "簡易型FHIR Gateway";
+
+        sm.Date = DateTimeOffset.Now.ToString("o");
+
+        sm.UseContext = new List<UsageContext>();
+        UsageContext uc = new UsageContext();
+        CodeableConcept cc = new CodeableConcept();
+        Coding coding = new Coding();
+        coding.System = "http://snomed.info/sct";
+        coding.Code = "706594005";
+        coding.Display = "Information system software";
+        cc.Coding.Add(coding);
+        uc.Code = coding;
+        sm.UseContext.Add(uc);
+
+        uc.Value = new CodeableConcept();
+        cc = new CodeableConcept();
+        coding = new Coding();
+        coding.System = "http://codes.fume.health";
+        coding.Code = "fume";
+        coding.Display = "FUME";
+        cc.Coding.Add(coding);
+        uc.Value = cc;
+        sm.UseContext.Add(uc);
+        ;
+        sm.Group = new List<StructureMap.GroupComponent>();
+
+        StructureMap.GroupComponent group = new StructureMap.GroupComponent();
+        group.Name = "test";
+        group.TypeMode = StructureMap.StructureMapGroupTypeMode.TypeAndTypes;
+        group.Input = new List<StructureMap.InputComponent>();
+        StructureMap.InputComponent input = new StructureMap.InputComponent();
+        input.Name = "input";
+        input.Type = "IGAnalyzer";
+        input.Mode = new StructureMap.StructureMapInputMode();
+        input.Mode = StructureMap.StructureMapInputMode.Source;
+        group.Input.Add(input);
+
+        group.Rule = new List<StructureMap.RuleComponent>();
+        StructureMap.RuleComponent rule = new StructureMap.RuleComponent();
+
+        rule.Name = "test";
+        rule.Source = new List<StructureMap.SourceComponent>();
+        StructureMap.SourceComponent source = new StructureMap.SourceComponent();
+        source.Context = "input";
+
+        rule.Source.Add(source);
+
+        rule.Extension = new List<Extension>();
+        Extension ext = new Extension();
+
+        ext.Url = "http://hl7.org/fhir/StructureDefinition/StructureMap-structure";
+
+
+
+        var expression = new Expression();
+        expression.Language = "application/vnd.outburn.fume";
+        expression.Expression_ = txtFume.Text;
+        ext.Value = expression;
+
+        rule.Extension.Add(ext);
+
+        group.Rule.Add(rule);
+        sm.Group.Add(group);
+
+        // Serialize the StructureMap to JSON
+        var json = new FhirJsonSerializer(new SerializerSettings() { Pretty = true }).SerializeToString(sm);
+        txtFHIRData.Text = json;
+
+    }

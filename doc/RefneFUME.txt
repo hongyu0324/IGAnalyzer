@@ -1,0 +1,21 @@
+Funtion : RefineFUME
+`RefineFUME` 方法主要功能是**優化 FUME 元素清單**，確保 FHIR 結構中的 CodeableConcept 欄位自動補齊必要的子元素（如 coding、system、code），並移除多餘或重複的結構。  
+其運作流程如下：
+
+1. **遍歷原始 fumeListTuple**  
+   - 對每個元素，若型別為 `CodeableConcept`，檢查後續元素是否已包含 `Coding`、`system`、`code`。
+   - 若缺少這些子元素，則自動插入對應的 tuple（例如 `coding`、`system`、`code`）。
+   - 若已存在但順序或內容不完整，則補齊缺漏的部分。
+
+2. **處理延遲插入**  
+   - 用 `indexAdd` 與 `fumeAddTuple` 控制延遲插入的 tuple，確保插入位置正確。
+
+3. **再次遍歷 refinedFUME**  
+   - 對於 `CodeableConcept`，呼叫 `CheckCodeableConcept`，檢查其後的子元素結構是否正確。
+   - 若有多餘或重複的子元素（如多個 coding/system/code），則移除。
+
+4. **回傳優化後的 refinedFUME**  
+   - 最終結果是一份結構正確、重複移除、子元素齊全的 FUME 清單，方便後續自動產生 FHIR 資料。
+
+**簡單來說：**  
+這個方法會自動補齊 FHIR CodeableConcept 欄位的必要結構，並移除多餘項目，確保資料結構正確且簡潔，方便後續自動化處理。

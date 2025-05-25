@@ -1,0 +1,204 @@
+private async Task<string> CreateFUME(string profileName)
+    {
+        List<Tuple<string, string, string>> fumeTupleList = new List<Tuple<string, string, string>>();
+
+        // Generate FUME from the profile
+        // This is a placeholder implementation, replace with actual logic
+        StructureDefinition sd = new StructureDefinition();
+        sd = await GetStructureDefinition(profileName);
+
+        //RefineProfile(sd);
+
+        string resourceType = sd.Type;
+
+        string fume = "Instance:" + Environment.NewLine;
+        fume = string.Empty;
+        fume += "InstanceOf: " + resourceType + Environment.NewLine;
+        int ncnt = 0;
+        int codeIndex = 0;
+        for (int i = 0; i < sd.Differential.Element.Count; i++)
+        {
+            string applyModel = string.Empty;
+
+            var e = sd.Differential.Element[i];
+            string pathOri = e.Path;
+            if (i < sd.Differential.Element.Count - 1)
+            {
+                var ne = sd.Differential.Element[i + 1];
+                ncnt = ne.Path.Split('.').Length;
+            }
+            int cnt = e.Path.Split('.').Length;
+            string path = e.Path.Replace(resourceType + ".", "");
+            string pathInfo = string.Empty;
+            path = e.Path.Split('.')[cnt - 1];
+
+            string type = e.Type.FirstOrDefault()?.Code ?? string.Empty;
+            if (type == string.Empty)
+            {
+                string rule = "StructureDefinition.snapshot.element.where(path = '" + path + "')";
+                var obj = sd.Select(rule).FirstOrDefault() as ElementDefinition;
+                if (obj != null)
+                {
+                    type = obj.Type != null ? obj.Type.FirstOrDefault()?.Code ?? string.Empty : string.Empty;
+                }
+            }
+            if (type == string.Empty)
+            {
+                foreach (ListViewItem item in lvStaging.Items)
+                {
+                    if (item.SubItems[2].Text == path)
+                    {
+                        type = item.SubItems[3].Text;
+                        break;
+                    }
+
+                }
+            }
+
+            if (type == "Quantity") type = "CodeableConcept"; // 2023-10-03 hard code for now, slicing is not supported yet
+            if (path.EndsWith("[x]"))
+            {
+                if (type == "dateTime")
+                {
+                    path = path.Replace("[x]", "") + "DateTime";
+                }
+                else if (type == "CodeableConcept") path = "valueCodeableConcept";
+                else if (type == "string") path = "valueString";
+                //else if (type == "boolean") path = "valueBoolean";
+                //else if (type == "integer") path = "valueInteger";
+                //else if (type == "decimal") path = "valueDecimal";
+                //else if (type == "uri") path = "valueUri";
+                //else if (type == "base64Binary") path = "valueBase64Binary";
+                //else if (type == "code") path = "valueCode";
+                //else if (type == "oid") path = "valueOid";
+                //else if (type == "uuid") path = "valueUuid";
+                //else if (type == "Attachment") path = "valueAttachment";
+                //else if (type == "Reference") path = "valueReference";
+                //else if (type == "date") path = "valueDate";
+                //else if (type == "time") path = "valueTime";
+                //else if (type == "Address") path = "valueAddress";
+                //else if (type == "HumanName") path = "valueHumanName";
+                //else if (type == "ContactPoint") path = "valueContactPoint";
+                //else if (type == "Identifier") path = "valueIdentifier";
+                //else if (type == "Period") path = "valuePeriod";
+                //else if (type == "Range") path = "valueRange";
+                //else if (type == "Ratio") path = "valueRatio";
+                else continue;
+            }
+
+            // GetPostionStar前必須修正path名稱才能得到正確FHIR Data所需要的Element呈現方式
+            pathInfo = GetPostionStar(cnt, path);
+
+            if (type == "Reference")
+            {
+                pathInfo += Environment.NewLine;
+                pathInfo += GetPostionStar(cnt + 1, "reference") + " = ";
+                if (path == "subject")
+                {
+                    pathInfo += "patient";
+                }
+                else
+                {
+                    //pathInfo += path;
+                }
+                pathInfo += GetStagingApplyModel(path) + Environment.NewLine;
+            }
+            else if (type == "dateTime")
+            {
+                pathInfo += " = ";
+                pathInfo += GetStagingApplyModel(path) + Environment.NewLine;
+            }
+            else if (e.Binding != null)
+            {
+                //if(i-codeIndex < 2) continue;
+                pathInfo += Environment.NewLine;
+                pathInfo += GetPostionStar(cnt + 1, "coding") + Environment.NewLine;
+                pathInfo += GetPostionStar(cnt + 2, "system") + " = " + "\"" + e.Binding.ValueSet + "\"" + Environment.NewLine;
+                pathInfo += GetPostionStar(cnt + 2, "code") + " = " + GetStagingApplyModel(path) + Environment.NewLine;
+                //pathInfo += GetPostionStar(cnt + 2, "display") + " = " + Environment.NewLine;
+                codeIndex = i;
+            }
+            else if (type == "CodeableConcept")
+            {
+                //if(i-codeIndex < 2) continue;
+                pathInfo += Environment.NewLine;
+                pathInfo += GetPostionStar(cnt + 1, "coding") + Environment.NewLine;
+                string valueSet = e.Binding?.ValueSet ?? "url";
+                pathInfo += GetPostionStar(cnt + 2, "system") + " = " + "\"" + valueSet + "\"" + Environment.NewLine;
+                pathInfo += GetPostionStar(cnt + 2, "code") + " = " + GetStagingApplyModel(path) + Environment.NewLine;
+                //pathInfo += GetPostionStar(cnt + 2, "display") + " = " + Environment.NewLine;
+                codeIndex = i;
+            }
+            else if (type == "string" && e.Binding == null)
+            {
+                pathInfo += " = ";
+                pathInfo += GetStagingApplyModel(path) + Environment.NewLine;
+            }
+            /*
+            else if (type == "boolean" && e.Binding == null)
+            {
+                pathInfo += " = ";
+                pathInfo += GetStagingApplyModel(path) + Environment.NewLine;
+            }
+            else if (type == "integer" && e.Binding == null)
+            {
+                pathInfo += " = ";
+                pathInfo += GetStagingApplyModel(path) + Environment.NewLine;
+            }
+            else if (type == "decimal" && e.Binding == null)
+            {
+                pathInfo += " = ";
+                pathInfo += GetStagingApplyModel(path) + Environment.NewLine;
+            }
+            */
+
+            //else{
+            //    if(ncnt <= cnt) pathInfo += " = ";
+            //}
+
+            if (e.Pattern != null)
+            {
+                string typePattern = e.Pattern.TypeName ?? string.Empty;
+                if (typePattern == "CodeableConcept")
+                {
+                    var pattern = e.Pattern as CodeableConcept;
+                    if (pattern != null)
+                    {
+                        pathInfo += Environment.NewLine;
+                        foreach (var coding in pattern.Coding)
+                        {
+                            pathInfo += GetPostionStar(cnt + 1, "coding") + Environment.NewLine;
+                            pathInfo += GetPostionStar(cnt + 2, "system") + " = " + "\"" + coding.System + "\"" + Environment.NewLine;
+                            pathInfo += GetPostionStar(cnt + 2, "code") + " = " + "\"" + coding.Code + "\"" + Environment.NewLine;
+                            //pathInfo += GetPostionStar(cnt + 2, "display") + " = " + "\"" + coding.Display + "\"" + Environment.NewLine;
+                        }
+                    }
+                    else
+                    {
+                        MessageBox.Show("CodeableConcept is not supported yet.");
+                    }
+                }
+                else
+                {
+                    string pattern = e.Pattern != null ? e.Pattern.ToString() ?? string.Empty : string.Empty;
+                    pathInfo += " = \"" + pattern + "\"";
+                }
+            }
+
+            Tuple<string, string, string> fumeTuple = new Tuple<string, string, string>(pathInfo, type, pathOri);
+            fumeTupleList.Add(fumeTuple);
+        }
+        foreach (var fumeTuple in fumeTupleList)
+        {
+            txtMsg.Text += fumeTuple.Item2 + " ### " + fumeTuple.Item3 + Environment.NewLine;
+        }
+        fumeTupleList = CleanFumeTupleList(fumeTupleList);
+        foreach (var fumeTuple in fumeTupleList)
+        {
+            fume += fumeTuple.Item1;
+
+            if (fumeTuple.Item1.EndsWith(Environment.NewLine) == false) fume += Environment.NewLine;
+            txtMsg.Text += fumeTuple.Item2 + " ### " + fumeTuple.Item3 + Environment.NewLine;
+        }
+        return fume;
+    }

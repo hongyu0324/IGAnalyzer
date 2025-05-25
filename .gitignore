@@ -1,23 +1,15 @@
-# test data
-*.txt
-
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
-*.cashe
-*.bin
-*.pdb
-*.dll
-*.lib
-*.exe
-
 #build directory
 bin*
 obj/*
 .vs/IGAnalyzer/CopilotIndices/*
 bin/Debug/net9.0-windows/*.dll
-
+bin/Debug/net9.0-windows/IGAnalyzer.dll
+bin/Debug/net9.0-windows/IGAnalyzer.exe
+bin/Debug/net9.0-windows/IGAnalyzer.pdb
+obj/Debug/net9.0-windows/apphost.exe
+obj/Debug/net9.0-windows/IGAnalyzer.AssemblyInfo.cs
+obj/Debug/net9.0-windows/IGAnalyzer.AssemblyInfoInputs.cache
+obj/Debug/net9.0-windows/IGAnalyzer.dll
+obj/Debug/net9.0-windows/IGAnalyzer.pdb
+obj/Debug/net9.0-windows/ref/IGAnalyzer.dll
+obj/Debug/net9.0-windows/refint/IGAnalyzer.dll
