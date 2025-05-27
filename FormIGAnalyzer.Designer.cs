@@ -69,7 +69,7 @@ partial class FormIGAnalyzer : Form
         btnStagingSave = new Button();
         btnStagingLoad = new Button();
         txtStaging = new TextBox();
-        lbFUME = new ListBox();
+        lvFUME = new ListView();
         btnFUME = new Button();
         btnFHIRData = new Button();
         txtFume = new TextBox();
@@ -97,12 +97,18 @@ partial class FormIGAnalyzer : Form
         lblHosp = new Label();
         txtFHIRServer = new TextBox();
         lblFHIRServer = new Label();
+        tabIGList = new TabPage();
         statusBar = new StatusStrip();
         columnHeader1 = new ColumnHeader();
         rbDifferential = new RadioButton();
         rbSnapshot = new RadioButton();
         rbApplyModel = new RadioButton();
-        tabIGList = new TabPage();
+        label6 = new Label();
+        cmdIGList = new ComboBox();
+        splitIGList1 = new SplitContainer();
+        lvIGPre = new ListView();
+        lvIGNext = new ListView();
+        btnCheck = new Button();
         tabIG.SuspendLayout();
         tabProfile.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)splitContainer8).BeginInit();
@@ -156,6 +162,11 @@ partial class FormIGAnalyzer : Form
         splitContainer6.SuspendLayout();
         tabMsg.SuspendLayout();
         tabConfiguration.SuspendLayout();
+        tabIGList.SuspendLayout();
+        ((System.ComponentModel.ISupportInitialize)splitIGList1).BeginInit();
+        splitIGList1.Panel1.SuspendLayout();
+        splitIGList1.Panel2.SuspendLayout();
+        splitIGList1.SuspendLayout();
         SuspendLayout();
         // 
         // btnClose
@@ -530,7 +541,6 @@ partial class FormIGAnalyzer : Form
         lvStaging.TabIndex = 0;
         lvStaging.UseCompatibleStateImageBehavior = false;
         lvStaging.View = View.Details;
-        //lvStaging.SelectedIndexChanged += lvStaging_SelectedIndexChanged;
         lvStaging.Click += lvStaging_SelectedIndexChanged;
         lvStaging.DoubleClick += lvStaging_DoubleClick;
         // 
@@ -568,7 +578,7 @@ partial class FormIGAnalyzer : Form
         // 
         // splitContainer4.Panel2
         // 
-        splitContainer4.Panel2.Controls.Add(lbFUME);
+        splitContainer4.Panel2.Controls.Add(lvFUME);
         splitContainer4.Panel2.Controls.Add(btnFUME);
         splitContainer4.Panel2.Controls.Add(btnFHIRData);
         splitContainer4.Panel2.Controls.Add(txtFume);
@@ -617,17 +627,19 @@ partial class FormIGAnalyzer : Form
         txtStaging.TabIndex = 0;
         txtStaging.TextChanged += textBox1_TextChanged;
         // 
-        // lbFUME
+        // lvFUME
         // 
-        lbFUME.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-        lbFUME.BorderStyle = BorderStyle.FixedSingle;
-        lbFUME.FormattingEnabled = true;
-        lbFUME.Location = new Point(0, 0);
-        lbFUME.Name = "lbFUME";
-        lbFUME.ScrollAlwaysVisible = true;
-        lbFUME.Size = new Size(391, 71);
-        lbFUME.TabIndex = 3;
-        lbFUME.DoubleClick += lbFUME_DoubleClick;
+        lvFUME.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+        lvFUME.BorderStyle = BorderStyle.FixedSingle;
+        lvFUME.FullRowSelect = true;
+        lvFUME.GridLines = true;
+        lvFUME.Location = new Point(0, 0);
+        lvFUME.Name = "lvFUME";
+        lvFUME.Size = new Size(391, 71);
+        lvFUME.TabIndex = 3;
+        lvFUME.UseCompatibleStateImageBehavior = false;
+        lvFUME.View = View.Details;
+        lvFUME.DoubleClick += lvFUME_DoubleClick;
         // 
         // btnFUME
         // 
@@ -918,6 +930,19 @@ partial class FormIGAnalyzer : Form
         lblFHIRServer.TabIndex = 0;
         lblFHIRServer.Text = "FHIR Server :";
         // 
+        // tabIGList
+        // 
+        tabIGList.Controls.Add(btnCheck);
+        tabIGList.Controls.Add(splitIGList1);
+        tabIGList.Controls.Add(cmdIGList);
+        tabIGList.Controls.Add(label6);
+        tabIGList.Location = new Point(4, 32);
+        tabIGList.Name = "tabIGList";
+        tabIGList.Size = new Size(937, 365);
+        tabIGList.TabIndex = 7;
+        tabIGList.Text = "IG List";
+        tabIGList.UseVisualStyleBackColor = true;
+        // 
         // statusBar
         // 
         statusBar.ImageScalingSize = new Size(24, 24);
@@ -968,14 +993,67 @@ partial class FormIGAnalyzer : Form
         rbApplyModel.Visible = false;
         rbApplyModel.CheckedChanged += lbProfile_SelectedIndexChanged;
         // 
-        // tabIGList
+        // label6
         // 
-        tabIGList.Location = new Point(4, 32);
-        tabIGList.Name = "tabIGList";
-        tabIGList.Size = new Size(937, 365);
-        tabIGList.TabIndex = 7;
-        tabIGList.Text = "IG List";
-        tabIGList.UseVisualStyleBackColor = true;
+        label6.AutoSize = true;
+        label6.Location = new Point(7, 21);
+        label6.Name = "label6";
+        label6.Size = new Size(130, 23);
+        label6.TabIndex = 0;
+        label6.Text = "實作指引(IG)：";
+        // 
+        // cmdIGList
+        // 
+        cmdIGList.FormattingEnabled = true;
+        cmdIGList.Location = new Point(136, 18);
+        cmdIGList.Name = "cmdIGList";
+        cmdIGList.Size = new Size(182, 31);
+        cmdIGList.TabIndex = 1;
+        cmdIGList.SelectedIndexChanged += comboBox1_SelectedIndexChanged;
+        // 
+        // splitIGList1
+        // 
+        splitIGList1.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+        splitIGList1.Location = new Point(3, 68);
+        splitIGList1.Name = "splitIGList1";
+        // 
+        // splitIGList1.Panel1
+        // 
+        splitIGList1.Panel1.Controls.Add(lvIGPre);
+        // 
+        // splitIGList1.Panel2
+        // 
+        splitIGList1.Panel2.Controls.Add(lvIGNext);
+        splitIGList1.Size = new Size(931, 294);
+        splitIGList1.SplitterDistance = 449;
+        splitIGList1.TabIndex = 2;
+        // 
+        // lvIGPre
+        // 
+        lvIGPre.Dock = DockStyle.Fill;
+        lvIGPre.Location = new Point(0, 0);
+        lvIGPre.Name = "lvIGPre";
+        lvIGPre.Size = new Size(449, 294);
+        lvIGPre.TabIndex = 0;
+        lvIGPre.UseCompatibleStateImageBehavior = false;
+        // 
+        // lvIGNext
+        // 
+        lvIGNext.Dock = DockStyle.Fill;
+        lvIGNext.Location = new Point(0, 0);
+        lvIGNext.Name = "lvIGNext";
+        lvIGNext.Size = new Size(478, 294);
+        lvIGNext.TabIndex = 0;
+        lvIGNext.UseCompatibleStateImageBehavior = false;
+        // 
+        // btnCheck
+        // 
+        btnCheck.Location = new Point(340, 18);
+        btnCheck.Name = "btnCheck";
+        btnCheck.Size = new Size(112, 34);
+        btnCheck.TabIndex = 3;
+        btnCheck.Text = "檢查";
+        btnCheck.UseVisualStyleBackColor = true;
         // 
         // FormIGAnalyzer
         // 
@@ -1055,6 +1133,12 @@ partial class FormIGAnalyzer : Form
         tabMsg.PerformLayout();
         tabConfiguration.ResumeLayout(false);
         tabConfiguration.PerformLayout();
+        tabIGList.ResumeLayout(false);
+        tabIGList.PerformLayout();
+        splitIGList1.Panel1.ResumeLayout(false);
+        splitIGList1.Panel2.ResumeLayout(false);
+        ((System.ComponentModel.ISupportInitialize)splitIGList1).EndInit();
+        splitIGList1.ResumeLayout(false);
         ResumeLayout(false);
         PerformLayout();
     }
@@ -1142,6 +1226,12 @@ partial class FormIGAnalyzer : Form
     private Button btnConfirm;
     private Button btnStagingSave;
     private Button btnStagingLoad;
-    private ListBox lbFUME;
+    private ListView lvFUME;
     private TabPage tabIGList;
+    private ComboBox cmdIGList;
+    private Label label6;
+    private SplitContainer splitIGList1;
+    private Button btnCheck;
+    private ListView lvIGPre;
+    private ListView lvIGNext;
 }
