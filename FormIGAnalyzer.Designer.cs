@@ -639,6 +639,7 @@ partial class FormIGAnalyzer : Form
         lvFUME.TabIndex = 3;
         lvFUME.UseCompatibleStateImageBehavior = false;
         lvFUME.View = View.Details;
+        lvFUME.Visible = false;
         lvFUME.DoubleClick += lvFUME_DoubleClick;
         // 
         // btnFUME
@@ -665,7 +666,7 @@ partial class FormIGAnalyzer : Form
         // 
         // txtFume
         // 
-        txtFume.Anchor = AnchorStyles.None;
+        txtFume.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
         txtFume.BorderStyle = BorderStyle.FixedSingle;
         txtFume.Location = new Point(3, -1);
         txtFume.Multiline = true;
@@ -673,7 +674,7 @@ partial class FormIGAnalyzer : Form
         txtFume.ScrollBars = ScrollBars.Both;
         txtFume.Size = new Size(385, 71);
         txtFume.TabIndex = 0;
-        txtFume.Visible = false;
+        txtFume.Visible = true;
         // 
         // btnSaveFHIR
         // 

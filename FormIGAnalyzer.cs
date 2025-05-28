@@ -19,38 +19,25 @@ namespace IGAnalyzer;
 
 public partial class FormIGAnalyzer : Form
 {
+    private IGClass ig = new IGClass();
+    private AppSettings appSettings = new AppSettings();
     private string profilePath = string.Empty;
     private string profileName = string.Empty;
 
     private string igName = string.Empty;
 
     private string igSubName = string.Empty;
-
     private Dictionary<string, string> urlList = new Dictionary<string, string>();
     private ModuleFHIR.FHIROperator fhirOperator = new ModuleFHIR.FHIROperator();
     FhirPackageSource? resolver;
     private List<Tuple<string, string, string, string>> qList = new List<Tuple<string, string, string, string>>();
 
-    private List<string> profiles = new List<String>();
-    private List<string> bundles = new List<String>();
-
-
-    //sliceList == <profileName, path, slice>   
     private List<Tuple<string, string, string>> slicingList = new List<Tuple<string, string, string>>();
 
     private string profileDirectory = "profiles\\";
 
     private string stagingDirectory = "staging\\";
 
-    //private string applyModelDirectory = "applymodel\\";
-
-    //private string questionnaireDirectory = "questionnaire\\";
-
-    //private string fumeDirectory = "fume\\";
-
-
-    private string dataDirectory = string.Empty;
-    private string fhirServer = string.Empty;
 
     private FhirClient? client;
     private string applyModel = "";
@@ -71,64 +58,27 @@ public partial class FormIGAnalyzer : Form
 
         //string defaultProfilePath = Path.Combine(txtDataDirectory.Text, profileDirectory, "default-profile.json");
         // Assuming Application.json is in the same directory as the executable
-        string defaultProfilePath = Path.Combine(Application.StartupPath, "Application.json");
+        // string defaultProfilePath = Path.Combine(Application.StartupPath, "Application.json");
+        appSettings.Load();
+        igName = appSettings.IGName ?? string.Empty;
 
-
-        if (!File.Exists(defaultProfilePath))
+        if (string.IsNullOrEmpty(igName) || string.IsNullOrEmpty(appSettings.DataDirectory) || string.IsNullOrEmpty(appSettings.FHIRServer))
         {
-            MessageBox.Show("Default profile file not found: " + defaultProfilePath);
+            MessageBox.Show("Default profile settings are not properly configured.");
             return;
         }
-        try
-        {
-            string jsonContent = File.ReadAllText(defaultProfilePath);
-            var defaultProfile = JsonConvert.DeserializeObject<Dictionary<string, string>>(jsonContent);
-            // Get  IG name from the Json file
-            if (defaultProfile != null && defaultProfile.ContainsKey("IGName"))
-            {
-                igName = defaultProfile["IGName"];
-                cmbIG.Text = igName;
-            }
-            else
-            {
-                MessageBox.Show("IGName not found in the default profile.");
-            }
-            // Get  DataDirectory from the Json file
-            if (defaultProfile != null && defaultProfile.ContainsKey("DataDirectory"))
-            {
-                dataDirectory = defaultProfile["DataDirectory"];
-                txtDataDirectory.Text = dataDirectory;
-                profilePath = dataDirectory + profileDirectory + igName;
-            }
-            else
-            {
-                MessageBox.Show("DataDirectory not found in the default profile.");
-            }
-            // Get  FHIRServer from the Json file
-            if (defaultProfile != null && defaultProfile.ContainsKey("FHIRServer"))
-            {
-                fhirServer = defaultProfile["FHIRServer"];
-                txtFHIRServer.Text = fhirServer;
-            }
-            else
-            {
-                MessageBox.Show("FHIRServer not found in the default profile.");
-            }
-
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show("Error reading default profile: " + ex.Message);
-        }
-
+        cmbIG.Text = igName;
+        txtDataDirectory.Text = appSettings.DataDirectory ?? string.Empty;
+        txtFHIRServer.Text = appSettings.FHIRServer ?? string.Empty;
     }
 
     private void Initial()
     {
         urlList.Clear();
         qList.Clear();
-        profiles.Clear();
-        bundles.Clear();
+        ig.ClearProfiles();
+        ig.ClearBundles();
+        slicingList.Clear();
         applyModel = string.Empty;
         txtMsg.Text = string.Empty;
         txtPackage.Text = string.Empty;
@@ -142,7 +92,7 @@ public partial class FormIGAnalyzer : Form
         lvProfile.Items.Clear();
         lvApplyModel.Items.Clear();
         lvElement.Items.Clear();
-        client = new FhirClient(fhirServer);
+        client = new FhirClient(appSettings.FHIRServer);
     }
     private void cmbIG_SelectedIndexChanged(object? sender, EventArgs e)
     {
@@ -245,8 +195,10 @@ public partial class FormIGAnalyzer : Form
 
         Initial();
         string tw_ig = ofdPackage.FileName;
+        ig.Package = tw_ig;
+
         txtPackage.Text = tw_ig;
-        resolver = new(ModelInfo.ModelInspector, new string[] { tw_ig });
+        resolver = new(ModelInfo.ModelInspector, new string[] { ig.Package});
         var names = resolver.ListCanonicalUris();
 
         foreach (var n in names)
@@ -260,11 +212,12 @@ public partial class FormIGAnalyzer : Form
                     var profile = n.Split("/").Last();
                     if (profile.Contains("Bundle"))
                     {
-                        bundles.Add(profile);
+                        ig.AddBundle(profile);
                     }
                     else if (profile.Contains(logicName) && profile.Contains("Model"))
                     {
                         applyModel = profile;
+                        ig.AddLogicModel(profile);
                     }
                     else
                     {
@@ -272,12 +225,12 @@ public partial class FormIGAnalyzer : Form
                         {
                             if (profile.Contains(logicName))
                             {
-                                profiles.Add(profile);
+                                ig.AddProfile(profile);
                             }
                         }
                         else
                         {
-                            profiles.Add(profile);
+                            ig.AddProfile(profile);
                         }
 
                     }
@@ -290,16 +243,17 @@ public partial class FormIGAnalyzer : Form
         }
         // Display the results in the ListBox
         lbProfile.Items.Clear();
-        foreach (var profile in profiles)
+        foreach (var profile in ig.Profiles)
         {
             lbProfile.Items.Add(profile);
             //lbStaging.Items.Add(profile);
         }
 
-        foreach (var bundle in bundles)
+        foreach (var bundle in ig.Bundles)
         {
             lbBundleList.Items.Add(bundle);
         }
+       
 
 
         //urlList.Add("Observation-diagnostic-twpas.valueCodeableConcept", "http://loinc.org/vs/LL1971-2"); ==> SLicing問題，未來解決
@@ -315,7 +269,7 @@ public partial class FormIGAnalyzer : Form
         urlList.Add("Claim-twpas.procedure.procedureCodeableConcept.coding", "https://twcore.mohw.gov.tw/ig/twcore/ValueSet/icd-10-pcs-2023-tw");
         urlList.Add("Claim-twpas.diagnosis.diagnosisCodeableConcept", "https://twcore.mohw.gov.tw/ig/twcore/ValueSet/icd-10-pcs-2023-tw");
 
-        foreach (string profileName in profiles)
+        foreach (string profileName in ig.Profiles)
         {
 
             var sd = await resolver.ResolveByUriAsync("StructureDefinition/" + profileName) as StructureDefinition;
@@ -400,7 +354,7 @@ public partial class FormIGAnalyzer : Form
                             q1 = ele.Short.Split("，")[0];
                         }
                         //  IG Package問題，未來修改
-                        var q = new Tuple<string, string, string, string>(q1 + " | " + ele.Path, GetProfileName(m.Identity, profiles), q3, ele.Type.FirstOrDefault()?.Code ?? string.Empty);
+                        var q = new Tuple<string, string, string, string>(q1 + " | " + ele.Path, GetProfileName(m.Identity, ig.Profiles), q3, ele.Type.FirstOrDefault()?.Code ?? string.Empty);
                         qList.Add(q);
                     }
                 }
@@ -544,7 +498,7 @@ public partial class FormIGAnalyzer : Form
                             {
                                 var type = ele.Type.FirstOrDefault()?.Code;
                                 if (type == "BackboneElement") continue;
-                                var p1 = GetProfileName(m.Identity, profiles);
+                                var p1 = GetProfileName(m.Identity, ig.Profiles);
                                 if (p1 == profileName)
                                 {
                                     List<string> pathList = element.Path.Split('.').ToList();
@@ -3095,7 +3049,30 @@ public partial class FormIGAnalyzer : Form
         var resource = new FhirJsonParser().Parse<Resource>(jsonFHIR);
         // Save the resource to the server using "put" method
 
-        var result = await client.UpdateAsync(resource);
+        Resource? result = null;
+
+        try
+        {
+            if(resource.TypeName == "StructureMap")
+            {
+                result = await client.UpdateAsync(resource);
+            }
+            else{
+                result = await client.CreateAsync(resource);
+            }
+        }
+        catch (FhirOperationException ex)
+        {
+            MessageBox.Show("Error saving FHIR data: " + ex.Message);
+            return;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("An unexpected error occurred: " + ex.Message);
+            return;
+        }
+        
+        
         if (result != null)
         {
             MessageBox.Show("FHIR data saved successfully. Resource id :" + result.Id);
@@ -3110,7 +3087,7 @@ public partial class FormIGAnalyzer : Form
     private void tabStaging_Enter(object sender, EventArgs e)
     {
         lbStaging.Items.Clear();
-        foreach (var profile in profiles)
+        foreach (var profile in ig.Profiles)
         {
             // check if the profile is contained in the qList
             foreach (var q in qList)

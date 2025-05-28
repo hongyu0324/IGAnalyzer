@@ -1,5 +1,59 @@
 {
     "DataDirectory" : "D:\\Hongyu\\Project\\data\\IGAnalyzer\\",
     "FHIRServer": "http://localhost:8080/fhir",
-    "IGName": "pas"
+    "IGName": "pas",
+    "MasterData":[
+        {
+            "Name": "Patient-twpas",
+            "ResourceType": "Patient"
+        },
+        {
+            "Name": "Organization-twpas",
+            "ResourceType": "Organization"
+        },  
+        {
+            "Name": "Organization-genetic-testing-twpas",
+            "ResourceType": "Organization"
+        },
+        {
+            "Name": "Practitioner-twpas",
+            "ResourceType": "Practitioner"
+        }
+    ],
+    "BindingsAdd":[
+        {
+            "path":"MedicationRequest-treat-twpas.dosageInstruction.doseAndRate.doseQuantity.code",
+            "valueSet":"http://hl7.org/fhir/ValueSet/ucum-common"
+        },
+        {
+            "path":"MedicationRequest-apply-twpas.dosageInstruction.doseAndRate.doseQuantity.code",
+            "valueSet":"http://hl7.org/fhir/ValueSet/ucum-common"
+        },
+        {
+            "path":"Claim-twpas.procedure.procedureCodeableConcept.coding",
+            "valueSet":"https://twcore.mohw.gov.tw/ig/twcore/ValueSet/icd-10-pcs-2023-tw"
+        },
+        {
+            "path":"Claim-twpas.diagnosis.diagnosisCodeableConcept",
+            "valueSet":"https://twcore.mohw.gov.tw/ig/twcore/ValueSet/icd-10-pcs-2023-tw"
+        }
+    ],
+    "PathUpdate":[
+        {
+            "before":"item.quantity.unit",
+            "after":"item.quantity.code"
+        },
+        {
+            "before":"dosageInstruction.doseAndRate.doseQuantity.unit",
+            "after":"dosageInstruction.doseAndRate.doseQuantity.code"
+        },
+        {
+            "before":"ingredient.quantity.numerator.unit",
+            "after":"ingredient.quantity.numerator.code"
+        },
+        {
+            "before":"contnet.url",
+            "after":"content.url"
+        }
+    ]
 }
