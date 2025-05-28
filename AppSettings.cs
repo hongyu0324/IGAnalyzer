@@ -25,6 +25,9 @@ public class AppSettings
     [JsonPropertyName("PathUpdate")]
     public List<PathUpdateItem> PathUpdate { get; set; } = new List<PathUpdateItem>();
 
+    [JsonPropertyName("Constraints")]
+    public List<Constraint> Constraints { get; set; } = new List<Constraint>();
+
 
     public class MasterDataItem
     {
@@ -60,6 +63,50 @@ public class AppSettings
         IGName = null;
     }
 
+    public class Constraint
+    {
+        [JsonPropertyName("profileName")]
+        public string? ProfileName { get; set; }
+
+        [JsonPropertyName("profileType")]
+        public string? ProfileType { get; set; }
+
+        [JsonPropertyName("implySource")]
+        public string? ImplySource { get; set; }
+
+        [JsonPropertyName("implyTarget")]
+        public string? ImplyTarget { get; set; }
+
+        [JsonPropertyName("rule")]
+        public List<Rule> Rules { get; set; } = new List<Rule>();
+    }
+
+    public class Rule
+    {
+        [JsonPropertyName("sourceValue")]
+        public string? SourceValue { get; set; }
+
+        // Note: JSON key is "TargetType" with a capital 'T'
+        [JsonPropertyName("TargetType")]
+        public string? TargetType { get; set; }
+
+        [JsonPropertyName("targetValue")]
+        public object? TargetValue { get; set; } // Will be JsonElement after initial deserialization
+    }
+
+    // Represents the targetValue structure when TargetType is "integer"
+    public class TargetValueRange
+    {
+        // Note: JSON key is "Max" with a capital 'M'
+        [JsonPropertyName("Max")]
+        public int Max { get; set; }
+
+        // Note: JSON key is "Min" with a capital 'M'
+        [JsonPropertyName("Min")]
+        public int Min { get; set; }
+    }
+
+
     public void Load()
     {
         string configFile = "Application.json";
@@ -75,6 +122,7 @@ public class AppSettings
                 MasterData = config.MasterData;
                 BindingsAdd = config.BindingsAdd;
                 PathUpdate = config.PathUpdate;
+                Constraints = config.Constraints;
             }
         }
         else

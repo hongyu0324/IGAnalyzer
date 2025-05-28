@@ -55,5 +55,43 @@
             "before":"contnet.url",
             "after":"content.url"
         }
+    ],
+    "Constraints":[
+       {
+        "profileName":"Observation-pat-assessment-twpas",
+        "profileType":"Observation",
+        "implySource":"code.coding.code",
+        "implyTarget":"valueCodeableConcept",
+        "rule":[
+            {   
+                "sourceValue":"88020-3",
+                "TargetType":"string",
+                "targetValue":[
+                    "class1",
+                    "class2",
+                    "class3",
+                    "class4"
+                ]
+            },
+            {
+                "sourceValue":"98153-0",
+                "TargetType":"string",
+                "targetValue":[
+                    "A",
+                    "B",
+                    "C"
+                ]
+            },
+            {
+                "sourceValue":"HCTCI",
+                "TargetType":"integer",
+                "targetValue":
+                {
+                    "Max" : 26,
+                    "Min" : 0
+                }
+            }
+        ]
+       }
     ]
 }

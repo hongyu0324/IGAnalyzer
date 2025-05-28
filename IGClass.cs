@@ -1,5 +1,10 @@
 namespace IGAnalyzer;
 
+using System;
+using System.Collections.Generic;
+using Firely.Fhir.Packages;
+using Hl7.Fhir.Model;
+
 public class IGClass
 {
     public string Name { get; set; } = string.Empty;
@@ -9,6 +14,8 @@ public class IGClass
     public string Status { get; set; } = string.Empty;
     public string Publisher { get; set; } = string.Empty;
     public string Package { get; set; } = string.Empty;
+
+
 
     public List<string> Profiles { get; set; } = new List<string>();
     public List<string> Bundles { get; set; } = new List<string>();
@@ -59,7 +66,7 @@ public class IGClass
             Bundles.Add(bundleName);
         }
     }
-    
+
     public void AddQItem(string name, string type, string path, string description)
     {
         var item = Tuple.Create(name, type, path, description);
@@ -80,7 +87,7 @@ public class IGClass
 
     public void AddBindItem(string name, string path)
     {
-        
+
     }
 
     public void ClearProfiles()
@@ -119,4 +126,7 @@ public class IGClass
         SubName = string.Empty;
         LogicModel = string.Empty;
     }
+
+   
+   
 }

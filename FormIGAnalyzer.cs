@@ -211,8 +211,8 @@ public partial class FormIGAnalyzer : Form
 
         txtPackage.Text = tw_ig;
         resolver = new(ModelInfo.ModelInspector, new string[] { ig.Package});
-        var names = resolver.ListCanonicalUris();
 
+        var names = resolver.ListCanonicalUris();
         foreach (var n in names)
         {
             string logicName = GetLogicName(igName, igSubName);
@@ -3075,6 +3075,7 @@ public partial class FormIGAnalyzer : Form
     private void tabStaging_Enter(object sender, EventArgs e)
     {
         lbStaging.Items.Clear();
+        lbMaster.Items.Clear();
         bool isMaster = false;
         foreach (var profile in ig.Profiles)
         {
