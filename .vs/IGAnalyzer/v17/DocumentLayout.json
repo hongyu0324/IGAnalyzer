@@ -26,8 +26,20 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 1,
+          "SelectedChildIndex": 0,
           "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "FormIGAnalyzer.cs [\u8A2D\u8A08]",
+              "DocumentMoniker": "D:\\Hongyu\\Project\\IGAnalyzer\\FormIGAnalyzer.cs",
+              "RelativeDocumentMoniker": "FormIGAnalyzer.cs",
+              "ToolTip": "D:\\Hongyu\\Project\\IGAnalyzer\\FormIGAnalyzer.cs [\u8A2D\u8A08]",
+              "RelativeToolTip": "FormIGAnalyzer.cs [\u8A2D\u8A08]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-07T16:50:01.347Z",
+              "EditorCaption": " [\u8A2D\u8A08]"
+            },
             {
               "$type": "Document",
               "DocumentIndex": 1,
@@ -40,18 +52,6 @@
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-05-01T08:04:02.082Z",
               "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "FormIGAnalyzer.cs [\u8A2D\u8A08]",
-              "DocumentMoniker": "D:\\Hongyu\\Project\\IGAnalyzer\\FormIGAnalyzer.cs",
-              "RelativeDocumentMoniker": "FormIGAnalyzer.cs",
-              "ToolTip": "D:\\Hongyu\\Project\\IGAnalyzer\\FormIGAnalyzer.cs [\u8A2D\u8A08]",
-              "RelativeToolTip": "FormIGAnalyzer.cs [\u8A2D\u8A08]",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-07T16:50:01.347Z",
-              "EditorCaption": " [\u8A2D\u8A08]"
             },
             {
               "$type": "Document",

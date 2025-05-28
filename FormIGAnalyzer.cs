@@ -14,7 +14,6 @@ using System.Runtime.CompilerServices;
 using System.Windows.Forms.VisualStyles;
 using System.Reflection;
 
-
 namespace IGAnalyzer;
 
 public partial class FormIGAnalyzer : Form
@@ -27,20 +26,16 @@ public partial class FormIGAnalyzer : Form
     private string igName = string.Empty;
 
     private string igSubName = string.Empty;
-    private Dictionary<string, string> urlList = new Dictionary<string, string>();
+
     private ModuleFHIR.FHIROperator fhirOperator = new ModuleFHIR.FHIROperator();
     FhirPackageSource? resolver;
-    private List<Tuple<string, string, string, string>> qList = new List<Tuple<string, string, string, string>>();
-
-    private List<Tuple<string, string, string>> slicingList = new List<Tuple<string, string, string>>();
 
     private string profileDirectory = "profiles\\";
 
     private string stagingDirectory = "staging\\";
 
-
     private FhirClient? client;
-    private string applyModel = "";
+
     public FormIGAnalyzer()
     {
         InitializeComponent();
@@ -55,10 +50,6 @@ public partial class FormIGAnalyzer : Form
     private void ReadDefaultProfile()
     {
         // Read the default profile from the Application.json file
-
-        //string defaultProfilePath = Path.Combine(txtDataDirectory.Text, profileDirectory, "default-profile.json");
-        // Assuming Application.json is in the same directory as the executable
-        // string defaultProfilePath = Path.Combine(Application.StartupPath, "Application.json");
         appSettings.Load();
         igName = appSettings.IGName ?? string.Empty;
 
@@ -74,12 +65,7 @@ public partial class FormIGAnalyzer : Form
 
     private void Initial()
     {
-        urlList.Clear();
-        qList.Clear();
-        ig.ClearProfiles();
-        ig.ClearBundles();
-        slicingList.Clear();
-        applyModel = string.Empty;
+        ig.Clear();
         txtMsg.Text = string.Empty;
         txtPackage.Text = string.Empty;
         txtQuestionnaire.Text = string.Empty;
@@ -122,6 +108,32 @@ public partial class FormIGAnalyzer : Form
     private void btnClose_Click(object? sender, EventArgs e)
     {
         this.Close();
+    }
+
+    private void GenerateBinding(Hl7.Fhir.Model.ElementDefinition element, string profileName, Dictionary<string, string> binding)
+    {
+        if (element.Binding != null)
+        {
+            var valueSetUri = element.Binding.ValueSet?.ToString() ?? string.Empty;
+            try
+            {
+                List<string> listPath = element.Path.Split('.').ToList();
+                if (listPath.Count > 1)
+                {
+                    listPath[0] = profileName;
+                }
+                string code = string.Join(".", listPath);
+                if (binding.ContainsKey(code))
+                {
+                    return; // Or continue if called from a loop, but return is fine for a helper
+                }
+                binding.Add(code, valueSetUri);
+            }
+            catch (Exception err)
+            {
+                txtMsg.Text = txtMsg.Text + $"Error processing {profileName} {element.Path}: {err.Message}" + Environment.NewLine;
+            }
+        }
     }
 
     private void GenerateUrlListFromBinding(Hl7.Fhir.Model.ElementDefinition element, string profileName, Dictionary<string, string> urlList)
@@ -216,8 +228,8 @@ public partial class FormIGAnalyzer : Form
                     }
                     else if (profile.Contains(logicName) && profile.Contains("Model"))
                     {
-                        applyModel = profile;
-                        ig.AddLogicModel(profile);
+                        
+                        ig.LogicModel = profile;
                     }
                     else
                     {
@@ -246,7 +258,6 @@ public partial class FormIGAnalyzer : Form
         foreach (var profile in ig.Profiles)
         {
             lbProfile.Items.Add(profile);
-            //lbStaging.Items.Add(profile);
         }
 
         foreach (var bundle in ig.Bundles)
@@ -254,20 +265,13 @@ public partial class FormIGAnalyzer : Form
             lbBundleList.Items.Add(bundle);
         }
        
-
-
-        //urlList.Add("Observation-diagnostic-twpas.valueCodeableConcept", "http://loinc.org/vs/LL1971-2"); ==> SLicing問題，未來解決
-        //urlList.Add("Observation-diagnostic-twpas.interpretation", "http://terminology.hl7.org/ValueSet/v3-ObservationInterpretation");
-        //urlList.Add("Observation-cancer-stage-twpas.valueCodeableConcept", "https://twcore.mohw.gov.tw/ig/pas/ValueSet/cancer-stage-score");
-        urlList.Add("MedicationRequest-treat-twpas.dosageInstruction.doseAndRate.doseQuantity.code", "http://hl7.org/fhir/ValueSet/ucum-common");
-        urlList.Add("MedicationRequest-apply-twpas.dosageInstruction.doseAndRate.doseQuantity.code", "http://hl7.org/fhir/ValueSet/ucum-common");
-        //urlList.Add("Claim-twpas.item.quantity.unit", "http://hl7.org/fhir/ValueSet/ucum-common");
-        //urlList.Add("MedicationRequest-treat-twpas.status", "http://hl7.org/fhir/ValueSet/medicationrequest-status");
-        //urlList.Add("MedicationRequest-treat-twpas.dosageInstruction.timing.code.text", "https://twcore.mohw.gov.tw/ig/twcore/ValueSet/medication-frequency-hl7-tw");
-        //urlList.Add("MedicationRequest-apply-twpas.dosageInstruction.timing.repeat.count", "https://twcore.mohw.gov.tw/ig/twcore/ValueSet/medication-frequency-hl7-tw");
-        //urlList.Add("MedicationRequest-apply-twpas.medicationCodeableConcept", "http://hl7.org/fhir/ValueSet/medication-codes");
-        urlList.Add("Claim-twpas.procedure.procedureCodeableConcept.coding", "https://twcore.mohw.gov.tw/ig/twcore/ValueSet/icd-10-pcs-2023-tw");
-        urlList.Add("Claim-twpas.diagnosis.diagnosisCodeableConcept", "https://twcore.mohw.gov.tw/ig/twcore/ValueSet/icd-10-pcs-2023-tw");
+        foreach(var binding in appSettings.BindingsAdd)
+        {
+            if (!string.IsNullOrEmpty(binding.Path) && !string.IsNullOrEmpty(binding.ValueSet))
+            {
+                ig.Binding.Add(binding.Path, binding.ValueSet);
+            }
+        }
 
         foreach (string profileName in ig.Profiles)
         {
@@ -281,12 +285,12 @@ public partial class FormIGAnalyzer : Form
 
             foreach (var element in sd.Differential.Element)
             {
-                GenerateUrlListFromBinding(element, profileName, urlList);
+                GenerateBinding(element, profileName, ig.Binding);
             }
 
             foreach (var element in sd.Snapshot.Element)
             {
-                GenerateUrlListFromBinding(element, profileName, urlList);
+                GenerateBinding(element, profileName, ig.Binding);
             }
             foreach (var element in sd.Differential.Element)
             {
@@ -296,19 +300,17 @@ public partial class FormIGAnalyzer : Form
                 {
                     string path = element.Path;
                     path = path.Replace(sd.Type + ".", "");
-                    //path = path.Replace("[x]", "");
-                    var q = new Tuple<string, string, string>(sd.Id, path, slice);
-                    slicingList.Add(q);
+                    ig.AddSliceItem(sd.Id, path, slice);
                 }
             }
         }
 
-        foreach (var s in slicingList)
+        foreach (var s in ig.SliceList)
         {
             txtMsg.Text = txtMsg.Text + s.Item1 + " % " + s.Item2 + " % " + s.Item3 + Environment.NewLine;
         }
 
-        var resolvedDefinition = await resolver.ResolveByUriAsync("StructureDefinition/" + applyModel);
+        var resolvedDefinition = await resolver.ResolveByUriAsync("StructureDefinition/" + ig.LogicModel);
         if (resolvedDefinition is not StructureDefinition applyModelDef)
         {
             txtMsg.Text = txtMsg.Text + "Failed to resolve the ApplyModel definition." + Environment.NewLine;
@@ -354,8 +356,9 @@ public partial class FormIGAnalyzer : Form
                             q1 = ele.Short.Split("，")[0];
                         }
                         //  IG Package問題，未來修改
-                        var q = new Tuple<string, string, string, string>(q1 + " | " + ele.Path, GetProfileName(m.Identity, ig.Profiles), q3, ele.Type.FirstOrDefault()?.Code ?? string.Empty);
-                        qList.Add(q);
+                        ig.AddQItem(q1 + " | " + ele.Path, GetProfileName(m.Identity, ig.Profiles), q3, ele.Type.FirstOrDefault()?.Code ?? string.Empty);
+                        //var q = new Tuple<string, string, string, string>(q1 + " | " + ele.Path, GetProfileName(m.Identity, ig.Profiles), q3, ele.Type.FirstOrDefault()?.Code ?? string.Empty);
+                        //qList.Add(q);
                     }
                 }
             }
@@ -367,12 +370,14 @@ public partial class FormIGAnalyzer : Form
     private string ModifyByIGPackage(string igPath)
     {
         string q3 = igPath;
-        //if (q3.Contains("基因突變類型")) q3 = "component.interpretation";
-        if (q3 == "item.quantity.unit") q3 = "item.quantity.code";
-        if (q3 == "dosageInstruction.doseAndRate.doseQuantity.unit") q3 = "dosageInstruction.doseAndRate.doseQuantity.code";
-        if (q3 == "ingredient.quantity.numerator.unit") q3 = "ingredient.quantity.numerator.code";
-        if (q3 == "contnet.url") q3 = "content.url";
-
+        
+        foreach(var upath in appSettings.PathUpdate)
+        {
+            if (upath.Before != null && upath.After != null)
+            {
+                q3 = q3.Replace(upath.Before, upath.After);
+            }
+        }
         return q3;
     }
 
@@ -456,7 +461,7 @@ public partial class FormIGAnalyzer : Form
         rbApplyModel.Visible = true;
 
         List<ElementDefinition> listElemnt = new List<ElementDefinition>();
-        var applyModelDefResult = await resolver.ResolveByUriAsync("StructureDefinition/" + applyModel);
+        var applyModelDefResult = await resolver.ResolveByUriAsync("StructureDefinition/" + ig.LogicModel);
         if (applyModelDefResult is not StructureDefinition applyModelDef)
         {
             MessageBox.Show("Failed to resolve the ApplyModel definition.");
@@ -588,7 +593,6 @@ public partial class FormIGAnalyzer : Form
             slice = slice.Substring(0, slice.Length - 3);
         }
 
-
         return slice;
     }
     private async void lbApplyModel_SelectedIndexChanged(object sender, EventArgs e)
@@ -614,7 +618,7 @@ public partial class FormIGAnalyzer : Form
             string itemName = lbApplyModel.SelectedItem?.ToString()?.Split('|')[0].Trim() ?? string.Empty;
             // Display the results in the textBox
 
-            foreach (var q in qList)
+            foreach (var q in ig.QList)
             {
                 if (q.Item1.Contains(itemName))
                 {
@@ -648,9 +652,9 @@ public partial class FormIGAnalyzer : Form
                     string code = q.Item2 + "." + q.Item3;
                     string type = q.Item4;
                     string url = string.Empty;
-                    if (urlList.ContainsKey(code))
+                    if (ig.Bindiing.ContainsKey(code))
                     {
-                        url = urlList[code];
+                        url = ig.Bindiing[code];
                     }
                     //Get type and binding from StructureDefinition
                     StructureDefinition? sd = null;
@@ -736,7 +740,7 @@ public partial class FormIGAnalyzer : Form
             string itemName = lbApplyModel.SelectedItem?.ToString()?.Split('|')[0].Trim() ?? string.Empty;
             // Display the results in the textBox
 
-            foreach (var q in qList)
+            foreach (var q in ig.QList)
             {
                 if (q.Item1.Contains(itemName))
                 {
@@ -761,9 +765,9 @@ public partial class FormIGAnalyzer : Form
                     string code = q.Item2 + "." + q.Item3;
                     //check if urlMap contains code
                     string url = string.Empty;
-                    if (urlList.ContainsKey(code))
+                    if (ig.Bindiing.ContainsKey(code))
                     {
-                        url = urlList[code];
+                        url = ig.Bindiing[code];
                         item.SubItems.Add(url);
                     }
                     //  URL問題，未來修改 ==> Claim-twpasitem.modifier.coding.code 
@@ -850,21 +854,7 @@ public partial class FormIGAnalyzer : Form
                 rule = rule.Substring(start + 1, end - start - 1);
             }
         }
-        /*
-        if (path.Contains("(") && path.Contains(")"))
-        {
-            var splitList = path.Split("(").ToList();
-            path = splitList[0];
-            rule = splitList[1];
-            //get position of "(" and ")" 
-            int start = rule.IndexOf("(");
-            int end = rule.IndexOf(")");
-            if (start != -1 && end != -1)
-            {
-                //rule += rule.Substring(start + 1, end - start - 1);
-            }
-        }
-        */
+
         if (rule.EndsWith(")"))
         {
             rule = rule.Substring(0, rule.Length - 1);
@@ -876,7 +866,7 @@ public partial class FormIGAnalyzer : Form
     {
         string slice = string.Empty;
 
-        foreach (var s in slicingList)
+        foreach (var s in ig.SliceList)
         {
             if (s.Item1 == profile && path.Contains(s.Item2))
             {
@@ -1006,8 +996,6 @@ public partial class FormIGAnalyzer : Form
         int height = 0; // Height of the labels
         // Clear the Panel2 before adding new labels
         this.splitQuestionnaire.Panel2.Controls.Clear();
-
-        // Iterate through the items in the questionnaire and create labels for each one
 
         foreach (var item in questionnaireItem)
         {
@@ -1421,7 +1409,7 @@ public partial class FormIGAnalyzer : Form
 
     private void btnRefresh_Click(object sender, EventArgs e)
     {
-        List<Tuple<string, string, string, string, string>> qList = new List<Tuple<string, string, string, string, string>>();
+        List<Tuple<string, string, string, string, string>> qItemList = new List<Tuple<string, string, string, string, string>>();
 
         // copy lvApplyModel to qList
         foreach (ListViewItem item in lvApplyModel.Items)
@@ -1431,7 +1419,7 @@ public partial class FormIGAnalyzer : Form
                 item.SubItems.Add(string.Empty);
             }
             var q = new Tuple<string, string, string, string, string>(item.SubItems[0].Text + "|" + item.SubItems[1].Text, item.SubItems[2].Text, item.SubItems[3].Text, item.SubItems[4].Text, item.SubItems[5].Text);
-            qList.Add(q);
+            qItemList.Add(q);
         }
         // clear txtQuestionnaire
         txtQuestionnaire.Text = string.Empty;
@@ -1440,7 +1428,7 @@ public partial class FormIGAnalyzer : Form
         if (lbApplyModel.SelectedItem != null)
         {
             string title = lbApplyModel.SelectedItem?.ToString()?.Split('|')[1].Trim() ?? string.Empty;
-            string json = fhirOperator.GenerateQuestionnaire(title, qList);
+            string json = fhirOperator.GenerateQuestionnaire(title, qItemList);
             // display json in txtQuestionnaire
             txtQuestionnaire.Text = json;
         }
@@ -1539,7 +1527,7 @@ public partial class FormIGAnalyzer : Form
 
             Dictionary<string, string> data = new Dictionary<string, string>();
 
-            foreach (var q in qList)
+            foreach (var q in ig.QList)
             {
                 if (q.Item2.Contains(itemName))
                 {
@@ -2048,7 +2036,7 @@ public partial class FormIGAnalyzer : Form
         string profileName = lbStaging.SelectedItem?.ToString()?.Split('|')[0].Trim() ?? string.Empty;
         List<Tuple<string, string>> profileSliceList = new List<Tuple<string, string>>();
         //txtMsg.Text = string.Empty;
-        foreach (var s in slicingList)
+        foreach (var s in ig.SliceList)
         {
             string profile = s.Item1;
             string path = s.Item2;
@@ -2407,9 +2395,9 @@ public partial class FormIGAnalyzer : Form
                     if (path == applyModelPath)
                     {
                         path = profileName + "." + path;
-                        if (urlList.ContainsKey(path))
+                        if (ig.Binding.ContainsKey(path))
                         {
-                            system = urlList[path];
+                            system = ig.Binding[path];
                         }
                         else
                         {
@@ -3087,18 +3075,34 @@ public partial class FormIGAnalyzer : Form
     private void tabStaging_Enter(object sender, EventArgs e)
     {
         lbStaging.Items.Clear();
+        bool isMaster = false;
         foreach (var profile in ig.Profiles)
         {
             // check if the profile is contained in the qList
-            foreach (var q in qList)
+            foreach (var q in ig.QList)
             {
                 if (q.Item2.Contains(profile))
                 {
-                    lbStaging.Items.Add(profile);
+                    foreach (var master in appSettings.MasterData)
+                    {
+                        if (master.Name == profile)
+                        {
+                            isMaster = true;
+                            txtMsg.Text = txtMsg.Text + "Profile: " + profile + " is a master profile." + Environment.NewLine;
+                        }
+                    }
+                    if (isMaster == false)
+                    {
+                        lbStaging.Items.Add(profile);
+                    }
+                    else
+                    {
+                        lbMaster.Items.Add(profile);
+                    }
+                    isMaster = false;
                     break;
                 }
             }
-
         }
     }
 
@@ -3161,7 +3165,6 @@ public partial class FormIGAnalyzer : Form
             else if (type == "code") pathX = path.Replace("[x]", "") + "Code";
             else if (type == "oid") pathX = path.Replace("[x]", "") + "Oid";
             else if (type == "uuid") pathX = path.Replace("[x]", "") + "Uuid";
-
         }
         else
         {

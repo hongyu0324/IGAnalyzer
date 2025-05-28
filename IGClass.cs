@@ -12,14 +12,16 @@ public class IGClass
 
     public List<string> Profiles { get; set; } = new List<string>();
     public List<string> Bundles { get; set; } = new List<string>();
-    public List<string> LogicModels { get; set; } = new List<string>();
+    public string LogicModel { get; set; } = string.Empty;
 
 
     public List<Tuple<string, string, string, string>> QList { get; set; } = new List<Tuple<string, string, string, string>>();
 
     public List<Tuple<string, string, string>> SliceList { get; set; } = new List<Tuple<string, string, string>>();
 
-    public List<Tuple<string, string, string>> BindList { get; set; } = new List<Tuple<string, string, string>>();
+    public Dictionary<string, string> Binding { get; set; } = new Dictionary<string, string>();
+
+    public Dictionary<string, string> Bindiing { get; set; } = new Dictionary<string, string>();
 
 
     public IGClass()
@@ -34,13 +36,13 @@ public class IGClass
 
         Profiles = new List<string>();
         Bundles = new List<string>();
-        LogicModels = new List<string>();
+        LogicModel = string.Empty;
 
         QList = new List<Tuple<string, string, string, string>>();
 
         SliceList = new List<Tuple<string, string, string>>();
 
-        BindList = new List<Tuple<string, string, string>>();
+        Binding = new Dictionary<string, string>();
     }
 
     public void AddProfile(string profileName)
@@ -57,13 +59,7 @@ public class IGClass
             Bundles.Add(bundleName);
         }
     }
-    public void AddLogicModel(string logicModelName)
-    {
-        if (!LogicModels.Contains(logicModelName))
-        {
-            LogicModels.Add(logicModelName);
-        }
-    }
+    
     public void AddQItem(string name, string type, string path, string description)
     {
         var item = Tuple.Create(name, type, path, description);
@@ -82,13 +78,9 @@ public class IGClass
         }
     }
 
-    public void AddBindItem(string name, string path, string description)
+    public void AddBindItem(string name, string path)
     {
-        var item = Tuple.Create(name, path, description);
-        if (!BindList.Contains(item))
-        {
-            BindList.Add(item);
-        }
+        
     }
 
     public void ClearProfiles()
@@ -101,18 +93,30 @@ public class IGClass
         Bundles.Clear();
     }
 
-    public void ClearLogicModels()
+    public void ClearQList()
     {
-        LogicModels.Clear();
+        QList.Clear();
+    }
+
+    public void ClearSliceList()
+    {
+        SliceList.Clear();
+    }
+
+    public void ClearBinding()
+    {
+        Binding.Clear();
     }
 
     public void Clear()
     {
         ClearProfiles();
         ClearBundles();
-        ClearLogicModels();
-        QList.Clear();
-        SliceList.Clear();
-        BindList.Clear();
+        ClearQList();
+        ClearSliceList();
+        ClearBinding();
+        Name = string.Empty;
+        SubName = string.Empty;
+        LogicModel = string.Empty;
     }
 }
