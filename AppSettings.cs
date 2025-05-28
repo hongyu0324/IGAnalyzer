@@ -87,7 +87,7 @@ public class AppSettings
         public string? SourceValue { get; set; }
 
         // Note: JSON key is "TargetType" with a capital 'T'
-        [JsonPropertyName("TargetType")]
+        [JsonPropertyName("targetType")]
         public string? TargetType { get; set; }
 
         [JsonPropertyName("targetValue")]
@@ -106,6 +106,48 @@ public class AppSettings
         public int Min { get; set; }
     }
 
+    public string GetTargetString(string profileName, string implySource, string sourceValue)
+    {
+        string targetValue = string.Empty;
+        foreach (var constraint in Constraints)
+        {
+            if (constraint.ProfileName == profileName)
+            {
+                foreach (var rule in constraint.Rules)
+                {
+                    if (rule.SourceValue == sourceValue && rule.TargetType == "string")
+                    {
+                        targetValue = rule.TargetValue?.ToString() ?? string.Empty;
+                        if (targetValue != string.Empty)
+                        {
+                            targetValue = targetValue.Replace("[", "").Replace("]", "");
+                            List<string> values = targetValue.Split(',').Select(v => v.Trim()).ToList();
+                            targetValue = string.Join(", ", values);
+                            targetValue = targetValue.Replace("\"", "");
+                        }
+                    }
+                    else if (rule.SourceValue == sourceValue && rule.TargetType == "integer")
+                    {
+                        if (rule.TargetValue is JsonElement jsonElement)
+                        {
+                            // Deserialize the JSON element to TargetValueRange
+                            var range = JsonSerializer.Deserialize<TargetValueRange>(jsonElement.GetRawText());
+                            if (range != null)
+                            {
+                                for(int i = range.Min; i <= range.Max; i++)
+                                {
+                                    targetValue += i.ToString() + ",";
+                                }
+                                targetValue = targetValue.TrimEnd(',').Trim();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        return targetValue;
+    }
 
     public void Load()
     {

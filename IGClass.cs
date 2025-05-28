@@ -28,7 +28,6 @@ public class IGClass
 
     public Dictionary<string, string> Binding { get; set; } = new Dictionary<string, string>();
 
-    public Dictionary<string, string> Bindiing { get; set; } = new Dictionary<string, string>();
 
 
     public IGClass()

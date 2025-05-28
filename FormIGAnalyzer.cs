@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using System.Runtime.CompilerServices;
 using System.Windows.Forms.VisualStyles;
 using System.Reflection;
+using Hl7.Fhir.Utility;
 
 namespace IGAnalyzer;
 
@@ -652,9 +653,9 @@ public partial class FormIGAnalyzer : Form
                     string code = q.Item2 + "." + q.Item3;
                     string type = q.Item4;
                     string url = string.Empty;
-                    if (ig.Bindiing.ContainsKey(code))
+                    if (ig.Binding.ContainsKey(code))
                     {
-                        url = ig.Bindiing[code];
+                        url = ig.Binding[code];
                     }
                     //Get type and binding from StructureDefinition
                     StructureDefinition? sd = null;
@@ -702,7 +703,7 @@ public partial class FormIGAnalyzer : Form
                     lvApplyModel.Items.Add(item);
 
                     //var qItem = new Tuple<string, string, string, string, string>(q.Item1, q.Item2, q.Item3, q.Item4, url);
-                    var qItem = new Tuple<string, string, string, string, string>(q.Item1, q.Item2, q.Item3, type, url);
+                    var qItem = new Tuple<string, string, string, string, string>(q.Item1, q.Item2, path, type, url);
                     qItemList.Add(qItem);
                 }
 
@@ -765,9 +766,9 @@ public partial class FormIGAnalyzer : Form
                     string code = q.Item2 + "." + q.Item3;
                     //check if urlMap contains code
                     string url = string.Empty;
-                    if (ig.Bindiing.ContainsKey(code))
+                    if (ig.Binding.ContainsKey(code))
                     {
-                        url = ig.Bindiing[code];
+                        url = ig.Binding[code];
                         item.SubItems.Add(url);
                     }
                     //  URL問題，未來修改 ==> Claim-twpasitem.modifier.coding.code 
@@ -979,6 +980,24 @@ public partial class FormIGAnalyzer : Form
         btnRebdering_ClickAsync(sender, e);
 
     }
+
+    private AppSettings.Constraint? GetConstraint(string id)
+    {
+        string profileName = id.Split('.').FirstOrDefault()?.Trim() ?? string.Empty;
+        string path = id.Replace(profileName + ".", "");
+        AppSettings.Constraint? constraint = null;
+
+        foreach (var c in appSettings.Constraints)
+        {
+            if (c.ProfileName == profileName && c.ImplySource == path)
+            {
+                constraint = c;
+                break;
+            }
+        }
+        return constraint;
+    }
+
     private async void btnRebdering_ClickAsync(object sender, EventArgs e)
     {
         // connect to the FHIR server
@@ -1020,8 +1039,9 @@ public partial class FormIGAnalyzer : Form
         {
             // Create a TextBox for each item in the questionnaire
             string name = item.Text.Split('|').Last().Trim();
-
             name = name.Replace("ApplyModel.", ""); // Replace spaces with underscores in the name
+
+            AppSettings.Constraint? constraint = null;
             if (item.Type == Questionnaire.QuestionnaireItemType.Choice)
             {
 
@@ -1031,6 +1051,44 @@ public partial class FormIGAnalyzer : Form
                 comboBox.Width = 400; // Set the width of the ComboBox
                 comboBox.Location = new Point(xPos, yPos); // Set the location of the ComboBox
                 comboBox.DropDownStyle = ComboBoxStyle.DropDownList; // Set the ComboBox to be a drop-down list
+                comboBox.Tag = item.LinkId; // Set the Tag property to the LinkId
+                constraint = GetConstraint(item.LinkId);
+                if (constraint != null)
+                {
+
+                    comboBox.Tag = constraint; // Set the Tag property to the constraint
+                    comboBox.SelectedValueChanged += (s, ev) =>
+                    {
+                        // When the ComboBox text changes, update the constraint value
+                        if (comboBox.Tag is AppSettings.Constraint c)
+                        {
+                            string value = comboBox.SelectedItem?.ToString() ?? string.Empty;
+                            // Update the constraint in the appSettings
+                            value = value.Split('|').FirstOrDefault()?.Trim() ?? string.Empty;
+                            string target = appSettings.GetTargetString(
+                                c.ProfileName ?? string.Empty,
+                                c.ImplySource ?? string.Empty,
+                                value);
+                            // get target combox with name
+                            var targetComboBox = this.splitQuestionnaire.Panel2.Controls
+                                .OfType<ComboBox>()
+                                .FirstOrDefault(cb => (cb.Tag as string) == c.ProfileName + "." + c.ImplyTarget);
+                            if (targetComboBox != null)
+                            {
+                                List<string> targets = target.Split(",").ToList();
+                                targetComboBox.Items.Clear();
+                                foreach (var t in targets)
+                                {      
+                                    targetComboBox.Items.Add(t.Trim());
+                                }
+                            }
+                            else
+                            {
+                                MessageBox.Show("Target ComboBox not found. Target value: " + target);
+                            }
+                        }
+                    };
+                }
                 if (item.AnswerValueSet is not null && item.AnswerValueSet != string.Empty)
                 {
                     // Get the value set from the FHIR server
@@ -1127,6 +1185,7 @@ public partial class FormIGAnalyzer : Form
         btnSave.BackColor = Color.LightBlue; // Set the background color of the Button
         btnSave.Click += CreateStagingFile; // Add a click event handler to the Button
         this.splitQuestionnaire.Panel2.Controls.Add(btnSave);
+        
     }
     private void CreateStagingFile(object? sender, EventArgs e)
     {

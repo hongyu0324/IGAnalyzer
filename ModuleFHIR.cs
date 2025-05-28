@@ -68,7 +68,7 @@ public class FHIROperator
         questionnaire.Contact.Add(contact);
 
         var item1 = new Questionnaire.ItemComponent();
-        item1.LinkId = "1";
+        item1.LinkId = title;
         item1.Text = title;
         item1.Type = Questionnaire.QuestionnaireItemType.Group;
         item1.Item = new List<Questionnaire.ItemComponent>();
@@ -87,14 +87,16 @@ public class FHIROperator
                         item.Type = Questionnaire.QuestionnaireItemType.Choice;
                     }
                     if (item.Type == Questionnaire.QuestionnaireItemType.Choice && q.Item5 != string.Empty && item.Text == q.Item1){
+                        item.LinkId = q.Item2 + "." + q.Item3;
                         item.AnswerValueSet = q.Item5;
                         item1.Item[item1.Item.Count - 1] = item;
                     } 
                 }
                 continue;
             }
-            
-            item.LinkId = "1." + (item1.Item.Count + 1).ToString();
+
+            //item.LinkId = "1." + (item1.Item.Count + 1).ToString();
+            item.LinkId =  q.Item2 +"." + q.Item3;
             item.Text = q.Item1;
 
             // 根據item4內容，判斷Type
