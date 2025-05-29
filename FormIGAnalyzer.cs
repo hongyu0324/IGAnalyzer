@@ -362,6 +362,11 @@ public partial class FormIGAnalyzer : Form
                         //qList.Add(q);
                     }
                 }
+                // ApplyModel 外掛，for specimen
+                foreach (var lm in appSettings.LogicModelAdd)
+                {  
+                    ig.AddQItem(lm.Name ?? string.Empty, lm.Profile ?? string.Empty, lm.Path ?? string.Empty, lm.Type ?? string.Empty);
+                }
             }
 
         }
@@ -650,7 +655,8 @@ public partial class FormIGAnalyzer : Form
                     }
                     item.SubItems.Add(path);
 
-                    string code = q.Item2 + "." + q.Item3;
+                    //string code = q.Item2 + "." + q.Item3;
+                    string code = q.Item2 + "." + path;
                     string type = q.Item4;
                     string url = string.Empty;
                     if (ig.Binding.ContainsKey(code))
@@ -3136,13 +3142,16 @@ public partial class FormIGAnalyzer : Form
         lbStaging.Items.Clear();
         lbMaster.Items.Clear();
         bool isMaster = false;
+        bool isLogic = false;
         foreach (var profile in ig.Profiles)
         {
             // check if the profile is contained in the qList
+            isLogic = false;
             foreach (var q in ig.QList)
             {
                 if (q.Item2.Contains(profile))
                 {
+                    isLogic = true;
                     foreach (var master in appSettings.MasterData)
                     {
                         if (master.Name == profile)
@@ -3162,6 +3171,10 @@ public partial class FormIGAnalyzer : Form
                     isMaster = false;
                     break;
                 }
+            }
+            if (isLogic == false)
+            {
+                lbMaster.Items.Add(profile);
             }
         }
     }

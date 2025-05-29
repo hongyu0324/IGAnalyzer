@@ -22,6 +22,10 @@ public class AppSettings
     [JsonPropertyName("BindingsAdd")]
     public List<BindingAddItem> BindingsAdd { get; set; } = new List<BindingAddItem>();
 
+
+[JsonPropertyName("LogicModelAdd")]
+    public List<LogicModelAddItem> LogicModelAdd { get; set; } = new List<LogicModelAddItem>();
+
     [JsonPropertyName("PathUpdate")]
     public List<PathUpdateItem> PathUpdate { get; set; } = new List<PathUpdateItem>();
 
@@ -55,6 +59,22 @@ public class AppSettings
         [JsonPropertyName("after")]
         public string? After { get; set; }
     }
+
+    public class LogicModelAddItem
+    {
+        [JsonPropertyName("name")]
+        public string? Name { get; set; }
+
+        [JsonPropertyName("profile")]
+        public string? Profile { get; set; }
+
+        [JsonPropertyName("path")]
+        public string? Path { get; set; }
+
+        [JsonPropertyName("type")]
+        public string? Type { get; set; }
+    }
+
 
     public AppSettings()
     {
@@ -165,6 +185,7 @@ public class AppSettings
                 BindingsAdd = config.BindingsAdd;
                 PathUpdate = config.PathUpdate;
                 Constraints = config.Constraints;
+                LogicModelAdd = config.LogicModelAdd;
             }
         }
         else
