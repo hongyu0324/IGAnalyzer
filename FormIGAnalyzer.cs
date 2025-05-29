@@ -211,7 +211,7 @@ public partial class FormIGAnalyzer : Form
         ig.Package = tw_ig;
 
         txtPackage.Text = tw_ig;
-        resolver = new(ModelInfo.ModelInspector, new string[] { ig.Package});
+        resolver = new(ModelInfo.ModelInspector, new string[] { ig.Package });
 
         var names = resolver.ListCanonicalUris();
         foreach (var n in names)
@@ -229,7 +229,7 @@ public partial class FormIGAnalyzer : Form
                     }
                     else if (profile.Contains(logicName) && profile.Contains("Model"))
                     {
-                        
+
                         ig.LogicModel = profile;
                     }
                     else
@@ -265,8 +265,8 @@ public partial class FormIGAnalyzer : Form
         {
             lbBundleList.Items.Add(bundle);
         }
-       
-        foreach(var binding in appSettings.BindingsAdd)
+
+        foreach (var binding in appSettings.BindingsAdd)
         {
             if (!string.IsNullOrEmpty(binding.Path) && !string.IsNullOrEmpty(binding.ValueSet))
             {
@@ -363,14 +363,25 @@ public partial class FormIGAnalyzer : Form
                     }
                 }
                 // ApplyModel 外掛，for specimen
-                foreach (var lm in appSettings.LogicModelAdd)
-                {  
-                    ig.AddQItem(lm.Name ?? string.Empty, lm.Profile ?? string.Empty, lm.Path ?? string.Empty, lm.Type ?? string.Empty);
-                }
+
+                // 依據第一個欄位排序
+                //g.QList.Sort((x, y) => string.Compare(x.Item1, y.Item1, StringComparison.Ordinal));
             }
-
         }
-
+        foreach (var lm in appSettings.LogicModelAdd)
+        {
+            for (int i = 0; i < ig.QList.Count; i++)
+            {
+                string name = lm.Name ?? string.Empty;
+                string subname = name.Split("|")[1].Trim();
+                if (ig.QList[i].Item1.Contains(subname))
+                {
+                    ig.InsertQItem(i, name, lm.Profile ?? string.Empty, lm.Path ?? string.Empty, lm.Type ?? string.Empty);
+                    break;
+                }
+                ig.AddQItem(name, lm.Profile ?? string.Empty, lm.Path ?? string.Empty, lm.Type ?? string.Empty);
+            }
+        }
     }
 
     private string ModifyByIGPackage(string igPath)
@@ -1542,6 +1553,8 @@ public partial class FormIGAnalyzer : Form
         return typePlus;
     }
 
+    
+
     private void btnSave_Click(object sender, EventArgs e)
     {
         MessageBox.Show("Save Questionnaire to JSON file.");
@@ -1550,32 +1563,14 @@ public partial class FormIGAnalyzer : Form
     {
         MessageBox.Show("Export Questionnaire to FHIR.");
     }
-    private async void lbStaging_SelectedIndexChanged(object sender, EventArgs e)
+
+    private async void lbMaster_SelectedIndexChanged(object sender, EventArgs e)
     {
-        // Clear the Panel2 as selected item changes
-        //this.splitQuestionnaire.Panel2.Controls.Clear();
-        //this.splitQuestionnaire.Panel2.AutoScroll = true;
-
-        // Clear ListView
-        lvStaging.Items.Clear();
-        lvStaging.Columns.Clear();
-        txtFHIRData.Text = string.Empty;
-
-        lvStaging.Columns.Add("Name", 400);
-        lvStaging.Columns.Add("ApplyModel", 500);
-        lvStaging.Columns.Add("Path", 400);
-        lvStaging.Columns.Add("Type", 200);
-        lvStaging.Columns.Add("Rule", 400);
-
-        lvFUME.Columns.Clear();
-        lvFUME.Columns.Add("FUME", 1000, HorizontalAlignment.Center);
-
-
-        if (lbStaging.SelectedItem != null)
+        txtQuestionnaire.Text = string.Empty;
+    
+        if (lbMaster.SelectedItem != null)
         {
-            string itemName = lbStaging.SelectedItem?.ToString()?.Split('|')[0].Trim() ?? string.Empty;
-
-
+            string itemName = lbMaster.SelectedItem?.ToString()?.Split('|')[0].Trim() ?? string.Empty;
             // read json form 
             string fileName = txtDataDirectory.Text + stagingDirectory + cmbIG.Text + ".json";
             // Check if the file exists
@@ -1588,65 +1583,132 @@ public partial class FormIGAnalyzer : Form
             string fileContent = System.IO.File.ReadAllText(fileName);
             //serialize the file content to a dictionary
             var fileData = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(fileContent);
-            // create a Dictionary to store the data
-
             Dictionary<string, string> data = new Dictionary<string, string>();
-
             foreach (var q in ig.QList)
             {
                 if (q.Item2.Contains(itemName))
                 {
-                    //txtApplyModel.Text += q.Item1 + " | " + q.Item2 + " | " + q.Item3 + " | " + q.Item4 + Environment.NewLine;
                     // add item to listview
-                    ListViewItem item = new ListViewItem(q.Item1.Split('|')[0].Trim());
-                    string staging = q.Item1.Split('|')[1].Trim().Replace("ApplyModel.", "");
-                    staging = staging.Replace(".", "");
-                    item.SubItems.Add(staging);
-                    string path = q.Item3;
-                    string rule = GetRuleByPath(path);
-                    if (path.Contains("where"))
-                    {
-                        path = path.Replace(".where" + "(" + rule + ")", "");
-                    }
-                    // remove content after the first "("  
-                    if (path.Contains("("))
-                    {
-                        path = path.Substring(0, path.IndexOf("("));
-                    }
-
-                    item.SubItems.Add(path);
-                    item.SubItems.Add(q.Item4);
-                    item.SubItems.Add(rule);
-
-                    lvStaging.Items.Add(item);
-
-                    if (fileData != null && fileData.ContainsKey(staging))
+                    string master = q.Item1.Split('|')[1].Trim().Replace("ApplyModel.", "");
+                    master = master.Replace(".", "");
+                    if (fileData != null && fileData.ContainsKey(master))
                     {
                         // add the value to the dictionary
-                        string value = fileData[staging].Split("|")[0].Trim();
-                        staging = staging.Replace(".", "");
-                        data.Add(staging, value);
+                        string value = fileData[master].Split("|")[0].Trim();
+                        master = master.Replace(".", "");
+                        if (!data.ContainsKey(master))
+                        {
+                            data.Add(master, value);
+                        }
                     }
                 }
             }
-
-            // transform the dictionary to json
             string json = Newtonsoft.Json.JsonConvert.SerializeObject(data, Newtonsoft.Json.Formatting.Indented);
             // display json in textBox
             txtStaging.Text = json;
-
+    
             // txtFHIRData.Text = CreateFHIRData(json, itemName);
             // display json in textBox
             txtFume.Text = await CreateFUME2(itemName);
-
-            //RefineProfile(await GetStructureDefinition(itemName));
         }
-        else
-        {
-            MessageBox.Show("No item selected.");
-        }
-        lvStaging.Refresh();
     }
+    private async void lbStaging_SelectedIndexChanged(object sender, EventArgs e)
+            {
+                // Clear the Panel2 as selected item changes
+                //this.splitQuestionnaire.Panel2.Controls.Clear();
+                //this.splitQuestionnaire.Panel2.AutoScroll = true;
+
+                // Clear ListView
+                lvStaging.Items.Clear();
+                lvStaging.Columns.Clear();
+                txtFHIRData.Text = string.Empty;
+
+                lvStaging.Columns.Add("Name", 400);
+                lvStaging.Columns.Add("ApplyModel", 500);
+                lvStaging.Columns.Add("Path", 400);
+                lvStaging.Columns.Add("Type", 200);
+                lvStaging.Columns.Add("Rule", 400);
+
+                lvFUME.Columns.Clear();
+                lvFUME.Columns.Add("FUME", 1000, HorizontalAlignment.Center);
+
+
+                if (lbStaging.SelectedItem != null)
+                {
+                    string itemName = lbStaging.SelectedItem?.ToString()?.Split('|')[0].Trim() ?? string.Empty;
+
+
+                    // read json form 
+                    string fileName = txtDataDirectory.Text + stagingDirectory + cmbIG.Text + ".json";
+                    // Check if the file exists
+                    if (!System.IO.File.Exists(fileName))
+                    {
+                        MessageBox.Show("File not found: " + fileName);
+                        return;
+                    }
+                    // read the file
+                    string fileContent = System.IO.File.ReadAllText(fileName);
+                    //serialize the file content to a dictionary
+                    var fileData = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(fileContent);
+                    // create a Dictionary to store the data
+
+                    Dictionary<string, string> data = new Dictionary<string, string>();
+
+                    foreach (var q in ig.QList)
+                    {
+                        if (q.Item2.Contains(itemName))
+                        {
+                            //txtApplyModel.Text += q.Item1 + " | " + q.Item2 + " | " + q.Item3 + " | " + q.Item4 + Environment.NewLine;
+                            // add item to listview
+                            ListViewItem item = new ListViewItem(q.Item1.Split('|')[0].Trim());
+                            string staging = q.Item1.Split('|')[1].Trim().Replace("ApplyModel.", "");
+                            staging = staging.Replace(".", "");
+                            item.SubItems.Add(staging);
+                            string path = q.Item3;
+                            string rule = GetRuleByPath(path);
+                            if (path.Contains("where"))
+                            {
+                                path = path.Replace(".where" + "(" + rule + ")", "");
+                            }
+                            // remove content after the first "("  
+                            if (path.Contains("("))
+                            {
+                                path = path.Substring(0, path.IndexOf("("));
+                            }
+
+                            item.SubItems.Add(path);
+                            item.SubItems.Add(q.Item4);
+                            item.SubItems.Add(rule);
+
+                            lvStaging.Items.Add(item);
+
+                            if (fileData != null && fileData.ContainsKey(staging))
+                            {
+                                // add the value to the dictionary
+                                string value = fileData[staging].Split("|")[0].Trim();
+                                staging = staging.Replace(".", "");
+                                data.Add(staging, value);
+                            }
+                        }
+                    }
+
+                    // transform the dictionary to json
+                    string json = Newtonsoft.Json.JsonConvert.SerializeObject(data, Newtonsoft.Json.Formatting.Indented);
+                    // display json in textBox
+                    txtStaging.Text = json;
+
+                    // txtFHIRData.Text = CreateFHIRData(json, itemName);
+                    // display json in textBox
+                    txtFume.Text = await CreateFUME2(itemName);
+
+                    //RefineProfile(await GetStructureDefinition(itemName));
+                }
+                else
+                {
+                    MessageBox.Show("No item selected.");
+                }
+                lvStaging.Refresh();
+            }
 
     private string CreateFHIRData(string json, string itemName)
     {

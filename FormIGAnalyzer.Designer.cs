@@ -1089,6 +1089,7 @@ partial class FormIGAnalyzer : Form
         lbMaster.ScrollAlwaysVisible = true;
         lbMaster.Size = new Size(153, 176);
         lbMaster.TabIndex = 0;
+        lbMaster.SelectedIndexChanged += lbMaster_SelectedIndexChanged;
         // 
         // FormIGAnalyzer
         // 

@@ -36,6 +36,14 @@
         {
             "path":"Claim-twpas.diagnosis.diagnosisCodeableConcept",
             "valueSet":"https://twcore.mohw.gov.tw/ig/twcore/ValueSet/icd-10-pcs-2023-tw"
+        },
+        {
+            "path":"Observation-cancer-stage-twpas.valueCodeableConcept",
+            "valueSet":"https://twcore.mohw.gov.tw/ig/pas/ValueSet/cancer-stage-score"
+        },
+        {
+            "path":"Observation-diagnostic-twpas.specimen.reference",
+            "valueSet":"https://twcore.mohw.gov.tw/ig/pas/ValueSet/specime-type"
         }
     ],
     "PathUpdate":[
@@ -56,16 +64,24 @@
             "after":"content.url"
         }
     ],
+    "LogicModelAdd":[
+        {
+            "name":"基因檢測檢體類型 | ApplyModel.gene.specimenType",
+            "profile":"Specimen-twpas",
+            "path":"type",
+            "type":"CodeableConcept"
+        }
+    ],
     "Constraints":[
        {
         "profileName":"Observation-pat-assessment-twpas",
         "profileType":"Observation",
-        "implySource":"code.coding.code",
-        "implyTarget":"valueCodeableConcept",
+        "implySource":"code", 
+        "implyTarget":"value",
         "rule":[
             {   
                 "sourceValue":"88020-3",
-                "TargetType":"string",
+                "targetType":"string",
                 "targetValue":[
                     "class1",
                     "class2",
@@ -75,7 +91,7 @@
             },
             {
                 "sourceValue":"98153-0",
-                "TargetType":"string",
+                "targetType":"string",
                 "targetValue":[
                     "A",
                     "B",
@@ -84,12 +100,126 @@
             },
             {
                 "sourceValue":"HCTCI",
-                "TargetType":"integer",
+                "targetType":"integer",
                 "targetValue":
                 {
                     "Max" : 26,
                     "Min" : 0
                 }
+            },
+            {
+                "sourceValue":"89247-1",
+                "targetType":"integer",
+                "targetValue":
+                {
+                    "Max" : 5,
+                    "Min" : 0
+                }
+            },
+            {
+                "sourceValue":"75633-8",
+                "targetType":"integer",
+                "targetValue":
+                {
+                    "Max" : 10,
+                    "Min" : 0
+                }
+            },
+            {
+                "sourceValue":"PDAI",
+                "targetType":"integer",
+                "targetValue":
+                {
+                    "Max" : 263,
+                    "Min" : 0
+                }
+            },
+            {
+                "sourceValue":"CIRS",
+                "targetType":"integer",
+                "targetValue":
+                {
+                    "Max" : 56,
+                    "Min" : 0
+                }
+            },
+            {
+                "sourceValue":"IPS",
+                "targetType":"integer",
+                "targetValue":
+                {
+                    "Max" : 7,
+                    "Min" : 0
+                }
+            }
+        ]
+       },
+       {
+        "profileName":"Observation-tx-assessment-twpas",
+        "profileType":"Observation",
+        "implySource":"code",
+        "implyTarget":"valueString",
+        "rule":[
+            {   
+                "sourceValue":"ICLL",
+                "targetType":"string",
+                "targetValue":[
+                    "CR",
+                    "PR",
+                    "PD",
+                    "SD"
+                ]
+            },
+            {
+                "sourceValue":"IREC",
+                "targetType":"string",
+                "targetValue":[
+                    "iCR",
+                    "iPR",
+                    "iSD",
+                    "iUPD",
+                    "iCPD",
+                    "inevaluable"
+                ]
+            },
+            {
+                "sourceValue":"MREC",
+                "targetType":"string",
+                "targetValue":[
+                    "CR",
+                    "PR",
+                    "SD",
+                    "PD",
+                    "inevaluable"
+                ]
+            },
+            {   
+                "sourceValue":"REC1",
+                "targetType":"string",
+                "targetValue":[
+                    "CR",
+                    "PR",
+                    "PD",
+                    "SD",
+                    "inevaluable"
+                ]
+            },
+            {
+                "sourceValue":"IWGC",
+                "targetType":"string",
+                "targetValue":[ 
+                    "Complete remission (CR)",
+                    "CR equivalent",
+                    "mCR",
+                    "Partial remission (PR)",
+                    "Stable disease (SD)",
+                    "CRh",
+                    "hematologic improvement (HI)",
+                    "Progressive disease (PD)",
+                    "Cytogenetic response",
+                    "No response",
+                    "Not evaluable"
+                ]
             }
         ]
        }

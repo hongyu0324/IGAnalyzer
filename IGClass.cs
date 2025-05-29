@@ -66,9 +66,19 @@ public class IGClass
         }
     }
 
-    public void AddQItem(string name, string type, string path, string description)
+    public void InsertQItem(int pos, string name, string profile, string path, string type)
     {
-        var item = Tuple.Create(name, type, path, description);
+        var item = Tuple.Create(name, profile, path, type);
+        if (pos < 0 || pos > QList.Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(pos), "Position is out of range.");
+        }
+        QList.Insert(pos, item);
+    }
+
+    public void AddQItem(string name, string profile, string path, string type)
+    {
+        var item = Tuple.Create(name, profile, path, type);
         if (!QList.Contains(item))
         {
             QList.Add(item);
