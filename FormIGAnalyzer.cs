@@ -14,6 +14,7 @@ using System.Runtime.CompilerServices;
 using System.Windows.Forms.VisualStyles;
 using System.Reflection;
 using Hl7.Fhir.Utility;
+using System.Net.Sockets;
 
 namespace IGAnalyzer;
 
@@ -103,6 +104,7 @@ public partial class FormIGAnalyzer : Form
             profilePath = txtDataDirectory.Text + profileDirectory + igName;
             profileName = "https://twcore.mohw.gov.tw/ig/" + igName + "/StructureDefinition";
         }
+        //ShowIGExample();
 
     }
 
@@ -212,6 +214,12 @@ public partial class FormIGAnalyzer : Form
 
         txtPackage.Text = tw_ig;
         resolver = new(ModelInfo.ModelInspector, new string[] { ig.Package });
+        if (resolver == null)
+        {
+            txtMsg.Text = txtMsg.Text + "Failed to initialize the resolver." + Environment.NewLine;
+            tabIG.SelectedTab = tabMsg;
+            return;
+        }
 
         var names = resolver.ListCanonicalUris();
         foreach (var n in names)
@@ -382,13 +390,14 @@ public partial class FormIGAnalyzer : Form
                 ig.AddQItem(name, lm.Profile ?? string.Empty, lm.Path ?? string.Empty, lm.Type ?? string.Empty);
             }
         }
+        ShowIGExample();
     }
 
     private string ModifyByIGPackage(string igPath)
     {
         string q3 = igPath;
-        
-        foreach(var upath in appSettings.PathUpdate)
+
+        foreach (var upath in appSettings.PathUpdate)
         {
             if (upath.Before != null && upath.After != null)
             {
@@ -679,7 +688,7 @@ public partial class FormIGAnalyzer : Form
                     if (resolver != null)
                     {
                         sd = await GetStructureDefinition(q.Item2);
-                        path = ConvertToX(path,type);
+                        path = ConvertToX(path, type);
                         string ruleBase = "StructureDefinition.snapshot.element.where(path = '" + sd.Type + "." + path + "')";
                         //string ruleBase = "StructureDefinition.differential.element.where(path = '" + sd.Type + "." + path + "')";
                         ElementDefinition? obj = sd.Select(ruleBase).FirstOrDefault() as ElementDefinition;
@@ -708,8 +717,8 @@ public partial class FormIGAnalyzer : Form
                         //item.SubItems.Add(rule.Replace(")", ""));
                         item.SubItems.Add(rule);
                     }
-                
-                    string pathProfile = ConvertToX(q.Item3,q.Item4);
+
+                    string pathProfile = ConvertToX(q.Item3, q.Item4);
                     string slice = GetSlicingByProfilePath(q.Item2, pathProfile);
                     // if slice is not empty set color to red
                     if (slice != string.Empty && slice.StartsWith("Type"))
@@ -812,8 +821,8 @@ public partial class FormIGAnalyzer : Form
                         item.SubItems.Add(rule.Replace(")", ""));
                     }
                     //
-                    string pathProfile = ConvertToX(q.Item3,q.Item4);
-                    
+                    string pathProfile = ConvertToX(q.Item3, q.Item4);
+
                     string slice = GetSlicingByProfilePath(q.Item2, pathProfile);
                     // if slice is not empty set color to red
                     if (slice != string.Empty && slice.StartsWith("Type"))
@@ -839,7 +848,7 @@ public partial class FormIGAnalyzer : Form
         }
     }
 
-    private string ConvertToX(string path,string type)
+    private string ConvertToX(string path, string type)
     {
         string pathProfile = path;
         string typeProfile = type;
@@ -849,7 +858,7 @@ public partial class FormIGAnalyzer : Form
             typeProfile = char.ToUpper(typeProfile[0]) + typeProfile.Substring(1);
         }
         // replace "q.Item4" with "[x]" in pathProfile
-        if(pathProfile.Contains(typeProfile))
+        if (pathProfile.Contains(typeProfile))
         {
             pathProfile = pathProfile.Replace(typeProfile, "[x]");
         }
@@ -1095,7 +1104,7 @@ public partial class FormIGAnalyzer : Form
                                 List<string> targets = target.Split(",").ToList();
                                 targetComboBox.Items.Clear();
                                 foreach (var t in targets)
-                                {      
+                                {
                                     targetComboBox.Items.Add(t.Trim());
                                 }
                             }
@@ -1202,7 +1211,7 @@ public partial class FormIGAnalyzer : Form
         btnSave.BackColor = Color.LightBlue; // Set the background color of the Button
         btnSave.Click += CreateStagingFile; // Add a click event handler to the Button
         this.splitQuestionnaire.Panel2.Controls.Add(btnSave);
-        
+
     }
     private void CreateStagingFile(object? sender, EventArgs e)
     {
@@ -1374,7 +1383,7 @@ public partial class FormIGAnalyzer : Form
                     foreach (var s in sliceList)
                     {
                         // Add the display name to the ComboBox
-                        if (s.Contains("Slicing") != true )comboBox.Items.Add(s.Trim());
+                        if (s.Contains("Slicing") != true) comboBox.Items.Add(s.Trim());
                     }
                 }
                 comboBox.Width = 600; // Set the width of the ComboBox
@@ -1553,7 +1562,7 @@ public partial class FormIGAnalyzer : Form
         return typePlus;
     }
 
-    
+
 
     private void btnSave_Click(object sender, EventArgs e)
     {
@@ -1564,13 +1573,124 @@ public partial class FormIGAnalyzer : Form
         MessageBox.Show("Export Questionnaire to FHIR.");
     }
 
+
     private async void lbMaster_SelectedIndexChanged(object sender, EventArgs e)
     {
-        txtQuestionnaire.Text = string.Empty;
-    
-        if (lbMaster.SelectedItem != null)
+
+        if (lbMaster.SelectedItem == null)
         {
-            string itemName = lbMaster.SelectedItem?.ToString()?.Split('|')[0].Trim() ?? string.Empty;
+            return; // Nothing selected
+        }
+
+        try
+        {
+            client = new FhirClient(txtFHIRServer.Text); // Ensure client is initialized with the latest server URL
+            string itemName = lbMaster.SelectedItem?.ToString()?.Split('-')[0].Trim() ?? string.Empty;
+
+            switch (itemName)
+            {
+                case "Patient":
+                    await LoadAndDisplayMasterDataAsync<Patient>("Patient",
+                        p => (p.Name != null && p.Name.Any()) ? p.Name[0].ToString() : "No Name");
+                    break;
+                case "Organization":
+                    await LoadAndDisplayMasterDataAsync<Organization>("Organization",
+                        o => o.Name ?? "No Name");
+                    break;
+                case "Practitioner":
+                    await LoadAndDisplayMasterDataAsync<Practitioner>("Practitioner",
+                        p => (p.Name != null && p.Name.Any()) ? p.Name[0].ToString() : "No Name");
+                    break;
+                default:
+                    MessageBox.Show($"非主數據範圍，請重新選擇: {itemName}", "重新選擇", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    txtMsg.Text += $"Unsupported master data type selected: {itemName}" + Environment.NewLine;
+                    break;
+            }
+        }
+        catch (Exception ex) // Catch issues like invalid FHIR server URL during client creation or other general errors
+        {
+            MessageBox.Show($"Error processing selection: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            txtMsg.Text += $"Error in lbMaster_SelectedIndexChanged: {ex.Message}" + Environment.NewLine;
+        }
+        
+    }
+
+    private async System.Threading.Tasks.Task LoadAndDisplayMasterDataAsync<TResource>(
+        string resourceTypeDisplayName,
+        Func<TResource, string> getNameSelector) where TResource : Resource, new()
+    {
+        if (client == null)
+        {
+            MessageBox.Show("FHIR client is not initialized.", "Client Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            txtMsg.Text += "FHIR client not initialized in LoadAndDisplayMasterDataAsync." + Environment.NewLine;
+            return;
+        }
+
+        try
+        {
+            var bundleResult = await client.SearchAsync<TResource>();
+            if (bundleResult == null || bundleResult.Entry.Count == 0)
+            {
+                txtMsg.Text += $"No {resourceTypeDisplayName} bundle returned from FHIR server or bundle is empty." + Environment.NewLine;
+                // Optionally, show a MessageBox to the user
+                // MessageBox.Show($"No {resourceTypeDisplayName}s found on the server.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            lvMaster.Columns.Add($"{resourceTypeDisplayName} ID", 200);
+            lvMaster.Columns.Add("Type", 200);
+            lvMaster.Columns.Add("Name", 400);
+
+            foreach (var entry in bundleResult.Entry)
+            {
+                if (entry.Resource is TResource resourceInstance) // Use a different variable name to avoid conflict
+                {
+                    ListViewItem item = new ListViewItem(resourceInstance.Id);
+                    item.SubItems.Add(resourceInstance.TypeName); // Use TypeName for the canonical FHIR resource type
+                    item.SubItems.Add(getNameSelector(resourceInstance));
+                    lvMaster.Items.Add(item);
+                }
+            }
+        }
+        catch (FhirOperationException ex)
+        {
+            MessageBox.Show($"Error searching for {resourceTypeDisplayName}s: {ex.Message}\nDetails: {ex.Outcome?.ToString()}",
+                            "FHIR Operation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            txtMsg.Text += $"Error searching for {resourceTypeDisplayName}s: {ex.Message}" + Environment.NewLine;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"An unexpected error occurred while searching for {resourceTypeDisplayName}s: {ex.Message}",
+                            "Unexpected Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            txtMsg.Text += $"An unexpected error occurred while searching for {resourceTypeDisplayName}s: {ex.Message}" + Environment.NewLine;
+        }
+    }
+    private async void lbStaging_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        // Clear the Panel2 as selected item changes
+        //this.splitQuestionnaire.Panel2.Controls.Clear();
+        //this.splitQuestionnaire.Panel2.AutoScroll = true;
+
+        // Clear ListView
+        lvStaging.Items.Clear();
+        lvStaging.Columns.Clear();
+        txtFHIRData.Text = string.Empty;
+
+        lvStaging.Columns.Add("Name", 400);
+        lvStaging.Columns.Add("ApplyModel", 500);
+        lvStaging.Columns.Add("Path", 400);
+        lvStaging.Columns.Add("Type", 200);
+        lvStaging.Columns.Add("Rule", 400);
+
+        lvFUME.Columns.Clear();
+        lvFUME.Columns.Add("FUME", 1000, HorizontalAlignment.Center);
+
+
+        if (lbStaging.SelectedItem != null)
+        {
+            string itemName = lbStaging.SelectedItem?.ToString()?.Split('|')[0].Trim() ?? string.Empty;
+
+
             // read json form 
             string fileName = txtDataDirectory.Text + stagingDirectory + cmbIG.Text + ".json";
             // Check if the file exists
@@ -1583,132 +1703,72 @@ public partial class FormIGAnalyzer : Form
             string fileContent = System.IO.File.ReadAllText(fileName);
             //serialize the file content to a dictionary
             var fileData = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(fileContent);
+            // create a Dictionary to store the data
+
             Dictionary<string, string> data = new Dictionary<string, string>();
+
             foreach (var q in ig.QList)
             {
                 if (q.Item2.Contains(itemName))
                 {
+                    //txtApplyModel.Text += q.Item1 + " | " + q.Item2 + " | " + q.Item3 + " | " + q.Item4 + Environment.NewLine;
                     // add item to listview
-                    string master = q.Item1.Split('|')[1].Trim().Replace("ApplyModel.", "");
-                    master = master.Replace(".", "");
-                    if (fileData != null && fileData.ContainsKey(master))
+                    ListViewItem item = new ListViewItem(q.Item1.Split('|')[0].Trim());
+                    string staging = q.Item1.Split('|')[1].Trim().Replace("ApplyModel.", "");
+                    staging = staging.Replace(".", "");
+                    item.SubItems.Add(staging);
+                    string path = q.Item3;
+                    string rule = GetRuleByPath(path);
+                    if (path.Contains("where"))
+                    {
+                        path = path.Replace(".where" + "(" + rule + ")", "");
+                    }
+                    // remove content after the first "("  
+                    if (path.Contains("("))
+                    {
+                        path = path.Substring(0, path.IndexOf("("));
+                    }
+
+                    item.SubItems.Add(path);
+                    item.SubItems.Add(q.Item4);
+                    item.SubItems.Add(rule);
+
+                    lvStaging.Items.Add(item);
+
+                    if (fileData != null && fileData.ContainsKey(staging))
                     {
                         // add the value to the dictionary
-                        string value = fileData[master].Split("|")[0].Trim();
-                        master = master.Replace(".", "");
-                        if (!data.ContainsKey(master))
+                        string value = fileData[staging].Split("|")[0].Trim();
+                        staging = staging.Replace(".", "");
+                        if (data.ContainsKey(staging))
                         {
-                            data.Add(master, value);
+                            data[staging] = value; // update the value if key already exists
+                        }
+                        else
+                        {
+                            data.Add(staging, value);
                         }
                     }
                 }
             }
+
+            // transform the dictionary to json
             string json = Newtonsoft.Json.JsonConvert.SerializeObject(data, Newtonsoft.Json.Formatting.Indented);
             // display json in textBox
             txtStaging.Text = json;
-    
+
             // txtFHIRData.Text = CreateFHIRData(json, itemName);
             // display json in textBox
             txtFume.Text = await CreateFUME2(itemName);
+
+            //RefineProfile(await GetStructureDefinition(itemName));
         }
+        else
+        {
+            MessageBox.Show("No item selected.");
+        }
+        lvStaging.Refresh();
     }
-    private async void lbStaging_SelectedIndexChanged(object sender, EventArgs e)
-            {
-                // Clear the Panel2 as selected item changes
-                //this.splitQuestionnaire.Panel2.Controls.Clear();
-                //this.splitQuestionnaire.Panel2.AutoScroll = true;
-
-                // Clear ListView
-                lvStaging.Items.Clear();
-                lvStaging.Columns.Clear();
-                txtFHIRData.Text = string.Empty;
-
-                lvStaging.Columns.Add("Name", 400);
-                lvStaging.Columns.Add("ApplyModel", 500);
-                lvStaging.Columns.Add("Path", 400);
-                lvStaging.Columns.Add("Type", 200);
-                lvStaging.Columns.Add("Rule", 400);
-
-                lvFUME.Columns.Clear();
-                lvFUME.Columns.Add("FUME", 1000, HorizontalAlignment.Center);
-
-
-                if (lbStaging.SelectedItem != null)
-                {
-                    string itemName = lbStaging.SelectedItem?.ToString()?.Split('|')[0].Trim() ?? string.Empty;
-
-
-                    // read json form 
-                    string fileName = txtDataDirectory.Text + stagingDirectory + cmbIG.Text + ".json";
-                    // Check if the file exists
-                    if (!System.IO.File.Exists(fileName))
-                    {
-                        MessageBox.Show("File not found: " + fileName);
-                        return;
-                    }
-                    // read the file
-                    string fileContent = System.IO.File.ReadAllText(fileName);
-                    //serialize the file content to a dictionary
-                    var fileData = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(fileContent);
-                    // create a Dictionary to store the data
-
-                    Dictionary<string, string> data = new Dictionary<string, string>();
-
-                    foreach (var q in ig.QList)
-                    {
-                        if (q.Item2.Contains(itemName))
-                        {
-                            //txtApplyModel.Text += q.Item1 + " | " + q.Item2 + " | " + q.Item3 + " | " + q.Item4 + Environment.NewLine;
-                            // add item to listview
-                            ListViewItem item = new ListViewItem(q.Item1.Split('|')[0].Trim());
-                            string staging = q.Item1.Split('|')[1].Trim().Replace("ApplyModel.", "");
-                            staging = staging.Replace(".", "");
-                            item.SubItems.Add(staging);
-                            string path = q.Item3;
-                            string rule = GetRuleByPath(path);
-                            if (path.Contains("where"))
-                            {
-                                path = path.Replace(".where" + "(" + rule + ")", "");
-                            }
-                            // remove content after the first "("  
-                            if (path.Contains("("))
-                            {
-                                path = path.Substring(0, path.IndexOf("("));
-                            }
-
-                            item.SubItems.Add(path);
-                            item.SubItems.Add(q.Item4);
-                            item.SubItems.Add(rule);
-
-                            lvStaging.Items.Add(item);
-
-                            if (fileData != null && fileData.ContainsKey(staging))
-                            {
-                                // add the value to the dictionary
-                                string value = fileData[staging].Split("|")[0].Trim();
-                                staging = staging.Replace(".", "");
-                                data.Add(staging, value);
-                            }
-                        }
-                    }
-
-                    // transform the dictionary to json
-                    string json = Newtonsoft.Json.JsonConvert.SerializeObject(data, Newtonsoft.Json.Formatting.Indented);
-                    // display json in textBox
-                    txtStaging.Text = json;
-
-                    // txtFHIRData.Text = CreateFHIRData(json, itemName);
-                    // display json in textBox
-                    txtFume.Text = await CreateFUME2(itemName);
-
-                    //RefineProfile(await GetStructureDefinition(itemName));
-                }
-                else
-                {
-                    MessageBox.Show("No item selected.");
-                }
-                lvStaging.Refresh();
-            }
 
     private string CreateFHIRData(string json, string itemName)
     {
@@ -3148,15 +3208,8 @@ public partial class FormIGAnalyzer : Form
         txtFHIRData.Text = json;
     }
 
-    private async void btnSaveFHIR_Click(object sender, EventArgs e)
+    private async void UploadFHIRData(string jsonFHIR)
     {
-        string jsonFHIR = txtFHIRData.Text;
-
-        if (string.IsNullOrEmpty(jsonFHIR))
-        {
-            MessageBox.Show("Please generate FHIR data first.");
-            return;
-        }
         // Upload the FHIR data to the server using existed client
         FhirClient client = new FhirClient(txtFHIRServer.Text);
 
@@ -3164,15 +3217,18 @@ public partial class FormIGAnalyzer : Form
         var resource = new FhirJsonParser().Parse<Resource>(jsonFHIR);
         // Save the resource to the server using "put" method
 
+
+
         Resource? result = null;
 
         try
         {
-            if(resource.TypeName == "StructureMap")
+            if (resource.TypeName == "StructureMap" || resource.Id != null)
             {
                 result = await client.UpdateAsync(resource);
             }
-            else{
+            else
+            {
                 result = await client.CreateAsync(resource);
             }
         }
@@ -3186,17 +3242,27 @@ public partial class FormIGAnalyzer : Form
             MessageBox.Show("An unexpected error occurred: " + ex.Message);
             return;
         }
-        
-        
+
+
         if (result != null)
         {
             MessageBox.Show("FHIR data saved successfully. Resource id :" + result.Id);
-            txtFHIRData.Text = result.ToJson();
         }
         else
         {
             MessageBox.Show("Failed to save FHIR data.");
         }
+    }
+    private void btnSaveFHIR_Click(object sender, EventArgs e)
+    {
+        string jsonFHIR = txtFHIRData.Text;
+
+        if (string.IsNullOrEmpty(jsonFHIR))
+        {
+            MessageBox.Show("Please generate FHIR data first.");
+            return;
+        }
+        UploadFHIRData(jsonFHIR);
     }
 
     private void tabStaging_Enter(object sender, EventArgs e)
@@ -3313,7 +3379,7 @@ public partial class FormIGAnalyzer : Form
         int first = 0;
         for (int i = 0; i < lvFUME.Items.Count; i++)
         {
-            if (i == lvFUME.Items.Count -1) continue;
+            if (i == lvFUME.Items.Count - 1) continue;
             var item1 = lvFUME.Items[i];
             string fume1 = item1.Text;
             if (fume1.Contains('=')) continue;
@@ -3922,5 +3988,253 @@ public partial class FormIGAnalyzer : Form
     private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
     {
 
+    }
+
+    private void splitContainer13_Panel2_Paint(object sender, PaintEventArgs e)
+    {
+
+    }
+
+    private void splitContainer13_SplitterMoved(object sender, SplitterEventArgs e)
+    {
+
+    }
+
+    private void ShowIGExample()
+    {
+
+        string exampleDir = txtDataDirectory.Text + @"profiles\" + igName + @"\package\example\";
+
+        // get files list from the example directory, if it does not exist, create it
+        if (!System.IO.Directory.Exists(exampleDir))
+        {
+            MessageBox.Show("Example directory does not exist: " + exampleDir);
+            return;
+        }
+
+        lbBase.Items.Clear(); // Clear the listbox before adding new items  
+        string[] files = System.IO.Directory.GetFiles(exampleDir, "*.json");
+
+        string msg = string.Empty;
+        foreach (string file in files)
+        {
+            // get the file name without the directory and extension
+            string fileName = System.IO.Path.GetFileNameWithoutExtension(file);
+            // add the file name to the listbox
+            lbBase.Items.Add(fileName);
+        }
+    }
+    private void tabConfiguration_Enter(object sender, EventArgs e)
+    {
+        //ShowIGExample();
+    }
+
+    private void lbBase_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        // get the selected item from the listbox
+        string selectedItem = lbBase.SelectedItem?.ToString() ?? string.Empty;
+        if (string.IsNullOrEmpty(selectedItem))
+        {
+            MessageBox.Show("Please select an item from the list.");
+            return;
+        }
+        // load the selected item to the text box
+        string exampleDir = txtDataDirectory.Text + @"profiles\" + igName + @"\package\example\";
+        string filePath = System.IO.Path.Combine(exampleDir, selectedItem + ".json");
+        if (System.IO.File.Exists(filePath))
+        {
+            string json = System.IO.File.ReadAllText(filePath);
+
+            // Deserialize the JSON to a FHIR resource
+            DomainResource? resource = null;
+            Narrative narr = new Narrative();
+
+            try
+            {
+                resource = new FhirJsonParser().Parse<DomainResource>(json);
+                narr = resource.Text;
+                resource.Text = null; // Clear the text property to avoid serialization issues
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error parsing JSON: " + ex.Message);
+                return;
+            }
+
+            FhirJsonSerializer serializer = new FhirJsonSerializer(new SerializerSettings()
+            {
+                Pretty = true,
+            });
+            string pat_Json = serializer.SerializeToString(resource);
+            // Display the JSON in the text box
+            txtBase.Text = pat_Json;
+
+            // Display the resource information in the listview
+            lvBase.Items.Clear(); // Clear the listview before adding new items
+            lvBase.Columns.Clear(); // Clear the columns before adding new ones
+            lvBase.Columns.Add("Path", 250); // Add a column for the path
+            lvBase.Columns.Add("Type", 100); // Add a column for the type
+            lvBase.Columns.Add("Value", 150); // Add a column for the value
+            lvBase.Columns.Add("Logic Model", 150); // Add a column for the apply model
+            if (resource != null)
+            {
+                string profileName = resource.Meta?.Profile?.FirstOrDefault() ?? string.Empty;
+                profileName = profileName.Split('/').LastOrDefault() ?? string.Empty;
+                if (profileName != string.Empty)
+                {
+                    /*
+                    StructureDefinition? sd = GetStructureDefinition(profileName).Result;
+                    if (sd != null)
+                    {
+                        // Add the profile name to the listview
+                        ListViewItem profileItem = new ListViewItem("Profile");
+                        profileItem.SubItems.Add("StructureDefinition");
+                        profileItem.SubItems.Add(sd.Name);
+                        profileItem.SubItems.Add(sd.Id);
+                        lvBase.Items.Add(profileItem);
+                    }
+                    */
+
+                    foreach (var q in ig.QList)
+                    {
+                        if (q.Item2.Contains(profileName))
+                        {
+                            string path = q.Item3;
+                            string rule = GetRuleByPath(path);
+                            if (path.Contains("where"))
+                            {
+                                path = path.Replace(".where" + "(" + rule + ")", "");
+                            }
+                            // remove content after the first "("  
+                            if (path.Contains("("))
+                            {
+                                path = path.Substring(0, path.IndexOf("("));
+                            }
+                            ListViewItem item = new ListViewItem(path);
+                            string type = q.Item4;
+                            item.SubItems.Add(type);
+                            string value = string.Empty;
+                            if (path == "code") path = path + ".coding.code"; // Special case for code
+                            if (type == "CodeableConcept") path = path + ".coding.code"; // Special case for CodeableConcept
+
+                            try
+                            {
+                                if (resource.IsTrue(path))
+                                {
+                                    value = resource.Select(path).FirstOrDefault()?.ToString() ?? string.Empty; // Get the value from the resource
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                txtMsg.Text = txtMsg.Text + "Error selecting path: " + path + " - " + ex.Message + Environment.NewLine;
+                                continue; // Skip this item if there is an error
+                            }
+
+                            item.SubItems.Add(value); // Get the value from the tuple
+                            item.SubItems.Add(q.Item1.Split('|')[0].Trim());
+                            lvBase.Items.Add(item); // Add the item to the listview
+                        }
+                    }
+                    lvBase.GridLines = true; // Enable grid lines in the listview
+                    lvBase.FullRowSelect = true; // Enable full row selection in the listview
+                    lvBase.Scrollable = true; // Enable scrolling in the listview
+                    lvBase.AutoArrange = true; // Enable auto-arranging of items in the listview
+                }
+            }
+            // Display the narrative in the web browser
+            if (narr != null)
+            {
+                WebBrowser webBrowser = new WebBrowser();
+                splitBase3.Panel2.Controls.Clear(); // Clear the panel before adding new controls
+                splitBase3.Panel2.BackColor = Color.LightGray; // Set the background color of the panel
+                webBrowser.Dock = DockStyle.Fill; // Fill the panel with the web browser
+                splitBase3.Panel2.Controls.Add(webBrowser); // Add the web browser to the panel
+                webBrowser.DocumentText = narr.Div?.ToString() ?? string.Empty; // Set the HTML content of the web browser
+                webBrowser.ScriptErrorsSuppressed = true; // Suppress script errors in the web browser
+                webBrowser.ScrollBarsEnabled = true; // Enable scroll bars in the web browser
+                webBrowser.AllowNavigation = true; // Allow navigation in the web browser
+                webBrowser.AllowWebBrowserDrop = false; // Disable drag and drop in the web browser
+                webBrowser.IsWebBrowserContextMenuEnabled = true; // Enable the context menu in the web browser
+                webBrowser.WebBrowserShortcutsEnabled = true; // Enable web browser shortcuts
+                webBrowser.ObjectForScripting = this; // Set the object for scripting to this form
+                webBrowser.ScriptErrorsSuppressed = true; // Suppress script errors in the web browser
+                webBrowser.Visible = true; // Make the web browser visible   
+            }
+            else
+            {
+                MessageBox.Show("No narrative found in the selected resource.");
+            }
+        }
+        else
+        {
+            MessageBox.Show("File not found: " + filePath);
+        }
+    }
+
+    private void btnUpload_Click(object sender, EventArgs e)
+    {
+        string jsonFHIR = txtBase.Text;
+
+        if (string.IsNullOrEmpty(jsonFHIR))
+        {
+            MessageBox.Show("Please generate FHIR data first.");
+            return;
+        }
+        UploadFHIRData(jsonFHIR);
+    }
+
+    private void lvMaster_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        // get the
+    }
+
+    private async void LvMaster_DoubleClickAsync(object sender, EventArgs e)
+    {
+        // get the resource from FHIR server by the selected item in the listview
+        string id = lvMaster.SelectedItems.Count > 0 ? lvMaster.SelectedItems[0].Text : string.Empty;
+        string type = lvMaster.SelectedItems.Count > 0 ? lvMaster.SelectedItems[0].SubItems[1].Text : string.Empty;
+        if (string.IsNullOrEmpty(id))
+        {
+            MessageBox.Show("Please select an item from the list.");
+
+        }
+        // get the resource from FHIR server by the id
+        client = new FhirClient(txtFHIRServer.Text);
+
+        DomainResource? resource = null;
+        id = id.Trim();
+        string resourcePath = $"{type}/{id}";
+        try
+        {
+            Resource? fetchedResource = await client.ReadAsync<Resource>(resourcePath);
+            DomainResource? domainResource = fetchedResource as DomainResource;
+            resource = domainResource;
+            if (resource != null)
+            {
+                // Serialize the resource to JSON
+                FhirJsonSerializer serializer = new FhirJsonSerializer(new SerializerSettings()
+                {
+                    Pretty = true,
+                });
+                string json = serializer.SerializeToString(resource);
+                // Display the JSON in the text box
+                txtMasterFHIR.Text = json;
+            }
+            else
+            {
+                MessageBox.Show("Resource not found: " + id);
+            }
+        }
+        catch (FhirOperationException ex)
+        {
+            MessageBox.Show("Error reading resource: " + ex.Message);
+
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Error: " + ex.Message);
+        }
+
+       
     }
 }
