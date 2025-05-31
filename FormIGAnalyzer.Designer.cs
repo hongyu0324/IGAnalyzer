@@ -80,6 +80,15 @@ partial class FormIGAnalyzer : Form
         btnSave = new Button();
         btnLoad = new Button();
         btnRefresh = new Button();
+        tabMaster = new TabPage();
+        splitMaster = new SplitContainer();
+        lbMaster = new ListBox();
+        splitMaster1 = new SplitContainer();
+        lvMaster = new ListView();
+        splitMaster2 = new SplitContainer();
+        lbReference = new ListBox();
+        btnMasterSelect = new Button();
+        txtMasterFHIR = new TextBox();
         tabStaging = new TabPage();
         splitContainer1 = new SplitContainer();
         splitContainer12 = new SplitContainer();
@@ -117,14 +126,6 @@ partial class FormIGAnalyzer : Form
         rbDifferential = new RadioButton();
         rbSnapshot = new RadioButton();
         rbApplyModel = new RadioButton();
-        tabMaster = new TabPage();
-        splitMaster = new SplitContainer();
-        lbMaster = new ListBox();
-        splitMaster1 = new SplitContainer();
-        lvMaster = new ListView();
-        splitMaster2 = new SplitContainer();
-        txtMasterFHIR = new TextBox();
-        btnMasterSelect = new Button();
         tabIG.SuspendLayout();
         tabConfiguration.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)splitBase).BeginInit();
@@ -167,6 +168,19 @@ partial class FormIGAnalyzer : Form
         ((System.ComponentModel.ISupportInitialize)splitQuestionnaire).BeginInit();
         splitQuestionnaire.Panel1.SuspendLayout();
         splitQuestionnaire.SuspendLayout();
+        tabMaster.SuspendLayout();
+        ((System.ComponentModel.ISupportInitialize)splitMaster).BeginInit();
+        splitMaster.Panel1.SuspendLayout();
+        splitMaster.Panel2.SuspendLayout();
+        splitMaster.SuspendLayout();
+        ((System.ComponentModel.ISupportInitialize)splitMaster1).BeginInit();
+        splitMaster1.Panel1.SuspendLayout();
+        splitMaster1.Panel2.SuspendLayout();
+        splitMaster1.SuspendLayout();
+        ((System.ComponentModel.ISupportInitialize)splitMaster2).BeginInit();
+        splitMaster2.Panel1.SuspendLayout();
+        splitMaster2.Panel2.SuspendLayout();
+        splitMaster2.SuspendLayout();
         tabStaging.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
         splitContainer1.Panel1.SuspendLayout();
@@ -201,19 +215,6 @@ partial class FormIGAnalyzer : Form
         splitIGList1.Panel1.SuspendLayout();
         splitIGList1.Panel2.SuspendLayout();
         splitIGList1.SuspendLayout();
-        tabMaster.SuspendLayout();
-        ((System.ComponentModel.ISupportInitialize)splitMaster).BeginInit();
-        splitMaster.Panel1.SuspendLayout();
-        splitMaster.Panel2.SuspendLayout();
-        splitMaster.SuspendLayout();
-        ((System.ComponentModel.ISupportInitialize)splitMaster1).BeginInit();
-        splitMaster1.Panel1.SuspendLayout();
-        splitMaster1.Panel2.SuspendLayout();
-        splitMaster1.SuspendLayout();
-        ((System.ComponentModel.ISupportInitialize)splitMaster2).BeginInit();
-        splitMaster2.Panel1.SuspendLayout();
-        splitMaster2.Panel2.SuspendLayout();
-        splitMaster2.SuspendLayout();
         SuspendLayout();
         // 
         // btnClose
@@ -515,6 +516,7 @@ partial class FormIGAnalyzer : Form
         // 
         // txtBase
         // 
+        txtBase.BorderStyle = BorderStyle.FixedSingle;
         txtBase.Dock = DockStyle.Fill;
         txtBase.Location = new Point(0, 0);
         txtBase.Multiline = true;
@@ -779,6 +781,125 @@ partial class FormIGAnalyzer : Form
         btnRefresh.Text = "更新";
         btnRefresh.UseVisualStyleBackColor = true;
         btnRefresh.Click += btnRefresh_Click;
+        // 
+        // tabMaster
+        // 
+        tabMaster.Controls.Add(splitMaster);
+        tabMaster.Location = new Point(4, 32);
+        tabMaster.Name = "tabMaster";
+        tabMaster.Size = new Size(937, 418);
+        tabMaster.TabIndex = 8;
+        tabMaster.Text = "Master";
+        tabMaster.UseVisualStyleBackColor = true;
+        tabMaster.Enter += tabStaging_Enter;
+        // 
+        // splitMaster
+        // 
+        splitMaster.Dock = DockStyle.Fill;
+        splitMaster.Location = new Point(0, 0);
+        splitMaster.Name = "splitMaster";
+        // 
+        // splitMaster.Panel1
+        // 
+        splitMaster.Panel1.Controls.Add(lbMaster);
+        // 
+        // splitMaster.Panel2
+        // 
+        splitMaster.Panel2.Controls.Add(splitMaster1);
+        splitMaster.Size = new Size(937, 418);
+        splitMaster.SplitterDistance = 312;
+        splitMaster.TabIndex = 0;
+        // 
+        // lbMaster
+        // 
+        lbMaster.Dock = DockStyle.Fill;
+        lbMaster.FormattingEnabled = true;
+        lbMaster.Location = new Point(0, 0);
+        lbMaster.Name = "lbMaster";
+        lbMaster.ScrollAlwaysVisible = true;
+        lbMaster.Size = new Size(312, 418);
+        lbMaster.TabIndex = 1;
+        lbMaster.SelectedIndexChanged += lbMaster_SelectedIndexChanged;
+        // 
+        // splitMaster1
+        // 
+        splitMaster1.Dock = DockStyle.Fill;
+        splitMaster1.Location = new Point(0, 0);
+        splitMaster1.Name = "splitMaster1";
+        splitMaster1.Orientation = Orientation.Horizontal;
+        // 
+        // splitMaster1.Panel1
+        // 
+        splitMaster1.Panel1.Controls.Add(lvMaster);
+        // 
+        // splitMaster1.Panel2
+        // 
+        splitMaster1.Panel2.Controls.Add(splitMaster2);
+        splitMaster1.Size = new Size(621, 418);
+        splitMaster1.SplitterDistance = 207;
+        splitMaster1.TabIndex = 0;
+        // 
+        // lvMaster
+        // 
+        lvMaster.Dock = DockStyle.Fill;
+        lvMaster.FullRowSelect = true;
+        lvMaster.GridLines = true;
+        lvMaster.Location = new Point(0, 0);
+        lvMaster.Name = "lvMaster";
+        lvMaster.Size = new Size(621, 207);
+        lvMaster.TabIndex = 0;
+        lvMaster.UseCompatibleStateImageBehavior = false;
+        lvMaster.View = View.Details;
+        lvMaster.SelectedIndexChanged += lvMaster_SelectedIndexChanged;
+        lvMaster.DoubleClick += LvMaster_DoubleClickAsync;
+        // 
+        // splitMaster2
+        // 
+        splitMaster2.Dock = DockStyle.Fill;
+        splitMaster2.Location = new Point(0, 0);
+        splitMaster2.Name = "splitMaster2";
+        // 
+        // splitMaster2.Panel1
+        // 
+        splitMaster2.Panel1.Controls.Add(lbReference);
+        splitMaster2.Panel1.Controls.Add(btnMasterSelect);
+        // 
+        // splitMaster2.Panel2
+        // 
+        splitMaster2.Panel2.Controls.Add(txtMasterFHIR);
+        splitMaster2.Size = new Size(621, 207);
+        splitMaster2.SplitterDistance = 277;
+        splitMaster2.TabIndex = 0;
+        // 
+        // lbReference
+        // 
+        lbReference.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+        lbReference.BorderStyle = BorderStyle.FixedSingle;
+        lbReference.FormattingEnabled = true;
+        lbReference.Location = new Point(0, 42);
+        lbReference.MultiColumn = true;
+        lbReference.Name = "lbReference";
+        lbReference.Size = new Size(275, 163);
+        lbReference.TabIndex = 1;
+        // 
+        // btnMasterSelect
+        // 
+        btnMasterSelect.Location = new Point(9, 6);
+        btnMasterSelect.Name = "btnMasterSelect";
+        btnMasterSelect.Size = new Size(112, 34);
+        btnMasterSelect.TabIndex = 0;
+        btnMasterSelect.Text = "確認";
+        btnMasterSelect.UseVisualStyleBackColor = true;
+        // 
+        // txtMasterFHIR
+        // 
+        txtMasterFHIR.Dock = DockStyle.Fill;
+        txtMasterFHIR.Location = new Point(0, 0);
+        txtMasterFHIR.Multiline = true;
+        txtMasterFHIR.Name = "txtMasterFHIR";
+        txtMasterFHIR.ScrollBars = ScrollBars.Both;
+        txtMasterFHIR.Size = new Size(340, 207);
+        txtMasterFHIR.TabIndex = 0;
         // 
         // tabStaging
         // 
@@ -1226,115 +1347,6 @@ partial class FormIGAnalyzer : Form
         rbApplyModel.Visible = false;
         rbApplyModel.CheckedChanged += lbProfile_SelectedIndexChanged;
         // 
-        // tabMaster
-        // 
-        tabMaster.Controls.Add(splitMaster);
-        tabMaster.Location = new Point(4, 32);
-        tabMaster.Name = "tabMaster";
-        tabMaster.Size = new Size(937, 418);
-        tabMaster.TabIndex = 8;
-        tabMaster.Text = "Master";
-        tabMaster.UseVisualStyleBackColor = true;
-        tabMaster.Enter += tabStaging_Enter;
-        // 
-        // 
-        // splitMaster
-        // 
-        splitMaster.Dock = DockStyle.Fill;
-        splitMaster.Location = new Point(0, 0);
-        splitMaster.Name = "splitMaster";
-        // 
-        // splitMaster.Panel1
-        // 
-        splitMaster.Panel1.Controls.Add(lbMaster);
-        // 
-        // splitMaster.Panel2
-        // 
-        splitMaster.Panel2.Controls.Add(splitMaster1);
-        splitMaster.Size = new Size(937, 418);
-        splitMaster.SplitterDistance = 312;
-        splitMaster.TabIndex = 0;
-        // 
-        // lbMaster
-        // 
-        lbMaster.Dock = DockStyle.Fill;
-        lbMaster.FormattingEnabled = true;
-        lbMaster.Location = new Point(0, 0);
-        lbMaster.Name = "lbMaster";
-        lbMaster.ScrollAlwaysVisible = true;
-        lbMaster.Size = new Size(312, 418);
-        lbMaster.TabIndex = 1;
-        lbMaster.SelectedIndexChanged += lbMaster_SelectedIndexChanged;
-        // 
-        // splitMaster1
-        // 
-        splitMaster1.Dock = DockStyle.Fill;
-        splitMaster1.Location = new Point(0, 0);
-        splitMaster1.Name = "splitMaster1";
-        splitMaster1.Orientation = Orientation.Horizontal;
-        // 
-        // splitMaster1.Panel1
-        // 
-        splitMaster1.Panel1.Controls.Add(lvMaster);
-        // 
-        // splitMaster1.Panel2
-        // 
-        splitMaster1.Panel2.Controls.Add(splitMaster2);
-        splitMaster1.Size = new Size(621, 418);
-        splitMaster1.SplitterDistance = 207;
-        splitMaster1.TabIndex = 0;
-        // 
-        // lvMaster
-        // 
-        lvMaster.Dock = DockStyle.Fill;
-        lvMaster.Location = new Point(0, 0);
-        lvMaster.Name = "lvMaster";
-        lvMaster.Size = new Size(621, 207);
-        lvMaster.TabIndex = 0;
-        lvMaster.UseCompatibleStateImageBehavior = false;
-        lvMaster.View = View.Details;
-        lvMaster.GridLines = true;
-        lvMaster.FullRowSelect = true;
-        lvMaster.SelectedIndexChanged += lvMaster_SelectedIndexChanged;
-        lvMaster.DoubleClick += LvMaster_DoubleClickAsync;
-
-        // 
-        // splitMaster2
-        // 
-        splitMaster2.Dock = DockStyle.Fill;
-        splitMaster2.Location = new Point(0, 0);
-        splitMaster2.Name = "splitMaster2";
-        // 
-        // splitMaster2.Panel1
-        // 
-        splitMaster2.Panel1.Controls.Add(btnMasterSelect);
-        // 
-        // splitMaster2.Panel2
-        // 
-        splitMaster2.Panel2.Controls.Add(txtMasterFHIR);
-        splitMaster2.Size = new Size(621, 207);
-        splitMaster2.SplitterDistance = 277;
-        splitMaster2.TabIndex = 0;
-        // 
-        // txtMasterFHIR
-        // 
-        txtMasterFHIR.Dock = DockStyle.Fill;
-        txtMasterFHIR.Location = new Point(0, 0);
-        txtMasterFHIR.Multiline = true;
-        txtMasterFHIR.Name = "txtMasterFHIR";
-        txtMasterFHIR.ScrollBars = ScrollBars.Both;
-        txtMasterFHIR.Size = new Size(340, 207);
-        txtMasterFHIR.TabIndex = 0;
-        // 
-        // btnMasterSelect
-        // 
-        btnMasterSelect.Location = new Point(14, 13);
-        btnMasterSelect.Name = "btnMasterSelect";
-        btnMasterSelect.Size = new Size(112, 34);
-        btnMasterSelect.TabIndex = 0;
-        btnMasterSelect.Text = "確認";
-        btnMasterSelect.UseVisualStyleBackColor = true;
-        // 
         // FormIGAnalyzer
         // 
         AutoScaleDimensions = new SizeF(11F, 23F);
@@ -1396,6 +1408,20 @@ partial class FormIGAnalyzer : Form
         splitQuestionnaire.Panel1.PerformLayout();
         ((System.ComponentModel.ISupportInitialize)splitQuestionnaire).EndInit();
         splitQuestionnaire.ResumeLayout(false);
+        tabMaster.ResumeLayout(false);
+        splitMaster.Panel1.ResumeLayout(false);
+        splitMaster.Panel2.ResumeLayout(false);
+        ((System.ComponentModel.ISupportInitialize)splitMaster).EndInit();
+        splitMaster.ResumeLayout(false);
+        splitMaster1.Panel1.ResumeLayout(false);
+        splitMaster1.Panel2.ResumeLayout(false);
+        ((System.ComponentModel.ISupportInitialize)splitMaster1).EndInit();
+        splitMaster1.ResumeLayout(false);
+        splitMaster2.Panel1.ResumeLayout(false);
+        splitMaster2.Panel2.ResumeLayout(false);
+        splitMaster2.Panel2.PerformLayout();
+        ((System.ComponentModel.ISupportInitialize)splitMaster2).EndInit();
+        splitMaster2.ResumeLayout(false);
         tabStaging.ResumeLayout(false);
         splitContainer1.Panel1.ResumeLayout(false);
         splitContainer1.Panel2.ResumeLayout(false);
@@ -1435,20 +1461,6 @@ partial class FormIGAnalyzer : Form
         splitIGList1.Panel2.ResumeLayout(false);
         ((System.ComponentModel.ISupportInitialize)splitIGList1).EndInit();
         splitIGList1.ResumeLayout(false);
-        tabMaster.ResumeLayout(false);
-        splitMaster.Panel1.ResumeLayout(false);
-        splitMaster.Panel2.ResumeLayout(false);
-        ((System.ComponentModel.ISupportInitialize)splitMaster).EndInit();
-        splitMaster.ResumeLayout(false);
-        splitMaster1.Panel1.ResumeLayout(false);
-        splitMaster1.Panel2.ResumeLayout(false);
-        ((System.ComponentModel.ISupportInitialize)splitMaster1).EndInit();
-        splitMaster1.ResumeLayout(false);
-        splitMaster2.Panel1.ResumeLayout(false);
-        splitMaster2.Panel2.ResumeLayout(false);
-        splitMaster2.Panel2.PerformLayout();
-        ((System.ComponentModel.ISupportInitialize)splitMaster2).EndInit();
-        splitMaster2.ResumeLayout(false);
         ResumeLayout(false);
         PerformLayout();
     }
@@ -1560,4 +1572,5 @@ partial class FormIGAnalyzer : Form
     private SplitContainer splitMaster2;
     private TextBox txtMasterFHIR;
     private Button btnMasterSelect;
+    private ListBox lbReference;
 }

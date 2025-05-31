@@ -1576,7 +1576,11 @@ public partial class FormIGAnalyzer : Form
 
     private async void lbMaster_SelectedIndexChanged(object sender, EventArgs e)
     {
-
+        // Clear the ListView and TextBox when selection changes
+        lvMaster.Items.Clear();
+        lvMaster.Columns.Clear();
+        txtFHIRData.Text = string.Empty;
+        
         if (lbMaster.SelectedItem == null)
         {
             return; // Nothing selected
@@ -4029,7 +4033,7 @@ public partial class FormIGAnalyzer : Form
         //ShowIGExample();
     }
 
-    private void lbBase_SelectedIndexChanged(object sender, EventArgs e)
+    private  void lbBase_SelectedIndexChanged(object sender, EventArgs e)
     {
         // get the selected item from the listbox
         string selectedItem = lbBase.SelectedItem?.ToString() ?? string.Empty;
@@ -4097,6 +4101,7 @@ public partial class FormIGAnalyzer : Form
 
                     foreach (var q in ig.QList)
                     {
+
                         if (q.Item2.Contains(profileName))
                         {
                             string path = q.Item3;
@@ -4111,19 +4116,76 @@ public partial class FormIGAnalyzer : Form
                                 path = path.Substring(0, path.IndexOf("("));
                             }
                             ListViewItem item = new ListViewItem(path);
+                            //string typeValue = q.Item4;
+                            //string type = await GetSnapshotType(profileName, q.Item4);
+                            //if(type != string.Empty)item.SubItems.Add(type);
+                            //else item.SubItems.Add(q.Item4);
                             string type = q.Item4;
-                            item.SubItems.Add(type);
+                            item.SubItems.Add(type); // Add the type to the item
+
                             string value = string.Empty;
+
                             if (path == "code") path = path + ".coding.code"; // Special case for code
-                            if (type == "CodeableConcept") path = path + ".coding.code"; // Special case for CodeableConcept
+                            else if (path.Contains("Period")) path = path.Replace("Period", "");
+                            else if (path.Contains("Quantity")) path = path.Replace("Quantity", "");
+                            else if (path.EndsWith("DateTime")) path = path.Replace("DateTime", "");
+                            // slicing handling => if the path contains a slice, remove the slice name
+                            else if (path.Contains("value"))
+                            {
+                                if (path.Contains(".") == false)
+                                {
+                                    path = "value"; // Add .value if it does not exist
+                                }
+                                else
+                                {
+                                    List<string> pathList = path.Split('.').ToList();
+                                    for (int i = 0; i < pathList.Count; i++)
+                                    {
+                                        var p = pathList[i];
+                                        if (p.Contains("value") && p != "value")
+                                        {
+                                            pathList[i] = "value"; // Replace any part of the path that contains "value" with "value"
+                                        }
+                                    }
+                                    path = string.Join(".", pathList); // Join the path back together
+                                }
+                            }
+                            //else if (path.Contains("CodeableConcept") && path.StartsWith("value") == false) path = path + ".coding.code";
+                            else if (path.Contains("CodeableConcept")) path = path.Replace("CodeableConcept", "") + ".coding.code";
+                            
+                            // Hard code for CodeableConcept and Quantity
+                            if (type == "CodeableConcept")
+                            {
+                                bool isCoding = true;
+                                if (path.Contains("."))
+                                {
+                                    if (path.EndsWith("reference") == false) isCoding = false;
+                                    if (path.EndsWith("coding.code") == false) isCoding = false;
+                                    if (path.EndsWith("text") == false) isCoding = false;
+                                    if (path.EndsWith("count") == false) isCoding = false;
+                                    if (path.EndsWith("value")) isCoding = false; // If the path is "value", do not append ".coding.code")
+                                }
+                                if (path == "value") isCoding = false; // If the path is "value", do not append ".coding.code"
+                                if (isCoding == true) path = path + ".coding.code";
+                            }
 
                             try
                             {
                                 if (resource.IsTrue(path))
                                 {
                                     value = resource.Select(path).FirstOrDefault()?.ToString() ?? string.Empty; // Get the value from the resource
+                                    // Slice handling, if the path contains a slice, get the value from the slice
+                                    if (value == "Hl7.Fhir.Model.CodeableConcept") // If the value starts with "Hl7.Fhir.Model.", remove it
+                                    {
+                                        value = resource.Select(path + ".coding.code").FirstOrDefault()?.ToString() ?? string.Empty; // Get the value from the resource
+                                    }
+                                    if (value == "Hl7.Fhir.Model.Quantity") // If the value starts with "Hl7.Fhir.Model.", remove it
+                                    {
+                                        value = resource.Select(path + ".value").FirstOrDefault()?.ToString() ?? string.Empty; // Get the value from the resource
+                                    }
                                 }
                             }
+
                             catch (Exception ex)
                             {
                                 txtMsg.Text = txtMsg.Text + "Error selecting path: " + path + " - " + ex.Message + Environment.NewLine;
@@ -4139,6 +4201,7 @@ public partial class FormIGAnalyzer : Form
                     lvBase.FullRowSelect = true; // Enable full row selection in the listview
                     lvBase.Scrollable = true; // Enable scrolling in the listview
                     lvBase.AutoArrange = true; // Enable auto-arranging of items in the listview
+                    lvBase.Refresh(); // Refresh the listview to display the items
                 }
             }
             // Display the narrative in the web browser
