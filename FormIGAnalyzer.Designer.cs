@@ -246,8 +246,9 @@ partial class FormIGAnalyzer : Form
         txtPackage.Font = new Font("Microsoft JhengHei UI", 9F);
         txtPackage.Location = new Point(462, 134);
         txtPackage.Name = "txtPackage";
-        txtPackage.Size = new Size(357, 30);
+        txtPackage.Size = new Size(600, 30);
         txtPackage.TabIndex = 0;
+        txtPackage.Enabled = false;
         // 
         // tabIG
         // 

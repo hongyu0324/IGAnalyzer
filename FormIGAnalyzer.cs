@@ -385,9 +385,12 @@ public partial class FormIGAnalyzer : Form
                 if (ig.QList[i].Item1.Contains(subname))
                 {
                     ig.InsertQItem(i, name, lm.Profile ?? string.Empty, lm.Path ?? string.Empty, lm.Type ?? string.Empty);
-                    break;
                 }
-                ig.AddQItem(name, lm.Profile ?? string.Empty, lm.Path ?? string.Empty, lm.Type ?? string.Empty);
+                else
+                {
+                    ig.AddQItem(name, lm.Profile ?? string.Empty, lm.Path ?? string.Empty, lm.Type ?? string.Empty);
+                }
+                
             }
         }
         ShowIGExample();
@@ -4033,7 +4036,7 @@ public partial class FormIGAnalyzer : Form
         //ShowIGExample();
     }
 
-    private  void lbBase_SelectedIndexChanged(object sender, EventArgs e)
+    private void lbBase_SelectedIndexChanged(object sender, EventArgs e)
     {
         // get the selected item from the listbox
         string selectedItem = lbBase.SelectedItem?.ToString() ?? string.Empty;
@@ -4065,146 +4068,6 @@ public partial class FormIGAnalyzer : Form
                 return;
             }
 
-            FhirJsonSerializer serializer = new FhirJsonSerializer(new SerializerSettings()
-            {
-                Pretty = true,
-            });
-            string pat_Json = serializer.SerializeToString(resource);
-            // Display the JSON in the text box
-            txtBase.Text = pat_Json;
-
-            // Display the resource information in the listview
-            lvBase.Items.Clear(); // Clear the listview before adding new items
-            lvBase.Columns.Clear(); // Clear the columns before adding new ones
-            lvBase.Columns.Add("Path", 250); // Add a column for the path
-            lvBase.Columns.Add("Type", 100); // Add a column for the type
-            lvBase.Columns.Add("Value", 150); // Add a column for the value
-            lvBase.Columns.Add("Logic Model", 150); // Add a column for the apply model
-            if (resource != null)
-            {
-                string profileName = resource.Meta?.Profile?.FirstOrDefault() ?? string.Empty;
-                profileName = profileName.Split('/').LastOrDefault() ?? string.Empty;
-                if (profileName != string.Empty)
-                {
-                    /*
-                    StructureDefinition? sd = GetStructureDefinition(profileName).Result;
-                    if (sd != null)
-                    {
-                        // Add the profile name to the listview
-                        ListViewItem profileItem = new ListViewItem("Profile");
-                        profileItem.SubItems.Add("StructureDefinition");
-                        profileItem.SubItems.Add(sd.Name);
-                        profileItem.SubItems.Add(sd.Id);
-                        lvBase.Items.Add(profileItem);
-                    }
-                    */
-
-                    foreach (var q in ig.QList)
-                    {
-
-                        if (q.Item2.Contains(profileName))
-                        {
-                            string path = q.Item3;
-                            string rule = GetRuleByPath(path);
-                            if (path.Contains("where"))
-                            {
-                                path = path.Replace(".where" + "(" + rule + ")", "");
-                            }
-                            // remove content after the first "("  
-                            if (path.Contains("("))
-                            {
-                                path = path.Substring(0, path.IndexOf("("));
-                            }
-                            ListViewItem item = new ListViewItem(path);
-                            //string typeValue = q.Item4;
-                            //string type = await GetSnapshotType(profileName, q.Item4);
-                            //if(type != string.Empty)item.SubItems.Add(type);
-                            //else item.SubItems.Add(q.Item4);
-                            string type = q.Item4;
-                            item.SubItems.Add(type); // Add the type to the item
-
-                            string value = string.Empty;
-
-                            if (path == "code") path = path + ".coding.code"; // Special case for code
-                            else if (path.Contains("Period")) path = path.Replace("Period", "");
-                            else if (path.Contains("Quantity")) path = path.Replace("Quantity", "");
-                            else if (path.EndsWith("DateTime")) path = path.Replace("DateTime", "");
-                            // slicing handling => if the path contains a slice, remove the slice name
-                            else if (path.Contains("value"))
-                            {
-                                if (path.Contains(".") == false)
-                                {
-                                    path = "value"; // Add .value if it does not exist
-                                }
-                                else
-                                {
-                                    List<string> pathList = path.Split('.').ToList();
-                                    for (int i = 0; i < pathList.Count; i++)
-                                    {
-                                        var p = pathList[i];
-                                        if (p.Contains("value") && p != "value")
-                                        {
-                                            pathList[i] = "value"; // Replace any part of the path that contains "value" with "value"
-                                        }
-                                    }
-                                    path = string.Join(".", pathList); // Join the path back together
-                                }
-                            }
-                            //else if (path.Contains("CodeableConcept") && path.StartsWith("value") == false) path = path + ".coding.code";
-                            else if (path.Contains("CodeableConcept")) path = path.Replace("CodeableConcept", "") + ".coding.code";
-                            
-                            // Hard code for CodeableConcept and Quantity
-                            if (type == "CodeableConcept")
-                            {
-                                bool isCoding = true;
-                                if (path.Contains("."))
-                                {
-                                    if (path.EndsWith("reference") == false) isCoding = false;
-                                    if (path.EndsWith("coding.code") == false) isCoding = false;
-                                    if (path.EndsWith("text") == false) isCoding = false;
-                                    if (path.EndsWith("count") == false) isCoding = false;
-                                    if (path.EndsWith("value")) isCoding = false; // If the path is "value", do not append ".coding.code")
-                                }
-                                if (path == "value") isCoding = false; // If the path is "value", do not append ".coding.code"
-                                if (isCoding == true) path = path + ".coding.code";
-                            }
-
-                            try
-                            {
-                                if (resource.IsTrue(path))
-                                {
-                                    value = resource.Select(path).FirstOrDefault()?.ToString() ?? string.Empty; // Get the value from the resource
-                                    // Slice handling, if the path contains a slice, get the value from the slice
-                                    if (value == "Hl7.Fhir.Model.CodeableConcept") // If the value starts with "Hl7.Fhir.Model.", remove it
-                                    {
-                                        value = resource.Select(path + ".coding.code").FirstOrDefault()?.ToString() ?? string.Empty; // Get the value from the resource
-                                    }
-                                    if (value == "Hl7.Fhir.Model.Quantity") // If the value starts with "Hl7.Fhir.Model.", remove it
-                                    {
-                                        value = resource.Select(path + ".value").FirstOrDefault()?.ToString() ?? string.Empty; // Get the value from the resource
-                                    }
-                                }
-                            }
-
-                            catch (Exception ex)
-                            {
-                                txtMsg.Text = txtMsg.Text + "Error selecting path: " + path + " - " + ex.Message + Environment.NewLine;
-                                continue; // Skip this item if there is an error
-                            }
-
-                            item.SubItems.Add(value); // Get the value from the tuple
-                            item.SubItems.Add(q.Item1.Split('|')[0].Trim());
-                            lvBase.Items.Add(item); // Add the item to the listview
-                        }
-                    }
-                    lvBase.GridLines = true; // Enable grid lines in the listview
-                    lvBase.FullRowSelect = true; // Enable full row selection in the listview
-                    lvBase.Scrollable = true; // Enable scrolling in the listview
-                    lvBase.AutoArrange = true; // Enable auto-arranging of items in the listview
-                    lvBase.Refresh(); // Refresh the listview to display the items
-                }
-            }
-            // Display the narrative in the web browser
             if (narr != null)
             {
                 WebBrowser webBrowser = new WebBrowser();
@@ -4227,11 +4090,169 @@ public partial class FormIGAnalyzer : Form
             {
                 MessageBox.Show("No narrative found in the selected resource.");
             }
+            FhirJsonSerializer serializer = new FhirJsonSerializer(new SerializerSettings()
+            {
+                Pretty = true,
+            });
+            string pat_Json = serializer.SerializeToString(resource);
+            // Display the JSON in the text box
+            txtBase.Text = pat_Json;
+
+            // Display the resource information in the listview
+            lvBase.Items.Clear(); // Clear the listview before adding new items
+            lvBase.Columns.Clear(); // Clear the columns before adding new ones
+            lvBase.Columns.Add("Path", 250); // Add a column for the path
+            lvBase.Columns.Add("Type", 100); // Add a column for the type
+            lvBase.Columns.Add("Value", 150); // Add a column for the value
+            lvBase.Columns.Add("Logic Model", 150); // Add a column for the apply model
+            lvBase.Columns.Add("Rule", 150); // Add a column for the profile
+
+            string profileName = resource.Meta?.Profile?.FirstOrDefault() ?? string.Empty;
+            profileName = profileName.Split('/').LastOrDefault() ?? string.Empty;
+            if (profileName == null || profileName.Length == 0) return; // If profileName is null, return
+            foreach (var q in ig.QList)
+            {
+                if (q.Item2.Contains(profileName))
+                {
+                    string path = q.Item3;
+                    string rule = GetRuleByPath(path);
+                    if (path.Contains("where"))
+                    {
+                        path = path.Replace(".where" + "(" + rule + ")", "");
+                    }
+                    // remove content after the first "("  
+                    if (path.Contains("("))
+                    {
+                        path = path.Substring(0, path.IndexOf("("));
+                    }
+                    ListViewItem item = new ListViewItem(path);
+                    string type = q.Item4;
+                    item.SubItems.Add(type); // Add the type to the item
+
+                    path = GetExampleElementPath(path, type); // Get the path for the example element
+                    string value = string.Empty;
+                    try
+                    {
+                        if (resource.IsTrue(path))
+                        {
+                            if (resource.Select(path).Count() > 1)
+                            {
+                                path = GetExampleElementPathByRule(path, type, rule); // Get the path for the example element by rule
+                                value = resource.Select(path).FirstOrDefault()?.ToString() ?? string.Empty; // Get the value from the resource
+                            }
+                            else
+                            {
+                                value = resource.Select(path).FirstOrDefault()?.ToString() ?? string.Empty; // Get the value from the resource
+                            }
+                            if (value == "Hl7.Fhir.Model.CodeableConcept") // If the value starts with "Hl7.Fhir.Model.", remove it
+                            {
+                                value = resource.Select(path + ".coding.code").FirstOrDefault()?.ToString() ?? string.Empty; // Get the value from the resource
+                            }
+                            if (value == "Hl7.Fhir.Model.Quantity") // If the value starts with "Hl7.Fhir.Model.", remove it
+                            {
+                                value = resource.Select(path + ".value").FirstOrDefault()?.ToString() ?? string.Empty; // Get the value from the resource
+                            }
+                        }
+                    }
+
+                    catch (Exception ex)
+                    {
+                        txtMsg.Text = txtMsg.Text + "Error selecting path: " + path + " - " + ex.Message + Environment.NewLine;
+                        continue; // Skip this item if there is an error
+                    }
+
+                    item.SubItems.Add(value); // Get the value from the tuple
+                    item.SubItems.Add(q.Item1.Split('|')[0].Trim());
+                    item.SubItems.Add(rule); // Get the apply model from the tuple
+                    lvBase.Items.Add(item); // Add the item to the listview
+                }
+            }
+            lvBase.GridLines = true; // Enable grid lines in the listview
+            lvBase.FullRowSelect = true; // Enable full row selection in the listview
+            lvBase.Scrollable = true; // Enable scrolling in the listview
+            lvBase.AutoArrange = true; // Enable auto-arranging of items in the listview
+            lvBase.Refresh(); // Refresh the listview to display the items
+            
         }
         else
         {
             MessageBox.Show("File not found: " + filePath);
         }
+    }
+
+    private string GetExampleElementPathByRule(string pathQ, string type, string rule)
+    {
+        // Get the example element path by rule
+        string path = pathQ;
+        List<string> pathList = path.Split('.').ToList();
+        string rulePath = "where(" + rule + ")";
+        int index = 0;
+        switch (type)
+        {
+            case "decimal":
+                index = 2; // For Quantity, insert the rule after the second element
+                break;
+            case "Reference":
+                index = 2; // For Reference, insert the rule after the second element
+                break;
+            case "CodeableConcept":
+                index = 2; // For CodeableConcept, insert the rule after the second element
+                break;
+            default:
+                index = 1;
+                break;
+        }
+        pathList.Insert(pathList.Count - index, rulePath);
+        path = string.Join(".", pathList).Trim();
+        return path; // Return the path as is for now
+    }
+    private string GetExampleElementPath(string pathQ, string type)
+    {
+        string path = pathQ;
+        if (path == "code") path = path + ".coding.code"; // Special case for code
+        else if (path.Contains("Period")) path = path.Replace("Period", "");
+        else if (path.Contains("Quantity")) path = path.Replace("Quantity", "");
+        else if (path.EndsWith("DateTime")) path = path.Replace("DateTime", "");
+        // slicing handling => if the path contains a slice, remove the slice name
+        else if (path.Contains("value"))
+        {
+            if (path.Contains(".") == false)
+            {
+                path = "value"; // Add .value if it does not exist
+            }
+            else
+            {
+                List<string> pathList = path.Split('.').ToList();
+                for (int i = 0; i < pathList.Count; i++)
+                {
+                    var p = pathList[i];
+                    if (p.Contains("value") && p != "value")
+                    {
+                        pathList[i] = "value"; // Replace any part of the path that contains "value" with "value"
+                    }
+                }
+                path = string.Join(".", pathList); // Join the path back together
+            }
+        }
+        //else if (path.Contains("CodeableConcept") && path.StartsWith("value") == false) path = path + ".coding.code";
+        else if (path.Contains("CodeableConcept")) path = path.Replace("CodeableConcept", "") + ".coding.code";
+
+        // Hard code for CodeableConcept and Quantity
+        if (type == "CodeableConcept")
+        {
+            bool isCoding = true;
+            if (path.Contains("."))
+            {
+                if (path.EndsWith("reference") == false) isCoding = false;
+                if (path.EndsWith("coding.code") == false) isCoding = false;
+                if (path.EndsWith("text") == false) isCoding = false;
+                if (path.EndsWith("count") == false) isCoding = false;
+                if (path.EndsWith("value")) isCoding = false; // If the path is "value", do not append ".coding.code")
+            }
+            if (path == "value") isCoding = false; // If the path is "value", do not append ".coding.code"
+            if (isCoding == true) path = path + ".coding.code";
+        }
+        return path;
     }
 
     private void btnUpload_Click(object sender, EventArgs e)
