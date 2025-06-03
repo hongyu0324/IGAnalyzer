@@ -164,7 +164,8 @@ public partial class FormIGAnalyzer : Form
             }
         }
     }
-
+/*
+功能轉移至IGClass，先保留
     private string GetLogicName(string ig, string igSub)
     {
         string logicName = ig;
@@ -179,40 +180,18 @@ public partial class FormIGAnalyzer : Form
         }
         return logicName;
     }
-
-    /// <summary>
-    /// 處理「選擇」按鈕的點擊事件，允許使用者選擇 IG 套件檔案，並處理所選套件以擷取並顯示相關的 FHIR profiles、bundles 和 models，
-    /// 並將擷取到的資訊填入各個 UI 元件。
-    ///
-    /// 此方法執行以下步驟：
-    /// 1. 開啟檔案對話框，讓使用者選擇 .tgz 格式的 IG 套件檔案。
-    /// 2. 初始化 resolver，並從所選套件取得 canonical URI 清單。
-    /// 3. 根據命名規則與邏輯，過濾並分類 profiles 與 bundles。
-    /// 4. 將 profiles 與 bundles 顯示於 UI 清單中。
-    /// 5. 初始化一組預設的 ValueSet URL，供後續使用。
-    /// 6. 解析每個 profile 的 StructureDefinition，並擷取 value set 綁定資訊。
-    /// 7. 解析 apply model 的 StructureDefinition，並將 apply model 元素及其對應 mapping 資訊顯示於 UI。
-    /// 8. 處理並顯示處理過程中遇到的錯誤訊息。
-    /// </summary>
-    /// <param name="sender">事件來源。</param>
-    /// <param name="e">包含事件資料的 <see cref="EventArgs"/> 物件。</param>
+*/
     private async void btnSelect_ClickAsync(object? sender, EventArgs e)
     {
-        ofdPackage.InitialDirectory = profilePath;
-        ofdPackage.Filter = "IG Package (*.tgz)|*.tgz";
-        ofdPackage.FileName = "package.tgz";
-        ofdPackage.ShowDialog();
-        if (ofdPackage.FileName == "")
-        {
-            MessageBox.Show("Please select a package file.");
-            return;
-        }
 
         Initial();
-        string tw_ig = ofdPackage.FileName;
+        //string tw_ig = ofdPackage.FileName;
+        string tw_ig = profilePath + "\\package.tgz";
         ig.Package = tw_ig;
+        ig.Name = igName;
+        ig.SubName = igSubName;
+        ig.SetCanonical();
 
-        txtPackage.Text = tw_ig;
         resolver = new(ModelInfo.ModelInspector, new string[] { ig.Package });
         if (resolver == null)
         {
@@ -220,48 +199,9 @@ public partial class FormIGAnalyzer : Form
             tabIG.SelectedTab = tabMsg;
             return;
         }
+        
 
-        var names = resolver.ListCanonicalUris();
-        foreach (var n in names)
-        {
-            string logicName = GetLogicName(igName, igSubName);
-
-            try
-            {
-                if (n.StartsWith(profileName))
-                {
-                    var profile = n.Split("/").Last();
-                    if (profile.Contains("Bundle"))
-                    {
-                        ig.AddBundle(profile);
-                    }
-                    else if (profile.Contains(logicName) && profile.Contains("Model"))
-                    {
-
-                        ig.LogicModel = profile;
-                    }
-                    else
-                    {
-                        if (igName == "emr")
-                        {
-                            if (profile.Contains(logicName))
-                            {
-                                ig.AddProfile(profile);
-                            }
-                        }
-                        else
-                        {
-                            ig.AddProfile(profile);
-                        }
-
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                txtMsg.Text = txtMsg.Text + $"Error processing {n}: {ex.Message}" + Environment.NewLine;
-            }
-        }
+        txtPackage.Text = $"{ig.IGName} {ig.Title} {ig.Version}";
         // Display the results in the ListBox
         lbProfile.Items.Clear();
         foreach (var profile in ig.Profiles)
@@ -281,7 +221,7 @@ public partial class FormIGAnalyzer : Form
                 ig.Binding.Add(binding.Path, binding.ValueSet);
             }
         }
-
+/*
         foreach (string profileName in ig.Profiles)
         {
 
@@ -313,7 +253,7 @@ public partial class FormIGAnalyzer : Form
                 }
             }
         }
-
+*/
         foreach (var s in ig.SliceList)
         {
             txtMsg.Text = txtMsg.Text + s.Item1 + " % " + s.Item2 + " % " + s.Item3 + Environment.NewLine;
@@ -327,72 +267,88 @@ public partial class FormIGAnalyzer : Form
         }
 
         lbApplyModel.Items.Clear();
-        foreach (var ele in applyModelDef.Differential.Element)
-        {
-            var elementList = ele.Path.Split('.').ToList();
-            if (elementList.Count > 1)
-            {
-                if (elementList.Count == 2)
+        /*
+                foreach (var ele in applyModelDef.Differential.Element)
                 {
-                    lbApplyModel.Items.Add(ele.Path + " | " + ele.Definition);
-                }
-
-                var map = ele.Mapping;
-                foreach (var m in map)
-                {
-                    // get profile name from profiles list 
-                    if (elementList.Count > 2)
+                    var elementList = ele.Path.Split('.').ToList();
+                    if (elementList.Count > 1)
                     {
-                        string q3 = m.Map;
-                        if (q3.Contains("where"))
+                        //if (elementList.Count == 2)
+                        //{
+                        //    lbApplyModel.Items.Add(ele.Path + " | " + ele.Short);
+                        //}
+
+                        var map = ele.Mapping;
+                        foreach (var m in map)
                         {
-                            q3 = m.Map;
-                        }
-                        else
-                        {
-                            q3 = q3.Split(" ")[0];
-                            // 如果以"coding.code"結束，則刪除"coding.code"
-                            if (q3.EndsWith(".coding.code"))
+                            // get profile name from profiles list 
+                            if (elementList.Count > 2)
                             {
-                                q3 = q3.Substring(0, q3.Length - 12);
+                                string q3 = m.Map;
+                                if (q3.Contains("where"))
+                                {
+                                    q3 = m.Map;
+                                }
+                                else
+                                {
+                                    q3 = q3.Split(" ")[0];
+                                    // 如果以"coding.code"結束，則刪除"coding.code"
+                                    if (q3.EndsWith(".coding.code"))
+                                    {
+                                        q3 = q3.Substring(0, q3.Length - 12);
+                                    }
+                                }
+                                //  IG Package問題，未來修改
+                                //q3 = ModifyByIGPackage(q3);
+                                string q1 = ele.Short;
+                                if (ele.Short.Contains("，"))
+                                {
+                                    q1 = ele.Short.Split("，")[0];
+                                }
+                                //  IG Package問題，未來修改
+                                ig.AddQItem(q1 + " | " + ele.Path, GetProfileName(m.Identity, ig.Profiles), q3, ele.Type.FirstOrDefault()?.Code ?? string.Empty);
+                                //var q = new Tuple<string, string, string, string>(q1 + " | " + ele.Path, GetProfileName(m.Identity, ig.Profiles), q3, ele.Type.FirstOrDefault()?.Code ?? string.Empty);
+                                //qList.Add(q);
                             }
                         }
-                        //  IG Package問題，未來修改
-                        q3 = ModifyByIGPackage(q3);
-                        string q1 = ele.Short;
-                        if (ele.Short.Contains("，"))
-                        {
-                            q1 = ele.Short.Split("，")[0];
-                        }
-                        //  IG Package問題，未來修改
-                        ig.AddQItem(q1 + " | " + ele.Path, GetProfileName(m.Identity, ig.Profiles), q3, ele.Type.FirstOrDefault()?.Code ?? string.Empty);
-                        //var q = new Tuple<string, string, string, string>(q1 + " | " + ele.Path, GetProfileName(m.Identity, ig.Profiles), q3, ele.Type.FirstOrDefault()?.Code ?? string.Empty);
-                        //qList.Add(q);
+                        // ApplyModel 外掛，for specimen
+
+                        // 依據第一個欄位排序
+                        //g.QList.Sort((x, y) => string.Compare(x.Item1, y.Item1, StringComparison.Ordinal));
                     }
                 }
-                // ApplyModel 外掛，for specimen
-
-                // 依據第一個欄位排序
-                //g.QList.Sort((x, y) => string.Compare(x.Item1, y.Item1, StringComparison.Ordinal));
-            }
+        */
+        foreach(var item in ig.LogicModelList)
+        {
+            lbApplyModel.Items.Add(item);
         }
+
+        for (int i = 0; i < ig.QList.Count; i++)
+        {
+            var q = ig.QList[i];
+            string q3 = q.Item3;
+            q3 = ModifyByIGPackage(q3);
+            ig.QList[i] = new Tuple<string, string, string, string>(q.Item1, q.Item2, q3, q.Item4);
+        }
+
         foreach (var lm in appSettings.LogicModelAdd)
         {
+            string name = lm.Name ?? string.Empty;
+            string subname = name.Split("|")[1].Trim();
+            bool found = false;
             for (int i = 0; i < ig.QList.Count; i++)
             {
-                string name = lm.Name ?? string.Empty;
-                string subname = name.Split("|")[1].Trim();
+
                 if (ig.QList[i].Item1.Contains(subname))
                 {
                     ig.InsertQItem(i, name, lm.Profile ?? string.Empty, lm.Path ?? string.Empty, lm.Type ?? string.Empty);
+                    found = true;
+                    break;
                 }
-                else
-                {
-                    ig.AddQItem(name, lm.Profile ?? string.Empty, lm.Path ?? string.Empty, lm.Type ?? string.Empty);
-                }
-                
             }
+            if (found == false) ig.AddQItem(name, lm.Profile ?? string.Empty, lm.Path ?? string.Empty, lm.Type ?? string.Empty);
         }
+        
         ShowIGExample();
     }
 
@@ -405,6 +361,7 @@ public partial class FormIGAnalyzer : Form
             if (upath.Before != null && upath.After != null)
             {
                 q3 = q3.Replace(upath.Before, upath.After);
+                continue;
             }
         }
         return q3;
@@ -1583,7 +1540,7 @@ public partial class FormIGAnalyzer : Form
         lvMaster.Items.Clear();
         lvMaster.Columns.Clear();
         txtFHIRData.Text = string.Empty;
-        
+
         if (lbMaster.SelectedItem == null)
         {
             return; // Nothing selected
@@ -1619,7 +1576,7 @@ public partial class FormIGAnalyzer : Form
             MessageBox.Show($"Error processing selection: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             txtMsg.Text += $"Error in lbMaster_SelectedIndexChanged: {ex.Message}" + Environment.NewLine;
         }
-        
+
     }
 
     private async System.Threading.Tasks.Task LoadAndDisplayMasterDataAsync<TResource>(
@@ -4075,7 +4032,14 @@ public partial class FormIGAnalyzer : Form
                 splitBase3.Panel2.BackColor = Color.LightGray; // Set the background color of the panel
                 webBrowser.Dock = DockStyle.Fill; // Fill the panel with the web browser
                 splitBase3.Panel2.Controls.Add(webBrowser); // Add the web browser to the panel
-                webBrowser.DocumentText = narr.Div?.ToString() ?? string.Empty; // Set the HTML content of the web browser
+
+                //set font size to 16px
+                string style = "<style>body { font-size: 18px; font-family: Arial, sans-serif; }</style>";
+                // Create a new HTML document with the narrative content
+                string htmlContent = "<html><head>" + style + "</head><body>" + narr.Div?.ToString() + "</body></html>";
+                // Load the HTML content into the web browser
+                webBrowser.DocumentText = htmlContent; // Set the HTML content of the web browser
+                //webBrowser.DocumentText = narr.Div?.ToString() ?? string.Empty; // Set the HTML content of the web browser
                 webBrowser.ScriptErrorsSuppressed = true; // Suppress script errors in the web browser
                 webBrowser.ScrollBarsEnabled = true; // Enable scroll bars in the web browser
                 webBrowser.AllowNavigation = true; // Allow navigation in the web browser
@@ -4172,7 +4136,7 @@ public partial class FormIGAnalyzer : Form
             lvBase.Scrollable = true; // Enable scrolling in the listview
             lvBase.AutoArrange = true; // Enable auto-arranging of items in the listview
             lvBase.Refresh(); // Refresh the listview to display the items
-            
+
         }
         else
         {
@@ -4318,7 +4282,28 @@ public partial class FormIGAnalyzer : Form
         {
             MessageBox.Show("Error: " + ex.Message);
         }
+    }
 
-       
+    private void lvBase_SelectedIndexChanged(object sender, EventArgs e)
+    {
+
+    }
+
+    private void toolStripStatusLabel1_Click(object sender, EventArgs e)
+    {
+
+    }
+
+    private async void btnIGCheck_Click(object sender, EventArgs e)
+    {
+        bool isNew = await ig.CheckIGVersion();
+        if (isNew)
+        {
+            MessageBox.Show("The IG version is up to date.");
+        }
+        else
+        {
+            MessageBox.Show("The IG version is not up to date. Please update the IG.");
+        }
     }
 }

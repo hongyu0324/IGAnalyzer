@@ -115,13 +115,17 @@ partial class FormIGAnalyzer : Form
         tabMsg = new TabPage();
         txtMsg = new TextBox();
         tabVersion = new TabPage();
-        btnCheck = new Button();
+        btnIGCompare = new Button();
+        btnIGCheck = new Button();
         splitIGList1 = new SplitContainer();
-        lvIGPre = new ListView();
+        splitIGList2 = new SplitContainer();
+        lbIG = new ListBox();
+        lvIG = new ListView();
         lvIGNext = new ListView();
         cmdIGList = new ComboBox();
         label6 = new Label();
         statusBar = new StatusStrip();
+        lblSatatusBar = new ToolStripStatusLabel();
         columnHeader1 = new ColumnHeader();
         rbDifferential = new RadioButton();
         rbSnapshot = new RadioButton();
@@ -215,6 +219,11 @@ partial class FormIGAnalyzer : Form
         splitIGList1.Panel1.SuspendLayout();
         splitIGList1.Panel2.SuspendLayout();
         splitIGList1.SuspendLayout();
+        ((System.ComponentModel.ISupportInitialize)splitIGList2).BeginInit();
+        splitIGList2.Panel1.SuspendLayout();
+        splitIGList2.Panel2.SuspendLayout();
+        splitIGList2.SuspendLayout();
+        statusBar.SuspendLayout();
         SuspendLayout();
         // 
         // btnClose
@@ -236,19 +245,19 @@ partial class FormIGAnalyzer : Form
         btnSelect.Name = "btnSelect";
         btnSelect.Size = new Size(100, 40);
         btnSelect.TabIndex = 3;
-        btnSelect.Text = "選擇";
+        btnSelect.Text = "匯入";
         btnSelect.UseVisualStyleBackColor = false;
         btnSelect.Click += btnSelect_ClickAsync;
         // 
         // txtPackage
         // 
         txtPackage.BorderStyle = BorderStyle.FixedSingle;
+        txtPackage.Enabled = false;
         txtPackage.Font = new Font("Microsoft JhengHei UI", 9F);
         txtPackage.Location = new Point(462, 134);
         txtPackage.Name = "txtPackage";
         txtPackage.Size = new Size(600, 30);
         txtPackage.TabIndex = 0;
-        txtPackage.Enabled = false;
         // 
         // tabIG
         // 
@@ -364,7 +373,7 @@ partial class FormIGAnalyzer : Form
         // 
         // btnDataDir
         // 
-        btnDataDir.Location = new Point(502, 171);
+        btnDataDir.Location = new Point(600, 171);
         btnDataDir.Name = "btnDataDir";
         btnDataDir.Size = new Size(66, 34);
         btnDataDir.TabIndex = 22;
@@ -375,7 +384,7 @@ partial class FormIGAnalyzer : Form
         // 
         txtDataDirectory.Location = new Point(184, 171);
         txtDataDirectory.Name = "txtDataDirectory";
-        txtDataDirectory.Size = new Size(312, 30);
+        txtDataDirectory.Size = new Size(400, 30);
         txtDataDirectory.TabIndex = 21;
         // 
         // label3
@@ -389,6 +398,7 @@ partial class FormIGAnalyzer : Form
         // 
         // cmbIG
         // 
+        cmbIG.Enabled = false;
         cmbIG.FormattingEnabled = true;
         cmbIG.Items.AddRange(new object[] { "pas", "ngs", "ci", "emr-dms", "emr-pmr", "emr-ic", "emr-image", "emr-ep", "emr-ds" });
         cmbIG.Location = new Point(184, 134);
@@ -535,6 +545,7 @@ partial class FormIGAnalyzer : Form
         lvBase.TabIndex = 1;
         lvBase.UseCompatibleStateImageBehavior = false;
         lvBase.View = View.Details;
+        lvBase.SelectedIndexChanged += lvBase_SelectedIndexChanged;
         // 
         // tabProfile
         // 
@@ -1225,7 +1236,8 @@ partial class FormIGAnalyzer : Form
         // 
         // tabVersion
         // 
-        tabVersion.Controls.Add(btnCheck);
+        tabVersion.Controls.Add(btnIGCompare);
+        tabVersion.Controls.Add(btnIGCheck);
         tabVersion.Controls.Add(splitIGList1);
         tabVersion.Controls.Add(cmdIGList);
         tabVersion.Controls.Add(label6);
@@ -1236,47 +1248,85 @@ partial class FormIGAnalyzer : Form
         tabVersion.Text = "Version";
         tabVersion.UseVisualStyleBackColor = true;
         // 
+        // btnCompare
+        // 
+        btnIGCompare.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        btnIGCompare.Location = new Point(821, 18);
+        btnIGCompare.Name = "btnIGCompare";
+        btnIGCompare.Size = new Size(112, 34);
+        btnIGCompare.TabIndex = 4;
+        btnIGCompare.Text = "比較";
+        btnIGCompare.UseVisualStyleBackColor = true;
+        // 
         // btnCheck
         // 
-        btnCheck.Location = new Point(340, 18);
-        btnCheck.Name = "btnCheck";
-        btnCheck.Size = new Size(112, 34);
-        btnCheck.TabIndex = 3;
-        btnCheck.Text = "檢查";
-        btnCheck.UseVisualStyleBackColor = true;
+        btnIGCheck.Location = new Point(340, 18);
+        btnIGCheck.Name = "btnIGCheck";
+        btnIGCheck.Size = new Size(112, 34);
+        btnIGCheck.TabIndex = 3;
+        btnIGCheck.Text = "檢查";
+        btnIGCheck.UseVisualStyleBackColor = true;
+        btnIGCheck.Click += btnIGCheck_Click;
+
         // 
         // splitIGList1
         // 
         splitIGList1.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-        splitIGList1.Location = new Point(3, 68);
+        splitIGList1.Location = new Point(0, 54);
         splitIGList1.Name = "splitIGList1";
         // 
         // splitIGList1.Panel1
         // 
-        splitIGList1.Panel1.Controls.Add(lvIGPre);
+        splitIGList1.Panel1.Controls.Add(splitIGList2);
         // 
         // splitIGList1.Panel2
         // 
         splitIGList1.Panel2.Controls.Add(lvIGNext);
-        splitIGList1.Size = new Size(931, 294);
-        splitIGList1.SplitterDistance = 449;
+        splitIGList1.Size = new Size(937, 364);
+        splitIGList1.SplitterDistance = 574;
         splitIGList1.TabIndex = 2;
         // 
-        // lvIGPre
+        // splitIGList2
         // 
-        lvIGPre.Dock = DockStyle.Fill;
-        lvIGPre.Location = new Point(0, 0);
-        lvIGPre.Name = "lvIGPre";
-        lvIGPre.Size = new Size(449, 294);
-        lvIGPre.TabIndex = 0;
-        lvIGPre.UseCompatibleStateImageBehavior = false;
+        splitIGList2.Dock = DockStyle.Fill;
+        splitIGList2.Location = new Point(0, 0);
+        splitIGList2.Name = "splitIGList2";
+        // 
+        // splitIGList2.Panel1
+        // 
+        splitIGList2.Panel1.Controls.Add(lbIG);
+        // 
+        // splitIGList2.Panel2
+        // 
+        splitIGList2.Panel2.Controls.Add(lvIG);
+        splitIGList2.Size = new Size(574, 364);
+        splitIGList2.SplitterDistance = 190;
+        splitIGList2.TabIndex = 0;
+        // 
+        // lbIG
+        // 
+        lbIG.Dock = DockStyle.Fill;
+        lbIG.FormattingEnabled = true;
+        lbIG.Location = new Point(0, 0);
+        lbIG.Name = "lbIG";
+        lbIG.Size = new Size(190, 364);
+        lbIG.TabIndex = 0;
+        // 
+        // lvIG
+        // 
+        lvIG.Dock = DockStyle.Fill;
+        lvIG.Location = new Point(0, 0);
+        lvIG.Name = "lvIG";
+        lvIG.Size = new Size(380, 364);
+        lvIG.TabIndex = 0;
+        lvIG.UseCompatibleStateImageBehavior = false;
         // 
         // lvIGNext
         // 
         lvIGNext.Dock = DockStyle.Fill;
         lvIGNext.Location = new Point(0, 0);
         lvIGNext.Name = "lvIGNext";
-        lvIGNext.Size = new Size(478, 294);
+        lvIGNext.Size = new Size(359, 364);
         lvIGNext.TabIndex = 0;
         lvIGNext.UseCompatibleStateImageBehavior = false;
         // 
@@ -1301,18 +1351,26 @@ partial class FormIGAnalyzer : Form
         // statusBar
         // 
         statusBar.ImageScalingSize = new Size(24, 24);
+        statusBar.Items.AddRange(new ToolStripItem[] { lblSatatusBar });
         statusBar.Location = new Point(0, 515);
         statusBar.Name = "statusBar";
         statusBar.Size = new Size(961, 22);
         statusBar.TabIndex = 7;
         statusBar.Text = "statusStrip1";
         // 
+        // lblSatatusBar
+        // 
+        lblSatatusBar.Name = "lblSatatusBar";
+        lblSatatusBar.Size = new Size(0, 15);
+        lblSatatusBar.TextImageRelation = TextImageRelation.Overlay;
+        lblSatatusBar.Click += toolStripStatusLabel1_Click;
+        // 
         // rbDifferential
         // 
         rbDifferential.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
         rbDifferential.AutoSize = true;
         rbDifferential.Checked = true;
-        rbDifferential.Location = new Point(15, 469);
+        rbDifferential.Location = new Point(16, 479);
         rbDifferential.Name = "rbDifferential";
         rbDifferential.Size = new Size(131, 27);
         rbDifferential.TabIndex = 8;
@@ -1326,7 +1384,7 @@ partial class FormIGAnalyzer : Form
         // 
         rbSnapshot.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
         rbSnapshot.AutoSize = true;
-        rbSnapshot.Location = new Point(152, 469);
+        rbSnapshot.Location = new Point(152, 479);
         rbSnapshot.Name = "rbSnapshot";
         rbSnapshot.Size = new Size(118, 27);
         rbSnapshot.TabIndex = 9;
@@ -1339,7 +1397,7 @@ partial class FormIGAnalyzer : Form
         // 
         rbApplyModel.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
         rbApplyModel.AutoSize = true;
-        rbApplyModel.Location = new Point(276, 468);
+        rbApplyModel.Location = new Point(276, 479);
         rbApplyModel.Name = "rbApplyModel";
         rbApplyModel.Size = new Size(142, 27);
         rbApplyModel.TabIndex = 10;
@@ -1462,6 +1520,12 @@ partial class FormIGAnalyzer : Form
         splitIGList1.Panel2.ResumeLayout(false);
         ((System.ComponentModel.ISupportInitialize)splitIGList1).EndInit();
         splitIGList1.ResumeLayout(false);
+        splitIGList2.Panel1.ResumeLayout(false);
+        splitIGList2.Panel2.ResumeLayout(false);
+        ((System.ComponentModel.ISupportInitialize)splitIGList2).EndInit();
+        splitIGList2.ResumeLayout(false);
+        statusBar.ResumeLayout(false);
+        statusBar.PerformLayout();
         ResumeLayout(false);
         PerformLayout();
     }
@@ -1538,8 +1602,7 @@ partial class FormIGAnalyzer : Form
     private ComboBox cmdIGList;
     private Label label6;
     private SplitContainer splitIGList1;
-    private Button btnCheck;
-    private ListView lvIGPre;
+    private Button btnIGCheck;
     private ListView lvIGNext;
     private SplitContainer splitContainer12;
     private ListBox lbStaging;
@@ -1574,4 +1637,9 @@ partial class FormIGAnalyzer : Form
     private TextBox txtMasterFHIR;
     private Button btnMasterSelect;
     private ListBox lbReference;
+    private SplitContainer splitIGList2;
+    private ListBox lbIG;
+    private ListView lvIG;
+    private Button btnIGCompare;
+    private ToolStripStatusLabel lblSatatusBar;
 }
