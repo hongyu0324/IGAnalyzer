@@ -86,7 +86,6 @@ partial class FormIGAnalyzer : Form
         splitMaster1 = new SplitContainer();
         lvMaster = new ListView();
         splitMaster2 = new SplitContainer();
-        lbReference = new ListBox();
         btnMasterSelect = new Button();
         txtMasterFHIR = new TextBox();
         tabStaging = new TabPage();
@@ -98,7 +97,7 @@ partial class FormIGAnalyzer : Form
         splitContainer3 = new SplitContainer();
         splitContainer4 = new SplitContainer();
         btnConfirm = new Button();
-        btnStagingSave = new Button();
+        btnFUMECheck = new Button();
         btnStagingLoad = new Button();
         txtStaging = new TextBox();
         lvFUME = new ListView();
@@ -130,6 +129,7 @@ partial class FormIGAnalyzer : Form
         rbDifferential = new RadioButton();
         rbSnapshot = new RadioButton();
         rbApplyModel = new RadioButton();
+        lvReference = new ListView();
         tabIG.SuspendLayout();
         tabConfiguration.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)splitBase).BeginInit();
@@ -873,7 +873,7 @@ partial class FormIGAnalyzer : Form
         // 
         // splitMaster2.Panel1
         // 
-        splitMaster2.Panel1.Controls.Add(lbReference);
+        splitMaster2.Panel1.Controls.Add(lvReference);
         splitMaster2.Panel1.Controls.Add(btnMasterSelect);
         // 
         // splitMaster2.Panel2
@@ -883,17 +883,6 @@ partial class FormIGAnalyzer : Form
         splitMaster2.SplitterDistance = 277;
         splitMaster2.TabIndex = 0;
         // 
-        // lbReference
-        // 
-        lbReference.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-        lbReference.BorderStyle = BorderStyle.FixedSingle;
-        lbReference.FormattingEnabled = true;
-        lbReference.Location = new Point(0, 42);
-        lbReference.MultiColumn = true;
-        lbReference.Name = "lbReference";
-        lbReference.Size = new Size(275, 163);
-        lbReference.TabIndex = 1;
-        // 
         // btnMasterSelect
         // 
         btnMasterSelect.Location = new Point(9, 6);
@@ -902,6 +891,7 @@ partial class FormIGAnalyzer : Form
         btnMasterSelect.TabIndex = 0;
         btnMasterSelect.Text = "確認";
         btnMasterSelect.UseVisualStyleBackColor = true;
+        btnMasterSelect.Click += btnMasterSelect_ClickAsync;
         // 
         // txtMasterFHIR
         // 
@@ -1027,7 +1017,7 @@ partial class FormIGAnalyzer : Form
         // splitContainer4.Panel1
         // 
         splitContainer4.Panel1.Controls.Add(btnConfirm);
-        splitContainer4.Panel1.Controls.Add(btnStagingSave);
+        splitContainer4.Panel1.Controls.Add(btnFUMECheck);
         splitContainer4.Panel1.Controls.Add(btnStagingLoad);
         splitContainer4.Panel1.Controls.Add(txtStaging);
         // 
@@ -1051,14 +1041,15 @@ partial class FormIGAnalyzer : Form
         btnConfirm.UseVisualStyleBackColor = true;
         btnConfirm.Click += btnConfirm_Click;
         // 
-        // btnStagingSave
+        // btnFUMECheck
         // 
-        btnStagingSave.Location = new Point(266, 13);
-        btnStagingSave.Name = "btnStagingSave";
-        btnStagingSave.Size = new Size(112, 34);
-        btnStagingSave.TabIndex = 2;
-        btnStagingSave.Text = "儲存";
-        btnStagingSave.UseVisualStyleBackColor = true;
+        btnFUMECheck.Location = new Point(266, 13);
+        btnFUMECheck.Name = "btnStagingSave";
+        btnFUMECheck.Size = new Size(112, 34);
+        btnFUMECheck.TabIndex = 2;
+        btnFUMECheck.Text = "切換";
+        btnFUMECheck.UseVisualStyleBackColor = true;
+        btnFUMECheck.Click += btnFUMECheck_Click;
         // 
         // btnStagingLoad
         // 
@@ -1248,7 +1239,7 @@ partial class FormIGAnalyzer : Form
         tabVersion.Text = "Version";
         tabVersion.UseVisualStyleBackColor = true;
         // 
-        // btnCompare
+        // btnIGCompare
         // 
         btnIGCompare.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         btnIGCompare.Location = new Point(821, 18);
@@ -1258,7 +1249,7 @@ partial class FormIGAnalyzer : Form
         btnIGCompare.Text = "比較";
         btnIGCompare.UseVisualStyleBackColor = true;
         // 
-        // btnCheck
+        // btnIGCheck
         // 
         btnIGCheck.Location = new Point(340, 18);
         btnIGCheck.Name = "btnIGCheck";
@@ -1267,7 +1258,6 @@ partial class FormIGAnalyzer : Form
         btnIGCheck.Text = "檢查";
         btnIGCheck.UseVisualStyleBackColor = true;
         btnIGCheck.Click += btnIGCheck_Click;
-
         // 
         // splitIGList1
         // 
@@ -1405,6 +1395,18 @@ partial class FormIGAnalyzer : Form
         rbApplyModel.UseVisualStyleBackColor = true;
         rbApplyModel.Visible = false;
         rbApplyModel.CheckedChanged += lbProfile_SelectedIndexChanged;
+        // 
+        // lvReference
+        // 
+        lvReference.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+        lvReference.FullRowSelect = true;
+        lvReference.Location = new Point(0, 46);
+        lvReference.MultiSelect = false;
+        lvReference.Name = "lvReference";
+        lvReference.Size = new Size(275, 161);
+        lvReference.TabIndex = 1;
+        lvReference.UseCompatibleStateImageBehavior = false;
+        lvReference.View = View.Details;
         // 
         // FormIGAnalyzer
         // 
@@ -1595,7 +1597,7 @@ partial class FormIGAnalyzer : Form
     private ListView lvProfile;
     private ListView lvConstraint;
     private Button btnConfirm;
-    private Button btnStagingSave;
+    private Button btnFUMECheck;
     private Button btnStagingLoad;
     private ListView lvFUME;
     private TabPage tabVersion;
@@ -1636,10 +1638,10 @@ partial class FormIGAnalyzer : Form
     private SplitContainer splitMaster2;
     private TextBox txtMasterFHIR;
     private Button btnMasterSelect;
-    private ListBox lbReference;
     private SplitContainer splitIGList2;
     private ListBox lbIG;
     private ListView lvIG;
     private Button btnIGCompare;
     private ToolStripStatusLabel lblSatatusBar;
+    private ListView lvReference;
 }

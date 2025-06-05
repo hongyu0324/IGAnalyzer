@@ -15,6 +15,9 @@ using System.Windows.Forms.VisualStyles;
 using System.Reflection;
 using Hl7.Fhir.Utility;
 using System.Net.Sockets;
+using Hl7.Fhir.ElementModel;
+using System.DirectoryServices.ActiveDirectory;
+using System.Reflection.Metadata.Ecma335;
 
 namespace IGAnalyzer;
 
@@ -22,6 +25,8 @@ public partial class FormIGAnalyzer : Form
 {
     private IGClass ig = new IGClass();
     private AppSettings appSettings = new AppSettings();
+
+    private FHIRData fhirData = new FHIRData();
     private string profilePath = string.Empty;
     private string profileName = string.Empty;
 
@@ -164,23 +169,23 @@ public partial class FormIGAnalyzer : Form
             }
         }
     }
-/*
-功能轉移至IGClass，先保留
-    private string GetLogicName(string ig, string igSub)
-    {
-        string logicName = ig;
-
-        if (logicName == "pas") logicName = "Apply";
-        if (logicName == "emr")
+    /*
+    功能轉移至IGClass，先保留
+        private string GetLogicName(string ig, string igSub)
         {
-            if (igSub == "pms") logicName = "PMS";
-            if (igSub == "ep") logicName = "EP";
-            if (igSub == "ic") logicName = "IC";
-            if (igSub == "dms") logicName = "DMS";
+            string logicName = ig;
+
+            if (logicName == "pas") logicName = "Apply";
+            if (logicName == "emr")
+            {
+                if (igSub == "pms") logicName = "PMS";
+                if (igSub == "ep") logicName = "EP";
+                if (igSub == "ic") logicName = "IC";
+                if (igSub == "dms") logicName = "DMS";
+            }
+            return logicName;
         }
-        return logicName;
-    }
-*/
+    */
     private async void btnSelect_ClickAsync(object? sender, EventArgs e)
     {
 
@@ -190,7 +195,7 @@ public partial class FormIGAnalyzer : Form
         ig.Package = tw_ig;
         ig.Name = igName;
         ig.SubName = igSubName;
-        ig.SetCanonical();
+        ig.LoadCanonical();
 
         resolver = new(ModelInfo.ModelInspector, new string[] { ig.Package });
         if (resolver == null)
@@ -199,7 +204,7 @@ public partial class FormIGAnalyzer : Form
             tabIG.SelectedTab = tabMsg;
             return;
         }
-        
+
 
         txtPackage.Text = $"{ig.IGName} {ig.Title} {ig.Version}";
         // Display the results in the ListBox
@@ -221,39 +226,39 @@ public partial class FormIGAnalyzer : Form
                 ig.Binding.Add(binding.Path, binding.ValueSet);
             }
         }
-/*
-        foreach (string profileName in ig.Profiles)
-        {
-
-            var sd = await resolver.ResolveByUriAsync("StructureDefinition/" + profileName) as StructureDefinition;
-            if (sd is not StructureDefinition resolvedProfile)
-            {
-                txtMsg.Text = txtMsg.Text + "Failed to resolve the StructureDefinition." + Environment.NewLine;
-                return;
-            }
-
-            foreach (var element in sd.Differential.Element)
-            {
-                GenerateBinding(element, profileName, ig.Binding);
-            }
-
-            foreach (var element in sd.Snapshot.Element)
-            {
-                GenerateBinding(element, profileName, ig.Binding);
-            }
-            foreach (var element in sd.Differential.Element)
-            {
-                string slice = string.Empty;
-                slice = GetElementSlicing(element);
-                if (slice != string.Empty)
+        /*
+                foreach (string profileName in ig.Profiles)
                 {
-                    string path = element.Path;
-                    path = path.Replace(sd.Type + ".", "");
-                    ig.AddSliceItem(sd.Id, path, slice);
+
+                    var sd = await resolver.ResolveByUriAsync("StructureDefinition/" + profileName) as StructureDefinition;
+                    if (sd is not StructureDefinition resolvedProfile)
+                    {
+                        txtMsg.Text = txtMsg.Text + "Failed to resolve the StructureDefinition." + Environment.NewLine;
+                        return;
+                    }
+
+                    foreach (var element in sd.Differential.Element)
+                    {
+                        GenerateBinding(element, profileName, ig.Binding);
+                    }
+
+                    foreach (var element in sd.Snapshot.Element)
+                    {
+                        GenerateBinding(element, profileName, ig.Binding);
+                    }
+                    foreach (var element in sd.Differential.Element)
+                    {
+                        string slice = string.Empty;
+                        slice = GetElementSlicing(element);
+                        if (slice != string.Empty)
+                        {
+                            string path = element.Path;
+                            path = path.Replace(sd.Type + ".", "");
+                            ig.AddSliceItem(sd.Id, path, slice);
+                        }
+                    }
                 }
-            }
-        }
-*/
+        */
         foreach (var s in ig.SliceList)
         {
             txtMsg.Text = txtMsg.Text + s.Item1 + " % " + s.Item2 + " % " + s.Item3 + Environment.NewLine;
@@ -318,7 +323,7 @@ public partial class FormIGAnalyzer : Form
                     }
                 }
         */
-        foreach(var item in ig.LogicModelList)
+        foreach (var item in ig.LogicModelList)
         {
             lbApplyModel.Items.Add(item);
         }
@@ -348,7 +353,7 @@ public partial class FormIGAnalyzer : Form
             }
             if (found == false) ig.AddQItem(name, lm.Profile ?? string.Empty, lm.Path ?? string.Empty, lm.Type ?? string.Empty);
         }
-        
+
         ShowIGExample();
     }
 
@@ -447,12 +452,14 @@ public partial class FormIGAnalyzer : Form
         rbApplyModel.Visible = true;
 
         List<ElementDefinition> listElemnt = new List<ElementDefinition>();
+
         var applyModelDefResult = await resolver.ResolveByUriAsync("StructureDefinition/" + ig.LogicModel);
         if (applyModelDefResult is not StructureDefinition applyModelDef)
         {
             MessageBox.Show("Failed to resolve the ApplyModel definition.");
             return;
         }
+
 
         if (resolver != null && await resolver.ResolveByUriAsync("StructureDefinition/" + profileName) is StructureDefinition sd)
         {
@@ -660,6 +667,7 @@ public partial class FormIGAnalyzer : Form
                             if (url == string.Empty) url = urlProfile;
                         }
                     }
+                    if (type == "BackboneElement") continue; // Skip BackboneElement types
 
                     item.SubItems.Add(type);
                     // Hard coded Claim-twpas.item.modifier.coding.system to get value set URL
@@ -731,6 +739,8 @@ public partial class FormIGAnalyzer : Form
             {
                 if (q.Item1.Contains(itemName))
                 {
+                    // Skip BackboneElement types 
+
                     // add item to listview
                     ListViewItem item = new ListViewItem(q.Item1.Split('|')[0].Trim());
 
@@ -1694,7 +1704,23 @@ public partial class FormIGAnalyzer : Form
                     }
 
                     item.SubItems.Add(path);
-                    item.SubItems.Add(q.Item4);
+                    string type = q.Item4;
+                    //Get type and binding from StructureDefinition
+                    StructureDefinition? sd = null;
+                    if (resolver != null)
+                    {
+                        sd = await GetStructureDefinition(q.Item2);
+                        path = ConvertToX(path, type);
+                        string ruleBase = "StructureDefinition.snapshot.element.where(path = '" + sd.Type + "." + path + "')";
+                        //string ruleBase = "StructureDefinition.differential.element.where(path = '" + sd.Type + "." + path + "')";
+                        ElementDefinition? obj = sd.Select(ruleBase).FirstOrDefault() as ElementDefinition;
+                        if (obj != null)
+                        {
+                            string typeProfile = obj.Type.FirstOrDefault()?.Code ?? string.Empty;
+                            type = typeProfile;
+                        }
+                    }
+                    item.SubItems.Add(type);
                     item.SubItems.Add(rule);
 
                     lvStaging.Items.Add(item);
@@ -2082,6 +2108,8 @@ public partial class FormIGAnalyzer : Form
         string fume2 = "Instance:" + Environment.NewLine;
         fume2 = string.Empty;
         fume2 += "InstanceOf: " + sd.Type + Environment.NewLine;
+        fume2 += "* meta" + Environment.NewLine;
+        fume2 += "  * profile = \"" + sd.Url + "\"" + Environment.NewLine;
 
         foreach (var e in sd.Differential.Element)
         {
@@ -2157,8 +2185,10 @@ public partial class FormIGAnalyzer : Form
         fumeListTuple = GetFUMEQuantity(fumeListTuple);
         fumeListTuple = GetFUMEPeriod(fumeListTuple);
         fumeListTuple = GetFUMECoding(fumeListTuple);
-        fumeListTuple = GetFUMEValue(fumeListTuple);
         fumeListTuple = GetFUMESlice(fumeListTuple);
+        fumeListTuple = GetFUMEValue(fumeListTuple);
+
+        
         //fumeListTuple = GetFUMEValueWithRule(fumeListTuple);
         lvFUME.Items.Clear();
         foreach (var fume in fumeListTuple)
@@ -2170,17 +2200,7 @@ public partial class FormIGAnalyzer : Form
         txtFHIRData.Text = fumeDetail;
         return fume2;
     }
-    /*
-        private List<string> CtreateFumeSlice(string profileName, string path)
-        {
-            List<string> sliceList = new List<string>();
-            StructureDefinition sd = new StructureDefinition();
-            sd = GetStructureDefinition(profileName).Result;
 
-
-            return sliceList;
-        }
-        */
     private List<Tuple<string, string, string>> GetFUMESlice(List<Tuple<string, string, string>> fumeListTuple)
     {
         List<Tuple<string, string, string>> sliceFUME = new List<Tuple<string, string, string>>();
@@ -2220,18 +2240,19 @@ public partial class FormIGAnalyzer : Form
             List<string> pathList = path.Split(".").ToList();
             pathList.RemoveAt(0);
             path = string.Join(".", pathList);
-            //path = path.Replace("[x]", "");
-            bool isSlice = false;
+                        bool isSlice = false;
 
             if (profileSliceList.Count > 0)
             {
-                foreach (var s in profileSliceList)
+                for (int j = 0; j < profileSliceList.Count; j++)
                 {
+                    var s = profileSliceList[j];
                     if (path == s.Item1 && isAdded == false)
                     {
                         List<Tuple<string, string, string>> sliceList = CreateFUMESlice(profileName, path);
                         sliceList = GetFUMESliceValue(sliceList, path);
                         sliceFUME.AddRange(sliceList);
+                        profileSliceList[j] = new Tuple<string, string>(s.Item1, s.Item2);
                         isAdded = true;
                     }
                     if (path.Contains(s.Item1))
@@ -2242,9 +2263,7 @@ public partial class FormIGAnalyzer : Form
             }
             if (isSlice == true)
             {
-                //string fumeSInfo = "S" + fume.Item1;
-                //Tuple<string, string, string> sliceTuple = new Tuple<string, string, string>(fumeSInfo, type, fume.Item3);
-                //sliceFUME.Add(sliceTuple);
+
             }
             else
             {
@@ -2738,12 +2757,45 @@ public partial class FormIGAnalyzer : Form
                 var updatedFume = new Tuple<string, string, string>(fume.Item1 + " = " + GetStagingApplyModel(path), fume.Item2, fume.Item3);
                 valuedFUME.Add(updatedFume);
             }
-            else if (type == "Reference")
+            else if (type == "Identifier")
             {
                 valuedFUME.Add(fume);
                 string fumeName = fumeInfo.Replace("*", "").Trim();
+                path = path + ".value";
+                fumeInfo = "  " + fumeInfo.Replace(fumeName, "value") + " = " + GetStagingApplyModel(path);
+                var updatedFume = new Tuple<string, string, string>(fumeInfo, fume.Item2, fume.Item3);
+                valuedFUME.Add(updatedFume);
+            }
+            else if (type == "Attachment")
+            {
+                if (fumeInfo.Contains("=")) continue;
+                valuedFUME.Add(fume);
+                string fumeName = fumeInfo.Replace("*", "").Trim();
+                path = path + ".attachment";
+                fumeInfo = "  " + fumeInfo.Replace(fumeName, "attachment") + " = " + GetStagingApplyModel(path);
+                var updatedFume = new Tuple<string, string, string>(fumeInfo, fume.Item2, fume.Item3);
+                valuedFUME.Add(updatedFume);
+            }
+            else if (type == "Reference")
+            {
+                if (fumeInfo.Contains("=")) continue;
+                valuedFUME.Add(fume);
+                string fumeName = fumeInfo.Replace("*", "").Trim();
                 path = path + ".reference";
-                fumeInfo = "  " + fumeInfo.Replace(fumeName, "reference") + " = " + GetStagingApplyModel(path);
+                if (fumeName == "subject")
+                {
+                    if (fhirData.Patients.Count == 0)
+                    {
+                        continue;
+                    }
+                    string patient = fhirData.Patients[0] ?? string.Empty;
+                    fumeInfo = "  " + fumeInfo.Replace(fumeName, "reference") + " = " + "\"Patient/" + patient + "\"";
+                }
+                else
+                {
+                    fumeInfo = "  " + fumeInfo.Replace(fumeName, "reference") + " = " + GetStagingApplyModel(path);
+                }
+
                 var updatedFume = new Tuple<string, string, string>(fumeInfo, fume.Item2, fume.Item3);
                 valuedFUME.Add(updatedFume);
             }
@@ -2775,9 +2827,25 @@ public partial class FormIGAnalyzer : Form
                     valuedFUME.Add(fume);
                     continue;
                 }
+                //20250605 怪怪的
+                var updatedFume = new Tuple<string, string, string>(fume.Item1 + " = " + GetStagingApplyModel(path.Replace(".coding.code", "")), fume.Item2, fume.Item3);
+                valuedFUME.Add(updatedFume);
+            }
+            // CodeableConcept 可能有多個值，未來可能修改
+            /*
+            else if (type == "CodeableConcept")
+            {
+                // CodeableConcept 可能有多個值，未來可能修改
+                if (fume.Item1.Contains("="))
+                {
+                    valuedFUME.Add(fume);
+                    continue;
+                }
                 var updatedFume = new Tuple<string, string, string>(fume.Item1 + " = " + GetStagingApplyModel(path), fume.Item2, fume.Item3);
                 valuedFUME.Add(updatedFume);
             }
+            */
+            //
             else
             {
                 valuedFUME.Add(fume);
@@ -3266,7 +3334,23 @@ public partial class FormIGAnalyzer : Form
             }
             if (isLogic == false)
             {
-                lbMaster.Items.Add(profile);
+                //lbMaster.Items.Add(profile);
+            }
+        }
+
+        //lvReference.Items.Clear();
+        lvReference.Columns.Add("Role", 250);
+        lvReference.Columns.Add("Reference", 200);
+        lvReference.Columns.Add("Resource Type", 200);
+        foreach (var master in appSettings.MasterData)
+        {
+            if (master.Role != null)
+            {
+                string role = master.Role;
+                string reference = string.Empty;
+                string resourceType = master.ResourceType ?? string.Empty;
+                // add role, reference and resourceType to the ListView
+                lvReference.Items.Add(new ListViewItem(new string[] { role, reference, resourceType }));
             }
         }
     }
@@ -3587,6 +3671,10 @@ public partial class FormIGAnalyzer : Form
 
             string path = e.Path;
             string type = e.Type.FirstOrDefault()?.Code ?? string.Empty;
+            //
+            if (path.EndsWith("coding.system")) type = "uri";
+            if (path.EndsWith("coding.code")) type = "code";
+            //
             string name = e.SliceName;
             string pattern = e.Pattern?.ToString() ?? string.Empty;
             string max = e.Max ?? string.Empty;
@@ -3752,8 +3840,8 @@ public partial class FormIGAnalyzer : Form
                     else if (type != string.Empty)
                     {
                         typeValue = type;
-                        // make first caracter of type to upper case
-                        type = char.ToUpper(type[0]) + type.Substring(1);
+                        // make first caracter of type to upper case, not for code
+                        if (type != "code") type = char.ToUpper(type[0]) + type.Substring(1);
                         path = path.Replace("[x]", type);
                         //string fume = path + " = " + type;
                         //string fume = path + " = " + pathX;
@@ -4233,10 +4321,44 @@ public partial class FormIGAnalyzer : Form
 
     private void lvMaster_SelectedIndexChanged(object sender, EventArgs e)
     {
-        // get the
+
     }
 
-    private async void LvMaster_DoubleClickAsync(object sender, EventArgs e)
+    private  void LvMaster_DoubleClickAsync(object sender, EventArgs e)
+    {
+        if (lvMaster.SelectedItems.Count == 0 || lvReference.SelectedItems.Count == 0)
+        {
+            MessageBox.Show("Please select an item from the list.");
+            return;
+        }
+
+        // get the resource from FHIR server by the selected item in the listview
+        string id = lvMaster.SelectedItems[0].Text;
+        string type = lvMaster.SelectedItems[0].SubItems[1].Text;
+        string role = lvReference.SelectedItems[0].Text;
+
+        if (type != lvReference.SelectedItems[0].SubItems[2].Text)
+        {
+            MessageBox.Show("The selected item type does not match the reference item type.");
+            return;
+        }
+        lvReference.SelectedItems[0].SubItems[1].Text = id; // Set the id to the selected item in the reference listview
+        switch (type)
+        {
+            case "Patient":
+                fhirData.AddPatient(id);
+                break;
+            case "Practitioner":
+                fhirData.AddPractitioner(role, id);
+                break;
+            case "Organization":
+                fhirData.AddOrganization(role, id);
+                break;
+            default:
+                break;
+        }
+    }
+    private async void btnMasterSelect_ClickAsync(object sender, EventArgs e)
     {
         // get the resource from FHIR server by the selected item in the listview
         string id = lvMaster.SelectedItems.Count > 0 ? lvMaster.SelectedItems[0].Text : string.Empty;
@@ -4305,5 +4427,108 @@ public partial class FormIGAnalyzer : Form
         {
             MessageBox.Show("The IG version is not up to date. Please update the IG.");
         }
+    }
+
+    private void btnFUMECheck_Click(object sender, EventArgs e)
+    {
+        lvFUME.Visible = !lvFUME.Visible; // Toggle the visibility of the FUME listview
+        txtFume.Visible = !txtFume.Visible; // Toggle the visibility of the FUME text box
+        
+        string fumeText = txtFHIRData.Text;
+        List<string> fumeLines = fumeText.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).ToList();
+        List<string> fumePaths = new List<string>();
+        foreach (string line in fumeLines)
+        {
+            string processedLine = line;
+            if (processedLine.Contains("[x]")) processedLine = processedLine.Replace("[x]", ""); // Remove [x] from the line
+            if (processedLine.Contains("[") && processedLine.Contains("]"))
+            {
+                // Extract the path from the line, path is inside the last square brackets
+                int lastBracketIndex = processedLine.LastIndexOf('[') + 1;
+                if (lastBracketIndex >= 0)
+                {
+                    string path = processedLine.Substring(lastBracketIndex, processedLine.Length - lastBracketIndex - 1).Trim();
+                    fumePaths.Add(path);
+                }
+            }
+        }
+
+        if (lvFUME.Visible)
+            {
+                string root = string.Empty;
+                string node = string.Empty;
+                string leaf = string.Empty;
+                int level0 = 0;
+                int level1 = 0;
+                List<string> rootList = new List<string>(); 
+
+                //int level = ComputeLevel(lvFUME.Items[0].Text);
+                //root = fumePaths[0]; // Set the root item
+                for (int i = 0; i < lvFUME.Items.Count ; i++)
+                {
+                    int level = ComputeLevel(lvFUME.Items[i].Text);
+                    var item = lvFUME.Items[i];
+                    if (i == 0)
+                    {
+                        level0 = 0;
+                    }
+                    else
+                    {
+                        level0 = ComputeLevel(lvFUME.Items[i - 1].Text);
+                    }
+                    
+                    if (i == lvFUME.Items.Count-1)
+                    {
+                        level1 = level;
+                    }
+                    else
+                    {
+                        level1 = ComputeLevel(lvFUME.Items[i + 1].Text);
+                    }
+                    
+
+
+                    string levelType = "N";
+                    if (level == 0) levelType = "R";
+                    else if (level >= level0 && level >= level1) levelType = "L";
+
+                    switch (levelType)
+                    {
+                        case "R":
+                            root = fumePaths[i]; // Set the root item
+                            node = string.Empty; // Reset the node item
+                            leaf = string.Empty; // Reset the left item
+                            if (rootList.Contains(root) == false)
+                            {
+                                rootList.Add(root); // Add the root item to the list if it does not exist
+                            }
+                            else
+                            {
+                                root = "XXXXX";
+                                item.ForeColor = Color.Red; // Set the color of the root item to red if it already exists
+                            }
+                            break;
+                        case "N":
+                            node = fumePaths[i]; // Set the node item
+                            if (node.Contains(root) == false) item.ForeColor = Color.Red; // Set the color of the node item to blue
+                            break;
+                        case "L":
+                            leaf = fumePaths[i]; // Set the left item
+                            string leafFume = item.Text.Trim();
+                            if(leafFume.EndsWith("=") == true)item.ForeColor = Color.Red;
+
+                            if (leaf.Contains(root) == false) item.ForeColor = Color.Red; // Set the color of the left item to blue
+                            if (leaf.Contains(node) == false) item.ForeColor = Color.Red; // Set the color of the left item to blue
+                            break;
+                        default:
+                            break;
+                    }
+
+                }
+            }
+            else
+            {
+
+            }
     }
 }

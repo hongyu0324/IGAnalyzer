@@ -165,6 +165,7 @@ public class IGClass
         bool ret = false;
         HttpClient client = new HttpClient();
         string htmlContent = await client.GetStringAsync("https://twcore.mohw.gov.tw/ig/pas/index.html");
+        //string htmlContent = await client.GetStringAsync("https://twcore.mohw.gov.tw/ig/pas/ImplementationGuide/tw.gov.mohw.nhi.pas");
 
         if (string.IsNullOrEmpty(htmlContent))
         {
@@ -289,7 +290,7 @@ public class IGClass
         return logicName;
     }
 
-    public async void SetCanonical()
+    public async void LoadCanonical()
     {
         resolver = new(ModelInfo.ModelInspector, new string[] { Package });
         if (resolver == null)
@@ -415,6 +416,10 @@ public class IGClass
                 {
                     AddLogicModelItem(ele.Path + " | " + ele.Definition);
                 }
+                //if( ele.Type.FirstOrDefault()?.Code == "BackboneElement")
+                //{
+                //    AddLogicModelItem(ele.Path + " | " + ele.Definition);
+                //}
 
                 var map = ele.Mapping;
                 foreach (var m in map)

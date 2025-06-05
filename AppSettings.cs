@@ -40,6 +40,9 @@ public class AppSettings
 
         [JsonPropertyName("ResourceType")]
         public string? ResourceType { get; set; }
+
+        [JsonPropertyName("Role")]
+        public string? Role { get; set; }
     }
 
     public class BindingAddItem
