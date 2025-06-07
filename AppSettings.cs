@@ -16,6 +16,9 @@ public class AppSettings
     [JsonPropertyName("IGName")]
     public string? IGName { get; set; }
 
+    [JsonPropertyName("ICD10PCSVersion")]
+    public string? ICD10PCSVersion { get; set; }
+
     [JsonPropertyName("MasterData")]
     public List<MasterDataItem> MasterData { get; set; } = new List<MasterDataItem>();
 
@@ -23,14 +26,19 @@ public class AppSettings
     public List<BindingAddItem> BindingsAdd { get; set; } = new List<BindingAddItem>();
 
 
-[JsonPropertyName("LogicModelAdd")]
+    [JsonPropertyName("LogicModelAdd")]
     public List<LogicModelAddItem> LogicModelAdd { get; set; } = new List<LogicModelAddItem>();
 
     [JsonPropertyName("PathUpdate")]
     public List<PathUpdateItem> PathUpdate { get; set; } = new List<PathUpdateItem>();
 
+    [JsonPropertyName("BindingIgnore")]
+    public List<string> BindingIgnore { get; set; } = new List<string>();
+
     [JsonPropertyName("Constraints")]
     public List<Constraint> Constraints { get; set; } = new List<Constraint>();
+
+    
 
 
     public class MasterDataItem
@@ -189,6 +197,7 @@ public class AppSettings
                 PathUpdate = config.PathUpdate;
                 Constraints = config.Constraints;
                 LogicModelAdd = config.LogicModelAdd;
+                BindingIgnore = config.BindingIgnore;
             }
         }
         else

@@ -5,20 +5,54 @@
     "MasterData":[
         {
             "Name": "Patient-twpas",
-            "ResourceType": "Patient"
+            "ResourceType": "Patient",
+            "Role":"病人資訊"
         },
         {
             "Name": "Organization-twpas",
-            "ResourceType": "Organization"
+            "ResourceType": "Organization",
+            "Role":"醫療機構"
         },  
         {
+            "Name": "Organization-twpas",
+            "ResourceType": "Organization",
+            "Role":"中央健保署"
+        }, 
+        {
             "Name": "Organization-genetic-testing-twpas",
-            "ResourceType": "Organization"
+            "ResourceType": "Organization",
+            "Role":"基因檢測機構"
         },
         {
             "Name": "Practitioner-twpas",
-            "ResourceType": "Practitioner"
-        }
+            "ResourceType": "Practitioner",
+            "Role":"申請醫師"
+        },
+        {
+            "Name": "Practitioner-twpas",
+            "ResourceType": "Practitioner",
+            "Role":"評估項目醫事人員"
+        },
+        {
+            "Name": "Practitioner-twpas",
+            "ResourceType": "Practitioner",
+            "Role":"簽發癌症分期報告醫師"
+        },
+        {
+            "Name": "Practitioner-twpas",
+            "ResourceType": "Practitioner",
+            "Role":"簽發檢驗(查)報告醫事人員"
+        },
+        {
+            "Name": "Practitioner-twpas",
+            "ResourceType": "Practitioner",
+            "Role":"簽發影像報告醫師"
+        },
+        {
+            "Name": "Practitioner-twpas",
+            "ResourceType": "Practitioner",
+            "Role":"檢查報告醫師"
+        }    	
     ],
     "BindingsAdd":[
         {
@@ -40,10 +74,6 @@
         {
             "path":"Observation-cancer-stage-twpas.valueCodeableConcept",
             "valueSet":"https://twcore.mohw.gov.tw/ig/pas/ValueSet/cancer-stage-score"
-        },
-        {
-            "path":"Observation-diagnostic-twpas.specimen.reference",
-            "valueSet":"https://twcore.mohw.gov.tw/ig/pas/ValueSet/specime-type"
         }
     ],
     "PathUpdate":[
@@ -70,6 +100,30 @@
             "profile":"Specimen-twpas",
             "path":"type",
             "type":"CodeableConcept"
+        },
+        {
+            "name":"基因檢測病人資訊 | ApplyModel.gene.specimen.subject",
+            "profile":"Specimen-twpas",
+            "path":"subject.reference",
+            "type":"Reference"
+        },
+        {
+            "name":"基因檢測檢體日期 | ApplyModel.gene.specimen.receivedTime",
+            "profile":"Specimen-twpas",
+            "path":"receivedTime",
+            "type":"dateTime"
+        },
+        {
+            "name":"受益人 | ApplyModel.apply.insurance.beneficiary",
+            "profile":"Coverage-twpas",
+            "path":"beneficiary.reference",
+            "type":"Reference"
+        },
+        {
+            "name":"保險人 | ApplyModel.apply.insurance.payor",
+            "profile":"Coverage-twpas",
+            "path":"payor.reference",
+            "type":"Reference"
         }
     ],
     "Constraints":[

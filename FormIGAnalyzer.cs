@@ -196,7 +196,8 @@ public partial class FormIGAnalyzer : Form
         ig.Name = igName;
         ig.SubName = igSubName;
         ig.LoadCanonical();
-
+        ig.ICD10PCSVersion = appSettings.ICD10PCSVersion ?? string.Empty;
+        
         resolver = new(ModelInfo.ModelInspector, new string[] { ig.Package });
         if (resolver == null)
         {
@@ -2251,6 +2252,7 @@ public partial class FormIGAnalyzer : Form
                     {
                         List<Tuple<string, string, string>> sliceList = CreateFUMESlice(profileName, path);
                         sliceList = GetFUMESliceValue(sliceList, path);
+                        sliceList = CheckFUMESlice(sliceList);
                         sliceFUME.AddRange(sliceList);
                         profileSliceList[j] = new Tuple<string, string>(s.Item1, s.Item2);
                         isAdded = true;
@@ -2272,6 +2274,31 @@ public partial class FormIGAnalyzer : Form
             }
         }
         return sliceFUME;
+    }
+
+    private List<Tuple<string, string, string>> CheckFUMESlice(List<Tuple<string, string, string>> sliceList)
+    {
+        List<Tuple<string, string, string>> sliceFUME = new List<Tuple<string, string, string>>();
+        string ignorePath = string.Empty;
+        int ignoreIndex = -1;
+        for (int i = 0; i < sliceList.Count; i++)
+        {
+            string fumeInfo = sliceList[i].Item1;
+            string url = fumeInfo.Split('=').FirstOrDefault()?.Trim().Trim('\"') ?? string.Empty;
+            if (appSettings.BindingIgnore.Contains(url))
+            {
+                string path = sliceList[i].Item3;
+                List<string> pathList = path.Split('.').ToList();
+                pathList.RemoveAt(pathList.Count - 1);
+                ignorePath = string.Join(".", pathList);
+                ignoreIndex = i;
+                continue;
+            }
+        }
+        
+        
+
+        return sliceList;
     }
 
     private List<Tuple<string, string, string>> GetFUMESliceValue(List<Tuple<string, string, string>> fumeListTuple, string path)
@@ -3016,9 +3043,34 @@ public partial class FormIGAnalyzer : Form
                     int index = codeableConceptList[j] - j;
                     refinedFUME.RemoveAt(index);
                 }
+
             }
 
+            if (type == "Quantity") // special for specimen 未來可能修改
+            {
+                if(i == 0) continue;
+                var fume0 = refinedFUME[i-1];
+                string fumeInfo0 = fume0.Item1;
+                string type0 = fume0.Item2;
+                string path0 = fume0.Item3;
+                int level0 = ComputeLevel(fumeInfo0);
+                int level = ComputeLevel(fumeInfo);
+                if (level - level0 > 1)
+                {
+                    // 如果上一個元素的層級比當前元素的層級小2，補齊Quantity的層級
+                    
+                    string fumeName = fumeInfo0.Replace("*", "").Trim();
+                    fumeInfo0 = "  " + fumeInfo0.Replace(fumeName, "quantity");
+                    type0 = "Quantity";
+                    path0 = path0 + ".quantity";
+                    refinedFUME.Insert(i, new Tuple<string, string, string>(fumeInfo0, type0, path0));
+                    i++;
+                    continue;
+                }   
+            }
         }
+
+        
         return refinedFUME;
     }
 
@@ -3059,8 +3111,76 @@ public partial class FormIGAnalyzer : Form
         return codeableConcept;
     }
 
-
     private List<Tuple<string, string, string>> CleanFumeTupleList(List<Tuple<string, string, string>> fumeTupleList)
+    {
+        List<Tuple<string, string, string>> targetFumeTupleList = new List<Tuple<string, string, string>>();
+
+        targetFumeTupleList = fumeTupleList;
+        if (targetFumeTupleList[0].Item1.Length == 0)
+        {
+            targetFumeTupleList.RemoveAt(0);
+        }
+        for (int i = 1; i < targetFumeTupleList.Count; i++)
+        {
+            string fume1 = targetFumeTupleList[i - 1].Item1;
+            string fume2 = targetFumeTupleList[i].Item1;
+            string path1 = targetFumeTupleList[i - 1].Item3;
+            string path2 = targetFumeTupleList[i].Item3;
+            if (fume1 == fume2)
+            {
+                int sliceStart = 0;
+                int sliceEnd = 0;
+                for (int j = 0; j < ig.SliceList.Count; j++)
+                {
+                    Tuple<string, string, string> slice = ig.SliceList[j];
+                    string sliceProfile = slice.Item1;
+                    string slicePath = slice.Item2;
+
+                    if (path2.Contains(slicePath) == false) continue;
+                    string sliceRule = slice.Item3;
+
+                    sliceStart = i;
+                    int k = 1;
+
+                    string path = targetFumeTupleList[i + k].Item3;
+                    while (path.Contains(slicePath) == true)
+                    {
+                        k++;
+                        if (i + k < targetFumeTupleList.Count)
+                        {
+                            path = targetFumeTupleList[i + k].Item3;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                    sliceEnd = i + k - 1;
+                }
+                targetFumeTupleList.RemoveAt(i);
+                i--;
+                //sliceStart = sliceStart + 3;
+                for (int k = sliceStart; k < sliceEnd; k++)
+                {
+                    targetFumeTupleList.RemoveAt(sliceStart);
+                }
+                //i = i - (sliceEnd - sliceStart - 1);
+            }
+            if (fume2.Trim().EndsWith("="))
+            {
+                targetFumeTupleList.RemoveAt(i);
+                i--;
+            }
+            if (fume2 == Environment.NewLine)
+            {
+                targetFumeTupleList.RemoveAt(i);
+                i--;
+            }
+        }
+        return targetFumeTupleList;
+    }
+     
+    private List<Tuple<string, string, string>> CleanFumeTupleList2(List<Tuple<string, string, string>> fumeTupleList)
     {
         // Clean up the fumeTupleList
         List<Tuple<string, string, string>> targetFumeTupleList = new List<Tuple<string, string, string>>();
@@ -3792,6 +3912,14 @@ public partial class FormIGAnalyzer : Form
                     }
                     else if (pattern != string.Empty)
                     {
+                        // Check if the system is in the BindingIgnore list - ICD 2014
+                        /*
+                        bool isBindingIgnore = false;
+                        if (appSettings.BindingIgnore.Contains(pattern) == true)
+                        {
+                            isBindingIgnore = false;
+                        }
+                        */
                         string patternType = e.Pattern?.TypeName ?? string.Empty;
                         if (patternType == "CodeableConcept")
                         {
@@ -3832,7 +3960,18 @@ public partial class FormIGAnalyzer : Form
                         {
                             //pattern = pattern.Replace("\"", "");
                             path = path.Replace("[x]", typeValue);
-                            string fume = path + " = " + "\"" + pattern + "\"";
+                            string fume = string.Empty;
+                            /*
+                            if (isBindingIgnore == true)
+                            {
+                                fume = path;
+                            }
+                            else
+                            {
+                                fume = path + " = " + "\"" + pattern + "\"";
+                            }
+                            */
+                            fume = path + " = " + "\"" + pattern + "\"";
                             Tuple<string, string, string> fumeTuple = new Tuple<string, string, string>(fume, type, e.Path);
                             sliceFume.Add(fumeTuple);
                         }

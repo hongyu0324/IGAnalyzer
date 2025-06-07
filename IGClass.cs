@@ -39,7 +39,7 @@ public class IGClass
 
     private FhirPackageSource? resolver;
 
-
+    public string ICD10PCSVersion { get; set; } = string.Empty;
     public IGClass()
     {
         Name = string.Empty;
