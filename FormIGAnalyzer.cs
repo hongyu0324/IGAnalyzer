@@ -18,6 +18,8 @@ using System.Net.Sockets;
 using Hl7.Fhir.ElementModel;
 using System.DirectoryServices.ActiveDirectory;
 using System.Reflection.Metadata.Ecma335;
+using System.Diagnostics;
+using System.Drawing.Imaging.Effects;
 
 namespace IGAnalyzer;
 
@@ -197,7 +199,7 @@ public partial class FormIGAnalyzer : Form
         ig.SubName = igSubName;
         ig.LoadCanonical();
         ig.ICD10PCSVersion = appSettings.ICD10PCSVersion ?? string.Empty;
-        
+
         resolver = new(ModelInfo.ModelInspector, new string[] { ig.Package });
         if (resolver == null)
         {
@@ -2183,13 +2185,14 @@ public partial class FormIGAnalyzer : Form
         fumeListTuple = RefineFUME(fumeListTuple);
         fumeListTuple = GetFUMEPattern(sd, fumeListTuple);
         fumeListTuple = GetFUMECodeable(profileName, fumeListTuple);
-        fumeListTuple = GetFUMEQuantity(fumeListTuple);
+        //fumeListTuple = GetFUMEQuantity(fumeListTuple);
         fumeListTuple = GetFUMEPeriod(fumeListTuple);
         fumeListTuple = GetFUMECoding(fumeListTuple);
-        fumeListTuple = GetFUMESlice(fumeListTuple);
+        fumeListTuple = await GetFUMESlice(fumeListTuple);
+        fumeListTuple = GetFUMEQuantity(fumeListTuple);
         fumeListTuple = GetFUMEValue(fumeListTuple);
+        fumeListTuple = GetFUMELost(fumeListTuple);
 
-        
         //fumeListTuple = GetFUMEValueWithRule(fumeListTuple);
         lvFUME.Items.Clear();
         foreach (var fume in fumeListTuple)
@@ -2202,7 +2205,7 @@ public partial class FormIGAnalyzer : Form
         return fume2;
     }
 
-    private List<Tuple<string, string, string>> GetFUMESlice(List<Tuple<string, string, string>> fumeListTuple)
+    private async Task<List<Tuple<string, string, string>>> GetFUMESlice(List<Tuple<string, string, string>> fumeListTuple)
     {
         List<Tuple<string, string, string>> sliceFUME = new List<Tuple<string, string, string>>();
         string profileName = lbStaging.SelectedItem?.ToString()?.Split('|')[0].Trim() ?? string.Empty;
@@ -2241,7 +2244,7 @@ public partial class FormIGAnalyzer : Form
             List<string> pathList = path.Split(".").ToList();
             pathList.RemoveAt(0);
             path = string.Join(".", pathList);
-                        bool isSlice = false;
+            bool isSlice = false;
 
             if (profileSliceList.Count > 0)
             {
@@ -2250,7 +2253,7 @@ public partial class FormIGAnalyzer : Form
                     var s = profileSliceList[j];
                     if (path == s.Item1 && isAdded == false)
                     {
-                        List<Tuple<string, string, string>> sliceList = CreateFUMESlice(profileName, path);
+                        List<Tuple<string, string, string>> sliceList = await CreateFUMESlice(profileName, path);
                         sliceList = GetFUMESliceValue(sliceList, path);
                         sliceList = CheckFUMESlice(sliceList);
                         sliceFUME.AddRange(sliceList);
@@ -2276,27 +2279,69 @@ public partial class FormIGAnalyzer : Form
         return sliceFUME;
     }
 
+    private List<Tuple<string, string, string>> GetFUMELost(List<Tuple<string, string, string>> fumeListTuple)
+    {
+        List<Tuple<string, string, string>> lostFUME = new List<Tuple<string, string, string>>();
+        List<int> levels = GetLostLevels(fumeListTuple);
+        List<Tuple<int,string>> fumeListTupleWithIndex = new List<Tuple<int, string>>();
+        for (int i = 0; i < levels.Count; i++)
+        {
+            string fumeInfo = fumeListTuple[levels[i]].Item1;
+            string path = fumeListTuple[levels[i]].Item3;
+            if (path == "Claim.diagnosis.diagnosiscode.coding.code") continue; // hard code
+            string type = fumeListTuple[levels[i]].Item2;
+
+            string headFume = "* " + path.Split('.')[1];
+            if(fumeListTupleWithIndex.Any(t => t.Item2 == headFume))
+            {
+                continue; // Skip if the headFume already exists
+            }
+            string headType = "BackboneElement";
+            string headPath = path.Split('.')[0] + "." + path.Split('.')[1];
+            Tuple<string, string, string> headTuple = new Tuple<string, string, string>(headFume, headType, headPath);
+            fumeListTupleWithIndex.Add(new Tuple<int, string>(levels[i], headFume));
+            lostFUME.Add(headTuple);
+        }
+
+        for(int i =fumeListTupleWithIndex.Count - 1; i >= 0; i--)
+        {
+            fumeListTuple.Insert(fumeListTupleWithIndex[i].Item1, lostFUME[i]);
+        }   
+        return fumeListTuple;
+    }
     private List<Tuple<string, string, string>> CheckFUMESlice(List<Tuple<string, string, string>> sliceList)
     {
-        List<Tuple<string, string, string>> sliceFUME = new List<Tuple<string, string, string>>();
+        //List<Tuple<string, string, string>> sliceFUME = new List<Tuple<string, string, string>>();
         string ignorePath = string.Empty;
         int ignoreIndex = -1;
         for (int i = 0; i < sliceList.Count; i++)
         {
             string fumeInfo = sliceList[i].Item1;
-            string url = fumeInfo.Split('=').FirstOrDefault()?.Trim().Trim('\"') ?? string.Empty;
+            if (fumeInfo.Contains("=") == false) continue; // Skip if no rule is defined
+            string url = fumeInfo.Split('=').LastOrDefault()?.Trim().Trim('\"') ?? string.Empty;
             if (appSettings.BindingIgnore.Contains(url))
             {
-                string path = sliceList[i].Item3;
-                List<string> pathList = path.Split('.').ToList();
+                string innerPath = sliceList[i].Item3;
+                List<string> pathList = innerPath.Split('.').ToList();
                 pathList.RemoveAt(pathList.Count - 1);
                 ignorePath = string.Join(".", pathList);
                 ignoreIndex = i;
                 continue;
             }
         }
-        
-        
+
+        if (ignoreIndex == -1) return sliceList; // No ignore path found, return original list
+        string outerPath = sliceList[ignoreIndex].Item3;
+        while (outerPath != ignorePath)
+        {
+            ignoreIndex--;
+            outerPath = sliceList[ignoreIndex].Item3;
+        }
+        for (int i = ignoreIndex; i < sliceList.Count; i++)
+        {
+            sliceList.RemoveAt(i);
+            i--;
+        }
 
         return sliceList;
     }
@@ -2514,18 +2559,22 @@ public partial class FormIGAnalyzer : Form
             string path = fume.Item3;
             if (type == "Quantity")
             {
-                quantityFUME.Add(fume);
+                path = path.Replace("[x]", "Quantity");
+
+                quantityFUME.Add(new Tuple<string, string, string>(fumeInfo, type, path));
                 int cnt = 0;
                 string pathNext = string.Empty;
                 if (i + 1 < fumeListTuple.Count)
                 {
                     pathNext = fumeListTuple[i + 1].Item3;
+                    pathNext = pathNext.Replace("[x]", "Quantity");
                 }
                 while (!string.IsNullOrEmpty(pathNext) && pathNext.Contains(path) == true)
                 {
                     cnt++;
                     if (i + cnt >= fumeListTuple.Count) break;
                     pathNext = fumeListTuple[i + cnt].Item3;
+                    pathNext = pathNext.Replace("[x]", "Quantity");
                 }
                 if (cnt == 0)
                 {
@@ -2586,6 +2635,7 @@ public partial class FormIGAnalyzer : Form
                 {
                     path = path.Replace("[x]", "") + "CodeableConcept";
                 }
+
                 foreach (ListViewItem item in lvStaging.Items)
                 {
                     string applyModelPath = item.SubItems[2].Text;
@@ -2628,7 +2678,7 @@ public partial class FormIGAnalyzer : Form
                         {
                             fumeInfo = fumeListTuple[j].Item1;
                             Tuple<string, string, string> fumeTuple = new Tuple<string, string, string>(fumeInfo, type, path);
-                            if (fumeInfo.Contains("=") == false)
+                            if (fumeInfo.Contains("=") == false && (system == string.Empty) == false)
                             {
                                 fumeTuple = new Tuple<string, string, string>(fumeInfo + " = " + "\"" + system + "\"", type, path);
                             }
@@ -2797,11 +2847,6 @@ public partial class FormIGAnalyzer : Form
             {
                 if (fumeInfo.Contains("=")) continue;
                 valuedFUME.Add(fume);
-                string fumeName = fumeInfo.Replace("*", "").Trim();
-                path = path + ".attachment";
-                fumeInfo = "  " + fumeInfo.Replace(fumeName, "attachment") + " = " + GetStagingApplyModel(path);
-                var updatedFume = new Tuple<string, string, string>(fumeInfo, fume.Item2, fume.Item3);
-                valuedFUME.Add(updatedFume);
             }
             else if (type == "Reference")
             {
@@ -2828,16 +2873,31 @@ public partial class FormIGAnalyzer : Form
             }
             else if (type == "boolean" || type == "decimal")
             {
+                if (fume.Item1.Contains("="))
+                {
+                    valuedFUME.Add(fume);
+                    continue;
+                }
                 var updatedFume = new Tuple<string, string, string>(fume.Item1 + " = " + GetStagingApplyModel(path), fume.Item2, fume.Item3);
                 valuedFUME.Add(updatedFume);
             }
             else if (type == "date" || type == "base64Binary")
             {
+                if (fume.Item1.Contains("="))
+                {
+                    valuedFUME.Add(fume);
+                    continue;
+                }
                 var updatedFume = new Tuple<string, string, string>(fume.Item1 + " = " + GetStagingApplyModel(path), fume.Item2, fume.Item3);
                 valuedFUME.Add(updatedFume);
             }
             else if (type == "integer" || type == "string")
             {
+                if (fume.Item1.Contains("="))
+                {
+                    valuedFUME.Add(fume);
+                    continue;
+                }
                 string applyModel = GetStagingApplyModel(path);
                 if (applyModel == string.Empty)
                 {
@@ -2856,6 +2916,28 @@ public partial class FormIGAnalyzer : Form
                 }
                 //20250605 怪怪的
                 var updatedFume = new Tuple<string, string, string>(fume.Item1 + " = " + GetStagingApplyModel(path.Replace(".coding.code", "")), fume.Item2, fume.Item3);
+                valuedFUME.Add(updatedFume);
+            }
+            else if (type == "uri")
+            {
+                if (fume.Item1.Contains("="))
+                {
+                    valuedFUME.Add(fume);
+                    continue;
+                }
+                string system = string.Empty;
+                string profileName = lbStaging.SelectedItem != null ? lbStaging.SelectedItem.ToString() ?? string.Empty : string.Empty;
+                path = profileName + "." + path;
+                path = path.Replace(".system", ""); // 20250605 修正 MedicationRequest.medication[x].coding.system --> MedicationRequest[x].medication.coding
+                if (ig.Binding.ContainsKey(path))
+                {
+                    system = ig.Binding[path];
+                }
+                else
+                {
+                    system = string.Empty;
+                }
+                var updatedFume = new Tuple<string, string, string>(fume.Item1 + " = " + system, fume.Item2, fume.Item3);
                 valuedFUME.Add(updatedFume);
             }
             // CodeableConcept 可能有多個值，未來可能修改
@@ -3048,8 +3130,8 @@ public partial class FormIGAnalyzer : Form
 
             if (type == "Quantity") // special for specimen 未來可能修改
             {
-                if(i == 0) continue;
-                var fume0 = refinedFUME[i-1];
+                if (i == 0) continue;
+                var fume0 = refinedFUME[i - 1];
                 string fumeInfo0 = fume0.Item1;
                 string type0 = fume0.Item2;
                 string path0 = fume0.Item3;
@@ -3058,7 +3140,7 @@ public partial class FormIGAnalyzer : Form
                 if (level - level0 > 1)
                 {
                     // 如果上一個元素的層級比當前元素的層級小2，補齊Quantity的層級
-                    
+
                     string fumeName = fumeInfo0.Replace("*", "").Trim();
                     fumeInfo0 = "  " + fumeInfo0.Replace(fumeName, "quantity");
                     type0 = "Quantity";
@@ -3066,11 +3148,11 @@ public partial class FormIGAnalyzer : Form
                     refinedFUME.Insert(i, new Tuple<string, string, string>(fumeInfo0, type0, path0));
                     i++;
                     continue;
-                }   
+                }
             }
         }
 
-        
+
         return refinedFUME;
     }
 
@@ -3179,7 +3261,7 @@ public partial class FormIGAnalyzer : Form
         }
         return targetFumeTupleList;
     }
-     
+
     private List<Tuple<string, string, string>> CleanFumeTupleList2(List<Tuple<string, string, string>> fumeTupleList)
     {
         // Clean up the fumeTupleList
@@ -3727,11 +3809,11 @@ public partial class FormIGAnalyzer : Form
         return path;
     }
 
-    private List<Tuple<string, string, string>> CreateFUMESliceExtension(string root, string profileFullName, int level)
+    private async Task<List<Tuple<string, string, string>>> CreateFUMESliceExtension(string root, string profileFullName, int level)
     {
         // Create FUME for Extension slice
         string profileName = profileFullName.Split("/").Last();
-        StructureDefinition sd = GetStructureDefinition(profileName).Result;
+        StructureDefinition sd = await GetStructureDefinition(profileName);
         List<Tuple<string, string, string>> extensionFume = new List<Tuple<string, string, string>>();
         string space = new string(' ', level * 2);
 
@@ -3768,10 +3850,10 @@ public partial class FormIGAnalyzer : Form
         return extensionFume;
     }
 
-    List<Tuple<string, string, string>> CreateFUMESlice(string profileName, string pathSlice)
+    async Task<List<Tuple<string, string, string>>> CreateFUMESlice(string profileName, string pathSlice)
     {
 
-        StructureDefinition sd = GetStructureDefinition(profileName).Result;
+        StructureDefinition sd = await GetStructureDefinition(profileName);
 
         pathSlice = sd.Type + "." + pathSlice;
         //string path = string.Empty;
@@ -3795,7 +3877,8 @@ public partial class FormIGAnalyzer : Form
             if (path.EndsWith("coding.system")) type = "uri";
             if (path.EndsWith("coding.code")) type = "code";
             //
-            string name = e.SliceName;
+
+            string sliceName = e.SliceName;
             string pattern = e.Pattern?.ToString() ?? string.Empty;
             string max = e.Max ?? string.Empty;
 
@@ -3814,7 +3897,7 @@ public partial class FormIGAnalyzer : Form
                     }
                 }
 
-                if (name != null && name != string.Empty)
+                if (sliceName != null && sliceName != string.Empty)
                 {
                     isSliceHeader = false;
                     cnt++;
@@ -3861,7 +3944,7 @@ public partial class FormIGAnalyzer : Form
                             * system = "http://unitsofmeasure.org"[][Claim.supportingInfo.value[x].system] typeValue == string.Empty
                             * code = "kg"[][Claim.supportingInfo.value[x].code] typeValue == string.Empty
                     */
-                    if (name != null && name != string.Empty)
+                    if (sliceName != null && sliceName != string.Empty)
                     {
                         string fume = path;
                         Tuple<string, string, string> fumeTuple = new Tuple<string, string, string>(fume, "BackboneElement", e.Path); // hard code
@@ -3880,7 +3963,7 @@ public partial class FormIGAnalyzer : Form
                             sliceFume.Add(fumeTupleTemplate);
                         }
                         typeValue = string.Empty;
-                        nameX = name;
+                        //nameX = name;
                         // type == "Extension"
                         if (type == "Extension")
                         {
@@ -3905,7 +3988,7 @@ public partial class FormIGAnalyzer : Form
                             else
                             {
                                 List<Tuple<string, string, string>> extensionFume = new List<Tuple<string, string, string>>();
-                                extensionFume = CreateFUMESliceExtension(e.Path, profileExtension, level + 1);
+                                extensionFume = await CreateFUMESliceExtension(e.Path, profileExtension, level + 1);
                                 sliceFume.AddRange(extensionFume);
                             }
                         }
@@ -4463,7 +4546,7 @@ public partial class FormIGAnalyzer : Form
 
     }
 
-    private  void LvMaster_DoubleClickAsync(object sender, EventArgs e)
+    private void LvMaster_DoubleClickAsync(object sender, EventArgs e)
     {
         if (lvMaster.SelectedItems.Count == 0 || lvReference.SelectedItems.Count == 0)
         {
@@ -4572,7 +4655,7 @@ public partial class FormIGAnalyzer : Form
     {
         lvFUME.Visible = !lvFUME.Visible; // Toggle the visibility of the FUME listview
         txtFume.Visible = !txtFume.Visible; // Toggle the visibility of the FUME text box
-        
+
         string fumeText = txtFHIRData.Text;
         List<string> fumeLines = fumeText.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).ToList();
         List<string> fumePaths = new List<string>();
@@ -4591,83 +4674,148 @@ public partial class FormIGAnalyzer : Form
                 }
             }
         }
+        if(lvFUME.Visible == true)
+        {
+            string root = string.Empty;
+            string node = string.Empty;
+            string leaf = string.Empty;
+            int level0 = 0;
+            int level1 = 0;
+            List<string> rootList = new List<string>();
 
-        if (lvFUME.Visible)
+            //int level = ComputeLevel(lvFUME.Items[0].Text);
+            //root = fumePaths[0]; // Set the root item
+            for (int i = 0; i < lvFUME.Items.Count; i++)
             {
-                string root = string.Empty;
-                string node = string.Empty;
-                string leaf = string.Empty;
-                int level0 = 0;
-                int level1 = 0;
-                List<string> rootList = new List<string>(); 
-
-                //int level = ComputeLevel(lvFUME.Items[0].Text);
-                //root = fumePaths[0]; // Set the root item
-                for (int i = 0; i < lvFUME.Items.Count ; i++)
+                int level = ComputeLevel(lvFUME.Items[i].Text);
+                if (i == 0)
                 {
-                    int level = ComputeLevel(lvFUME.Items[i].Text);
-                    var item = lvFUME.Items[i];
-                    if (i == 0)
-                    {
-                        level0 = 0;
-                    }
-                    else
-                    {
-                        level0 = ComputeLevel(lvFUME.Items[i - 1].Text);
-                    }
-                    
-                    if (i == lvFUME.Items.Count-1)
-                    {
-                        level1 = level;
-                    }
-                    else
-                    {
-                        level1 = ComputeLevel(lvFUME.Items[i + 1].Text);
-                    }
-                    
-
-
-                    string levelType = "N";
-                    if (level == 0) levelType = "R";
-                    else if (level >= level0 && level >= level1) levelType = "L";
-
-                    switch (levelType)
-                    {
-                        case "R":
-                            root = fumePaths[i]; // Set the root item
-                            node = string.Empty; // Reset the node item
-                            leaf = string.Empty; // Reset the left item
-                            if (rootList.Contains(root) == false)
-                            {
-                                rootList.Add(root); // Add the root item to the list if it does not exist
-                            }
-                            else
-                            {
-                                root = "XXXXX";
-                                item.ForeColor = Color.Red; // Set the color of the root item to red if it already exists
-                            }
-                            break;
-                        case "N":
-                            node = fumePaths[i]; // Set the node item
-                            if (node.Contains(root) == false) item.ForeColor = Color.Red; // Set the color of the node item to blue
-                            break;
-                        case "L":
-                            leaf = fumePaths[i]; // Set the left item
-                            string leafFume = item.Text.Trim();
-                            if(leafFume.EndsWith("=") == true)item.ForeColor = Color.Red;
-
-                            if (leaf.Contains(root) == false) item.ForeColor = Color.Red; // Set the color of the left item to blue
-                            if (leaf.Contains(node) == false) item.ForeColor = Color.Red; // Set the color of the left item to blue
-                            break;
-                        default:
-                            break;
-                    }
-
+                    level0 = 0;
                 }
+                else
+                {
+                    level0 = ComputeLevel(lvFUME.Items[i-1].Text);
+                }
+
+                if (i == lvFUME.Items.Count - 1)
+                {
+                    level1 = level;
+                }
+                else
+                {
+                    level1 = ComputeLevel(lvFUME.Items[i+1].Text);
+                }
+
+                string levelType = "N";
+                if (level == 0) levelType = "R";
+                else if (level >= level0 && level >= level1) levelType = "L";
+
+                ListViewItem item = lvFUME.Items[i];
+
+
+                switch (levelType)
+                {
+                    case "R":
+                        root = fumePaths[i]; // Set the root item
+                        node = string.Empty; // Reset the node item
+                        leaf = string.Empty; // Reset the left item
+                        if (rootList.Contains(root) == false)
+                        {
+                            rootList.Add(root); // Add the root item to the list if it does not exist
+                        }
+                        else
+                        {
+                            //root = "XXXXX";
+                            //item.ForeColor = Color.Red; // Set the color of the root item to red if it already exists
+                        }
+                        break;
+                    case "N":
+                        node = fumePaths[i]; // Set the node item
+                        if (node.Contains(root) == false) item.ForeColor = Color.Red; // Set the color of the node item to blue
+                        break;
+                    case "L":
+                        leaf = fumePaths[i]; // Set the left item
+                        //if(leafFume.EndsWith("=") == true)item.ForeColor = Color.Red;
+
+                        if (leaf.Contains(root) == false) item.ForeColor = Color.Red; // Set the color of the left item to blue
+                        if (leaf.Contains(node) == false) item.ForeColor = Color.Red; // Set the color of the left item to blue
+                        break;
+                    default:
+                        break;
+                }
+
+            }
+        }
+    }
+    private List<int> GetLostLevels(List<Tuple<string,string,string>> fumeListTuple)
+    {
+        List<int> levels = new List<int>();
+        string root = string.Empty;
+        string node = string.Empty;
+        string leaf = string.Empty;
+        int level0 = 0;
+        int level1 = 0;
+        List<string> rootList = new List<string>();
+
+        //int level = ComputeLevel(lvFUME.Items[0].Text);
+        //root = fumePaths[0]; // Set the root item
+        for (int i = 0; i < fumeListTuple.Count; i++)
+        {
+            int level = ComputeLevel(fumeListTuple[i].Item1);
+            if (i == 0)
+            {
+                level0 = 0;
             }
             else
             {
-
+                level0 = ComputeLevel(fumeListTuple[i-1].Item1);
             }
+
+            if (i == fumeListTuple.Count - 1)
+            {
+                level1 = level;
+            }
+            else
+            {
+                level1 = ComputeLevel(fumeListTuple[i + 1].Item1);
+            }
+
+            string levelType = "N";
+            if (level == 0) levelType = "R";
+            else if (level >= level0 && level >= level1) levelType = "L";
+
+            switch (levelType)
+            {
+                case "R":
+                    root = fumeListTuple[i].Item3; // Set the root item
+                    node = string.Empty; // Reset the node item
+                    leaf = string.Empty; // Reset the left item
+                    if (rootList.Contains(root) == false)
+                    {
+                        rootList.Add(root); // Add the root item to the list if it does not exist
+                    }
+                    else
+                    {
+                        //root = "XXXXX";
+                        //item.ForeColor = Color.Red; // Set the color of the root item to red if it already exists
+                    }
+                    break;
+                case "N":
+                    node = fumeListTuple[i].Item3; // Set the node item
+                    if (node.Contains(root) == false) levels.Add(i); // Set the color of the node item to blue
+                    break;
+                case "L":
+                    leaf = fumeListTuple[i].Item3; // Set the left item
+                    //if(leafFume.EndsWith("=") == true)item.ForeColor = Color.Red;
+
+                    if (leaf.Contains(root) == false) levels.Add(i); // Set the color of the left item to blue
+                    if (leaf.Contains(node) == false) levels.Add(i); // Set the color of the left item to blue
+                    break;
+                default:
+                    break;
+            }
+
+        }
+        return levels;
     }
 }
