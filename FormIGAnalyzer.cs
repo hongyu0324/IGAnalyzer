@@ -21,7 +21,13 @@ using System.Reflection.Metadata.Ecma335;
 using System.Diagnostics;
 using System.Drawing.Imaging.Effects;
 
+
 namespace IGAnalyzer;
+
+using Firely.Fhir.Validation;
+using Hl7.Fhir.Validation;
+
+using System.Text;
 
 public partial class FormIGAnalyzer : Form
 {
@@ -51,7 +57,7 @@ public partial class FormIGAnalyzer : Form
         ReadDefaultProfile();
 
         profilePath = txtDataDirectory.Text + profileDirectory + igName;
-        profileName = "https://twcore.mohw.gov.tw/ig/" + igName + "/StructureDefinition";
+        profileName = "https://nhicore.nhi.gov.tw/pas/" + igName + "/StructureDefinition";
         FormListView form = new FormListView();
         //form.Show(); // Use the private member by showing the form
     }
@@ -109,7 +115,7 @@ public partial class FormIGAnalyzer : Form
         {
             igName = cmbIG.Text; // IG名稱
             profilePath = txtDataDirectory.Text + profileDirectory + igName;
-            profileName = "https://twcore.mohw.gov.tw/ig/" + igName + "/StructureDefinition";
+            profileName = "https://nhicore.nhi.gov.tw/" + igName + "/StructureDefinition";
         }
         //ShowIGExample();
 
@@ -196,6 +202,7 @@ public partial class FormIGAnalyzer : Form
         string tw_ig = profilePath + "\\package.tgz";
         ig.Package = tw_ig;
         ig.Name = igName;
+        ig.canonical = profileName;
         ig.SubName = igSubName;
         ig.LoadCanonical();
         ig.ICD10PCSVersion = appSettings.ICD10PCSVersion ?? string.Empty;
@@ -1567,15 +1574,18 @@ public partial class FormIGAnalyzer : Form
             switch (itemName)
             {
                 case "Patient":
-                    await LoadAndDisplayMasterDataAsync<Patient>("Patient",
+                    var patients = await LoadFHIRDataAsync<Patient>("Patient");
+                    DisplayFHIRData("Patient", patients, lvMaster,
                         p => (p.Name != null && p.Name.Any()) ? p.Name[0].ToString() : "No Name");
                     break;
                 case "Organization":
-                    await LoadAndDisplayMasterDataAsync<Organization>("Organization",
+                    var organizations = await LoadFHIRDataAsync<Organization>("Organization");
+                    DisplayFHIRData("Organization", organizations, lvMaster,
                         o => o.Name ?? "No Name");
                     break;
                 case "Practitioner":
-                    await LoadAndDisplayMasterDataAsync<Practitioner>("Practitioner",
+                    var practitioners = await LoadFHIRDataAsync<Practitioner>("Practitioner");
+                    DisplayFHIRData("Practitioner", practitioners, lvMaster,
                         p => (p.Name != null && p.Name.Any()) ? p.Name[0].ToString() : "No Name");
                     break;
                 default:
@@ -1592,15 +1602,15 @@ public partial class FormIGAnalyzer : Form
 
     }
 
-    private async System.Threading.Tasks.Task LoadAndDisplayMasterDataAsync<TResource>(
-        string resourceTypeDisplayName,
-        Func<TResource, string> getNameSelector) where TResource : Resource, new()
+    private async Task<IEnumerable<TResource>> LoadFHIRDataAsync<TResource>(string resourceTypeDisplayName) where TResource : Resource, new()
     {
+        List<TResource> resources = new List<TResource>();
+
         if (client == null)
         {
             MessageBox.Show("FHIR client is not initialized.", "Client Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             txtMsg.Text += "FHIR client not initialized in LoadAndDisplayMasterDataAsync." + Environment.NewLine;
-            return;
+            return resources; // Return empty list
         }
 
         try
@@ -1611,21 +1621,14 @@ public partial class FormIGAnalyzer : Form
                 txtMsg.Text += $"No {resourceTypeDisplayName} bundle returned from FHIR server or bundle is empty." + Environment.NewLine;
                 // Optionally, show a MessageBox to the user
                 // MessageBox.Show($"No {resourceTypeDisplayName}s found on the server.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
+                return resources; // Return empty list
             }
-
-            lvMaster.Columns.Add($"{resourceTypeDisplayName} ID", 200);
-            lvMaster.Columns.Add("Type", 200);
-            lvMaster.Columns.Add("Name", 400);
 
             foreach (var entry in bundleResult.Entry)
             {
-                if (entry.Resource is TResource resourceInstance) // Use a different variable name to avoid conflict
+                if (entry.Resource is TResource resourceInstance)
                 {
-                    ListViewItem item = new ListViewItem(resourceInstance.Id);
-                    item.SubItems.Add(resourceInstance.TypeName); // Use TypeName for the canonical FHIR resource type
-                    item.SubItems.Add(getNameSelector(resourceInstance));
-                    lvMaster.Items.Add(item);
+                    resources.Add(resourceInstance);
                 }
             }
         }
@@ -1640,6 +1643,55 @@ public partial class FormIGAnalyzer : Form
             MessageBox.Show($"An unexpected error occurred while searching for {resourceTypeDisplayName}s: {ex.Message}",
                             "Unexpected Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             txtMsg.Text += $"An unexpected error occurred while searching for {resourceTypeDisplayName}s: {ex.Message}" + Environment.NewLine;
+        }
+        return resources;
+    }
+
+    private void DisplayFHIRData<TResource>(
+        string resourceTypeDisplayName,
+        IEnumerable<TResource> resources,
+        ListView lvMaster,
+        Func<TResource, string> getNameSelector) where TResource : Resource, new()
+    {
+        lvMaster.Items.Clear(); // Clear existing items before adding new ones
+        lvMaster.Columns.Clear(); // Clear existing columns
+
+        if (resources == null || !resources.Any())
+        {
+            // txtMsg.Text += $"No {resourceTypeDisplayName} data to display." + Environment.NewLine; // Optional: Log if no data
+            return;
+        }
+
+        try
+        {
+            lvMaster.Columns.Add($"{resourceTypeDisplayName} ID", 200);
+            lvMaster.Columns.Add("Type", 200);
+            lvMaster.Columns.Add("Name", 200);
+            lvMaster.Columns.Add("Profile", 400); // Optional: Add more columns as needed
+
+            foreach (var resourceInstance in resources)
+            {
+                ListViewItem item = new ListViewItem(resourceInstance.Id);
+                item.SubItems.Add(resourceInstance.TypeName); // Use TypeName for the canonical FHIR resource type
+                item.SubItems.Add(getNameSelector(resourceInstance));
+                string profileValue = "No Profile";
+                if (resourceInstance.Meta != null && resourceInstance.Meta.Profile != null)
+                {
+                    var firstProfile = resourceInstance.Meta.Profile.FirstOrDefault();
+                    if (!string.IsNullOrEmpty(firstProfile))
+                    {
+                        profileValue = firstProfile.Split('/').LastOrDefault() ?? "No Profile";
+                    }
+                }
+                item.SubItems.Add(profileValue); // Display profile if available
+                lvMaster.Items.Add(item);
+            }
+        }
+        catch (Exception ex) // Catch any unexpected errors during display
+        {
+            MessageBox.Show($"An error occurred while displaying {resourceTypeDisplayName}s: {ex.Message}",
+                            "Display Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            txtMsg.Text += $"Error in DisplayMasterData for {resourceTypeDisplayName}s: {ex.Message}" + Environment.NewLine;
         }
     }
     private async void lbStaging_SelectedIndexChanged(object sender, EventArgs e)
@@ -2283,7 +2335,7 @@ public partial class FormIGAnalyzer : Form
     {
         List<Tuple<string, string, string>> lostFUME = new List<Tuple<string, string, string>>();
         List<int> levels = GetLostLevels(fumeListTuple);
-        List<Tuple<int,string>> fumeListTupleWithIndex = new List<Tuple<int, string>>();
+        List<Tuple<int, string>> fumeListTupleWithIndex = new List<Tuple<int, string>>();
         for (int i = 0; i < levels.Count; i++)
         {
             string fumeInfo = fumeListTuple[levels[i]].Item1;
@@ -2292,7 +2344,7 @@ public partial class FormIGAnalyzer : Form
             string type = fumeListTuple[levels[i]].Item2;
 
             string headFume = "* " + path.Split('.')[1];
-            if(fumeListTupleWithIndex.Any(t => t.Item2 == headFume))
+            if (fumeListTupleWithIndex.Any(t => t.Item2 == headFume))
             {
                 continue; // Skip if the headFume already exists
             }
@@ -2303,10 +2355,10 @@ public partial class FormIGAnalyzer : Form
             lostFUME.Add(headTuple);
         }
 
-        for(int i =fumeListTupleWithIndex.Count - 1; i >= 0; i--)
+        for (int i = fumeListTupleWithIndex.Count - 1; i >= 0; i--)
         {
             fumeListTuple.Insert(fumeListTupleWithIndex[i].Item1, lostFUME[i]);
-        }   
+        }
         return fumeListTuple;
     }
     private List<Tuple<string, string, string>> CheckFUMESlice(List<Tuple<string, string, string>> sliceList)
@@ -3342,19 +3394,31 @@ public partial class FormIGAnalyzer : Form
         }
     }
 
-    private void lbBundleList_SelectedIndexChanged(object sender, EventArgs e)
+    private async void lbBundleList_SelectedIndexChanged(object sender, EventArgs e)
     {
         lvBundleProfile.Items.Clear();
         // show the selected item in the text box
         string bundleName = lbBundleList.SelectedItem?.ToString() ?? string.Empty;
+        if (string.IsNullOrEmpty(bundleName))
+        {
+            MessageBox.Show("Please select a bundle.");
+            return;
+        }
 
         StructureDefinition sd = new StructureDefinition();
-        sd = GetStructureDefinition(bundleName).Result;
-        bool isRequired = false;
+        sd = await GetStructureDefinition(bundleName);
+        //bool isRequired = false;
         string element = string.Empty;
 
+        lvBundleProfile.Items.Clear();
         lvBundleProfile.Columns.Clear();
-        lvBundleProfile.Columns.Add("Element", 400);
+        lvBundleProfile.Columns.Add("Element", 280);
+        lvBundleProfile.Columns.Add("Min", 50);
+        lvBundleProfile.Columns.Add("Max", 50);
+        lvBundleProfile.Columns.Add("Short", 200);
+        lvBundleProfile.Columns.Add("Profile", 200);
+
+
 
         foreach (var n in sd.Differential.Element)
         {
@@ -3375,9 +3439,12 @@ public partial class FormIGAnalyzer : Form
                     int level = n_list2[1].Count(x => x == '.') - 1;
                     if (level < 0)
                     {
-                        isRequired = n.Min > 0;
-                        element = n.ElementId;
+                        //isRequired = n.Min > 0;
+                        element = n.ElementId.Replace("Bundle.entry:", "");
                         lvBundleProfile.Items.Add(element);
+                        lvBundleProfile.Items[lvBundleProfile.Items.Count - 1].SubItems.Add(n.Min.ToString());
+                        lvBundleProfile.Items[lvBundleProfile.Items.Count - 1].SubItems.Add(n.Max.ToString());
+                        lvBundleProfile.Items[lvBundleProfile.Items.Count - 1].SubItems.Add(n.Short ?? string.Empty);
                     }
                     else
                     {
@@ -3387,8 +3454,7 @@ public partial class FormIGAnalyzer : Form
                             profile = n.Type[0].Profile.First().Split("/").Last();
                         }
                         // new profile Tuple
-
-                        element = "";
+                        lvBundleProfile.Items[lvBundleProfile.Items.Count - 1].SubItems.Add(profile ?? string.Empty);
                     }
                 }
             }
@@ -3540,8 +3606,9 @@ public partial class FormIGAnalyzer : Form
             }
         }
 
-        //lvReference.Items.Clear();
-        lvReference.Columns.Add("Role", 250);
+        lvReference.Items.Clear();
+        lvReference.Columns.Clear();
+        lvReference.Columns.Add("Role", 200);
         lvReference.Columns.Add("Reference", 200);
         lvReference.Columns.Add("Resource Type", 200);
         foreach (var master in appSettings.MasterData)
@@ -4674,7 +4741,7 @@ public partial class FormIGAnalyzer : Form
                 }
             }
         }
-        if(lvFUME.Visible == true)
+        if (lvFUME.Visible == true)
         {
             string root = string.Empty;
             string node = string.Empty;
@@ -4694,7 +4761,7 @@ public partial class FormIGAnalyzer : Form
                 }
                 else
                 {
-                    level0 = ComputeLevel(lvFUME.Items[i-1].Text);
+                    level0 = ComputeLevel(lvFUME.Items[i - 1].Text);
                 }
 
                 if (i == lvFUME.Items.Count - 1)
@@ -4703,7 +4770,7 @@ public partial class FormIGAnalyzer : Form
                 }
                 else
                 {
-                    level1 = ComputeLevel(lvFUME.Items[i+1].Text);
+                    level1 = ComputeLevel(lvFUME.Items[i + 1].Text);
                 }
 
                 string levelType = "N";
@@ -4747,7 +4814,7 @@ public partial class FormIGAnalyzer : Form
             }
         }
     }
-    private List<int> GetLostLevels(List<Tuple<string,string,string>> fumeListTuple)
+    private List<int> GetLostLevels(List<Tuple<string, string, string>> fumeListTuple)
     {
         List<int> levels = new List<int>();
         string root = string.Empty;
@@ -4768,7 +4835,7 @@ public partial class FormIGAnalyzer : Form
             }
             else
             {
-                level0 = ComputeLevel(fumeListTuple[i-1].Item1);
+                level0 = ComputeLevel(fumeListTuple[i - 1].Item1);
             }
 
             if (i == fumeListTuple.Count - 1)
@@ -4817,5 +4884,163 @@ public partial class FormIGAnalyzer : Form
 
         }
         return levels;
+    }
+
+    private async void lvBundleProfile_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        string profileName = lvBundleProfile.SelectedItems.Count > 0 ? lvBundleProfile.SelectedItems[0].SubItems[4].Text : string.Empty;
+        profileName = profileName.Split("-")[0].Trim() ?? string.Empty;
+        /*
+        if (string.IsNullOrEmpty(profileName))
+        {
+            MessageBox.Show("Please select an item from the list.");
+            return;
+        }
+        */
+        switch (profileName)
+        {
+            case "Specimen":
+                var specimens = await LoadFHIRDataAsync<Specimen>(profileName);
+                DisplayFHIRData(
+                    "Specimen", specimens, lvBundle,
+                    s => s.Id ?? string.Empty
+                );
+                break;
+            case "Observation":
+                var observations = await LoadFHIRDataAsync<Observation>("Observation");
+                DisplayFHIRData("Observation", observations, lvBundle,
+                    o => o.Id ?? string.Empty);
+                break;
+            case "Procedure":
+                var procedures = await LoadFHIRDataAsync<Procedure>("Procedure");
+                DisplayFHIRData("Procedure", procedures, lvBundle,
+                    p => p.Id ?? string.Empty);
+                break;
+            case "MedicationRequest":
+                var medicationRequests = await LoadFHIRDataAsync<MedicationRequest>("MedicationRequest");
+                DisplayFHIRData("MedicationRequest", medicationRequests, lvBundle,
+                    m => m.Id ?? string.Empty);
+                break;
+            case "Encounter":
+                var encounters = await LoadFHIRDataAsync<Encounter>("Encounter");
+                DisplayFHIRData("Encounter", encounters, lvBundle,
+                    e => e.Id ?? string.Empty);
+                break;
+            case "Patient":
+                var patients = await LoadFHIRDataAsync<Patient>("Patient");
+                DisplayFHIRData("Patient", patients, lvBundle,
+                    p => p.Id ?? string.Empty);
+                break;
+            case "Practitioner":
+                var practitioners = await LoadFHIRDataAsync<Practitioner>("Practitioner");
+                DisplayFHIRData("Practitioner", practitioners, lvBundle,
+                    p => p.Id ?? string.Empty);
+                break;
+            case "Organization":
+                var organizations = await LoadFHIRDataAsync<Organization>("Organization");
+                DisplayFHIRData("Organization", organizations, lvBundle,
+                    o => o.Id ?? string.Empty);
+                break;
+            case "DiagnosticReport":
+                var diagnosticReports = await LoadFHIRDataAsync<DiagnosticReport>("DiagnosticReport");
+                DisplayFHIRData("DiagnosticReport", diagnosticReports, lvBundle,
+                    d => d.Id ?? string.Empty);
+                break;
+            case "ImagingStudy":
+                var imagingStudies = await LoadFHIRDataAsync<ImagingStudy>("ImagingStudy");
+                DisplayFHIRData("ImagingStudy", imagingStudies, lvBundle,
+                    i => i.Id ?? string.Empty);
+                break;
+            case "Media":
+                var media = await LoadFHIRDataAsync<Media>("Media");
+                DisplayFHIRData("Media", media, lvBundle,
+                    m => m.Id ?? string.Empty);
+                break;
+            case "DocumentReference":
+                var documentReferences = await LoadFHIRDataAsync<DocumentReference>("DocumentReference");
+                DisplayFHIRData("DocumentReference", documentReferences, lvBundle,
+                    d => d.Id ?? string.Empty);
+                break;
+            case "Substance":
+                var substances = await LoadFHIRDataAsync<Substance>("Substance");
+                DisplayFHIRData("Substance", substances, lvBundle,
+                    s => s.Id ?? string.Empty);
+                break;
+            case "Coverage":
+                var coverages = await LoadFHIRDataAsync<Coverage>("Coverage");
+                DisplayFHIRData("Coverage", coverages, lvBundle,
+                    c => c.Id ?? string.Empty);
+                break;
+            case "ClaimResponse":
+                var claimResponses = await LoadFHIRDataAsync<ClaimResponse>("ClaimResponse");
+                DisplayFHIRData("ClaimResponse", claimResponses, lvBundle,
+                    c => c.Id ?? string.Empty);
+                break;
+            case "Claim":
+                var claims = await LoadFHIRDataAsync<Claim>("Claim");
+                DisplayFHIRData("Claim", claims, lvBundle,
+                    c => c.Id ?? string.Empty);
+                break;
+            default:
+                MessageBox.Show("Profile not supported: " + profileName);
+                break;
+        }
+    }
+
+    private void btnStagingValidate_Click(object sender, EventArgs e)
+    {
+        // Validate the staging text box content
+        string fhirDataText = txtFHIRData.Text; // Renamed for clarity
+        if (string.IsNullOrEmpty(fhirDataText))
+        {
+            MessageBox.Show("Please enter some FHIR data in the FHIR Data text box to validate.", "Input Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        if (resolver == null)
+        {
+            MessageBox.Show("Resolver is not initialized. Cannot validate staging.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return;
+        }
+        var terminologySource = new LocalTerminologyService(resolver);
+
+        var validator = new Validator(resolver, terminologySource);
+
+        Resource? resourceToValidate = null; // Use the base Resource type
+        try
+        {
+            resourceToValidate = new FhirJsonParser().Parse<Resource>(fhirDataText);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Failed to parse FHIR resource from the provided JSON. Error: {ex.Message}", "Parsing Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return;
+        }
+        
+
+        if (resourceToValidate != null)
+        {
+            var validationResult = validator.Validate(resourceToValidate);
+            // Display the validation results
+            if (validationResult.Success)
+            {
+                MessageBox.Show("Validation successful! No issues found.", "Validation Result", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            else
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine("Validation failed with the following issues:");
+                foreach (var issue in validationResult.Issue)
+                {
+                    sb.AppendLine($"- {issue.Severity}: {issue.Details?.Text} (at {issue.Location?.FirstOrDefault()})");
+                }
+                MessageBox.Show(sb.ToString(), "Validation Result", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+        else
+        {
+            // This case should ideally be caught by the try-catch block during parsing
+            MessageBox.Show("Failed to parse FHIR resource from the provided JSON.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        
     }
 }

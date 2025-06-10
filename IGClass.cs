@@ -18,6 +18,7 @@ public class IGClass
 
     public string IGName { get; set; } = string.Empty;
 
+    public string canonical { get; set; } = string.Empty;
     public string Contact { get; set; } = string.Empty;
 
     public string Description { get; set; } = string.Empty;
@@ -164,7 +165,7 @@ public class IGClass
     {
         bool ret = false;
         HttpClient client = new HttpClient();
-        string htmlContent = await client.GetStringAsync("https://twcore.mohw.gov.tw/ig/pas/index.html");
+        string htmlContent = await client.GetStringAsync("https://nhicore.nhi.gov.tw/pas/index.html");
         //string htmlContent = await client.GetStringAsync("https://twcore.mohw.gov.tw/ig/pas/ImplementationGuide/tw.gov.mohw.nhi.pas");
 
         if (string.IsNullOrEmpty(htmlContent))
@@ -299,7 +300,7 @@ public class IGClass
             return;
         }
         var names = resolver.ListCanonicalUris();
-        string profileName = "https://twcore.mohw.gov.tw/ig/" + Name + "/StructureDefinition";
+        string profileName = "https://nhicore.nhi.gov.tw/" + Name + "/StructureDefinition";
         foreach (var n in names)
         {
             string logicName = GetLogicName(Name, SubName);
