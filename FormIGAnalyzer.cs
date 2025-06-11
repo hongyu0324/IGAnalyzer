@@ -2340,7 +2340,7 @@ public partial class FormIGAnalyzer : Form
         {
             string fumeInfo = fumeListTuple[levels[i]].Item1;
             string path = fumeListTuple[levels[i]].Item3;
-            if (path == "Claim.diagnosis.diagnosiscode.coding.code") continue; // hard code
+            //if (path == "Claim.diagnosis.diagnosiscode.coding.code") continue; // hard code
             string type = fumeListTuple[levels[i]].Item2;
 
             string headFume = "* " + path.Split('.')[1];
@@ -3418,8 +3418,6 @@ public partial class FormIGAnalyzer : Form
         lvBundleProfile.Columns.Add("Short", 200);
         lvBundleProfile.Columns.Add("Profile", 200);
 
-
-
         foreach (var n in sd.Differential.Element)
         {
             var n_list = n.ElementId.Split(".");
@@ -3457,6 +3455,21 @@ public partial class FormIGAnalyzer : Form
                         lvBundleProfile.Items[lvBundleProfile.Items.Count - 1].SubItems.Add(profile ?? string.Empty);
                     }
                 }
+            }
+        }
+        lvBundleConstraint.Clear();
+        lvBundleConstraint.Columns.Clear();
+        lvBundleConstraint.Columns.Add("Id", 100);
+        lvBundleConstraint.Columns.Add("Human", 500);
+        lvBundleConstraint.Columns.Add("Expression", 500);
+        foreach (var constraint in sd.Differential.Element.Where(e => e.Constraint != null && e.Constraint.Any()))
+        {
+            foreach (var c in constraint.Constraint)
+            {
+                ListViewItem item = new ListViewItem(c.Key);
+                item.SubItems.Add(c.Human ?? string.Empty);
+                item.SubItems.Add(c.Expression ?? string.Empty);
+                lvBundleConstraint.Items.Add(item);
             }
         }
     }
@@ -4129,13 +4142,22 @@ public partial class FormIGAnalyzer : Form
                     else if (type != string.Empty)
                     {
                         typeValue = type;
-                        // make first caracter of type to upper case, not for code
-                        if (type != "code") type = char.ToUpper(type[0]) + type.Substring(1);
-                        path = path.Replace("[x]", type);
-                        //string fume = path + " = " + type;
-                        //string fume = path + " = " + pathX;
-                        string fume = path;
-                        string fumePath = e.Path.Replace("[x]", type);
+                        string fumePath = e.Path;
+                        string fume = string.Empty;
+                        // make first caracter of type to upper case, not for code // 20250612
+                        if (type != "code")
+                        {
+                            type = char.ToUpper(type[0]) + type.Substring(1);
+                            path = path.Replace("[x]", type);
+                            //string fume = path + " = " + type;
+                            //string fume = path + " = " + pathX;
+                            fume = path;
+                            fumePath = e.Path.Replace("[x]", type);
+                        }
+                        else
+                        {
+                            fume = path;
+                        }
                         Tuple<string, string, string> fumeTuple = new Tuple<string, string, string>(fume, type, fumePath);
                         sliceFume.Add(fumeTuple);
 
@@ -4387,14 +4409,41 @@ public partial class FormIGAnalyzer : Form
             string json = System.IO.File.ReadAllText(filePath);
 
             // Deserialize the JSON to a FHIR resource
-            DomainResource? resource = null;
-            Narrative narr = new Narrative();
+            Resource? resource = null;
+            Narrative? narr = null;
+            string resourceType = string.Empty;
 
             try
             {
-                resource = new FhirJsonParser().Parse<DomainResource>(json);
-                narr = resource.Text;
-                resource.Text = null; // Clear the text property to avoid serialization issues
+                resource = new FhirJsonParser().Parse<Resource>(json);
+                // Extract the narrative from the resource
+                if (resource == null)
+                {
+                    MessageBox.Show("Failed to parse the resource from the JSON.");
+                    return;
+                }
+
+                // get type of the resource
+                resourceType = resource.TypeName;
+                DomainResource? domainResource = null;
+                if (resourceType == "Bundle")
+                {
+                    if (resource is Bundle bundle && bundle.Entry != null && bundle.Entry.Count > 0)
+                    {
+                        // Use the first entry's resource for narrative
+                        domainResource = bundle.Entry[0].Resource as DomainResource;
+                    }
+                }
+                else
+                {
+                    domainResource = resource as DomainResource;
+                }
+                narr = domainResource?.Text;
+                if (domainResource != null)
+                {
+                    domainResource.Text = null; // Clear the text property to avoid serialization issues
+                }
+
             }
             catch (Exception ex)
             {
@@ -4439,81 +4488,108 @@ public partial class FormIGAnalyzer : Form
             // Display the JSON in the text box
             txtBase.Text = pat_Json;
 
-            // Display the resource information in the listview
-            lvBase.Items.Clear(); // Clear the listview before adding new items
-            lvBase.Columns.Clear(); // Clear the columns before adding new ones
-            lvBase.Columns.Add("Path", 250); // Add a column for the path
-            lvBase.Columns.Add("Type", 100); // Add a column for the type
-            lvBase.Columns.Add("Value", 150); // Add a column for the value
-            lvBase.Columns.Add("Logic Model", 150); // Add a column for the apply model
-            lvBase.Columns.Add("Rule", 150); // Add a column for the profile
-
-            string profileName = resource.Meta?.Profile?.FirstOrDefault() ?? string.Empty;
-            profileName = profileName.Split('/').LastOrDefault() ?? string.Empty;
-            if (profileName == null || profileName.Length == 0) return; // If profileName is null, return
-            foreach (var q in ig.QList)
+            if (resourceType == "Bundle")
             {
-                if (q.Item2.Contains(profileName))
-                {
-                    string path = q.Item3;
-                    string rule = GetRuleByPath(path);
-                    if (path.Contains("where"))
-                    {
-                        path = path.Replace(".where" + "(" + rule + ")", "");
-                    }
-                    // remove content after the first "("  
-                    if (path.Contains("("))
-                    {
-                        path = path.Substring(0, path.IndexOf("("));
-                    }
-                    ListViewItem item = new ListViewItem(path);
-                    string type = q.Item4;
-                    item.SubItems.Add(type); // Add the type to the item
+                lvBase.Items.Clear(); // Clear the listview before adding new items
+                lvBase.Columns.Clear(); // Clear the columns before adding new ones
+                                        //bundle as resource
+                lvBase.Columns.Add("Resource Type", 150); // Add a column for the resource type
+                lvBase.Columns.Add("Resource ID", 150); // Add a column for the resource ID
+                lvBase.Columns.Add("Resource Path", 700); // Add a column for the resource path
 
-                    path = GetExampleElementPath(path, type); // Get the path for the example element
-                    string value = string.Empty;
-                    try
+                Bundle? bundle = resource as Bundle;
+                if (bundle != null)
+                {
+                    foreach (var entry in bundle.Entry)
                     {
-                        if (resource.IsTrue(path))
+                        if (entry.Resource != null)
                         {
-                            if (resource.Select(path).Count() > 1)
-                            {
-                                path = GetExampleElementPathByRule(path, type, rule); // Get the path for the example element by rule
-                                value = resource.Select(path).FirstOrDefault()?.ToString() ?? string.Empty; // Get the value from the resource
-                            }
-                            else
-                            {
-                                value = resource.Select(path).FirstOrDefault()?.ToString() ?? string.Empty; // Get the value from the resource
-                            }
-                            if (value == "Hl7.Fhir.Model.CodeableConcept") // If the value starts with "Hl7.Fhir.Model.", remove it
-                            {
-                                value = resource.Select(path + ".coding.code").FirstOrDefault()?.ToString() ?? string.Empty; // Get the value from the resource
-                            }
-                            if (value == "Hl7.Fhir.Model.Quantity") // If the value starts with "Hl7.Fhir.Model.", remove it
-                            {
-                                value = resource.Select(path + ".value").FirstOrDefault()?.ToString() ?? string.Empty; // Get the value from the resource
-                            }
+
+                            ListViewItem item = new ListViewItem(entry.Resource.TypeName); // Create a new listview item with the resource type
+                            item.SubItems.Add(entry.Resource.Id); // Add the resource ID to the item
+                            item.SubItems.Add(entry.FullUrl); // Add the resource path to the item
+                            lvBase.Items.Add(item); // Add the item to the listview
                         }
                     }
-
-                    catch (Exception ex)
-                    {
-                        txtMsg.Text = txtMsg.Text + "Error selecting path: " + path + " - " + ex.Message + Environment.NewLine;
-                        continue; // Skip this item if there is an error
-                    }
-
-                    item.SubItems.Add(value); // Get the value from the tuple
-                    item.SubItems.Add(q.Item1.Split('|')[0].Trim());
-                    item.SubItems.Add(rule); // Get the apply model from the tuple
-                    lvBase.Items.Add(item); // Add the item to the listview
                 }
             }
-            lvBase.GridLines = true; // Enable grid lines in the listview
-            lvBase.FullRowSelect = true; // Enable full row selection in the listview
-            lvBase.Scrollable = true; // Enable scrolling in the listview
-            lvBase.AutoArrange = true; // Enable auto-arranging of items in the listview
-            lvBase.Refresh(); // Refresh the listview to display the items
+            else
+            {
+                // Display the resource information in the listview
+                lvBase.Items.Clear(); // Clear the listview before adding new items
+                lvBase.Columns.Clear(); // Clear the columns before adding new ones
+                lvBase.Columns.Add("Path", 250); // Add a column for the path
+                lvBase.Columns.Add("Type", 100); // Add a column for the type
+                lvBase.Columns.Add("Value", 150); // Add a column for the value
+                lvBase.Columns.Add("Logic Model", 150); // Add a column for the apply model
+                lvBase.Columns.Add("Rule", 150); // Add a column for the profile
 
+                string profileName = resource.Meta?.Profile?.FirstOrDefault() ?? string.Empty;
+                profileName = profileName.Split('/').LastOrDefault() ?? string.Empty;
+                if (profileName == null || profileName.Length == 0) return; // If profileName is null, return
+                foreach (var q in ig.QList)
+                {
+                    if (q.Item2.Contains(profileName))
+                    {
+                        string path = q.Item3;
+                        string rule = GetRuleByPath(path);
+                        if (path.Contains("where"))
+                        {
+                            path = path.Replace(".where" + "(" + rule + ")", "");
+                        }
+                        // remove content after the first "("  
+                        if (path.Contains("("))
+                        {
+                            path = path.Substring(0, path.IndexOf("("));
+                        }
+                        ListViewItem item = new ListViewItem(path);
+                        string type = q.Item4;
+                        item.SubItems.Add(type); // Add the type to the item
+
+                        path = GetExampleElementPath(path, type); // Get the path for the example element
+                        string value = string.Empty;
+                        try
+                        {
+                            if (resource.IsTrue(path))
+                            {
+                                if (resource.Select(path).Count() > 1)
+                                {
+                                    path = GetExampleElementPathByRule(path, type, rule); // Get the path for the example element by rule
+                                    value = resource.Select(path).FirstOrDefault()?.ToString() ?? string.Empty; // Get the value from the resource
+                                }
+                                else
+                                {
+                                    value = resource.Select(path).FirstOrDefault()?.ToString() ?? string.Empty; // Get the value from the resource
+                                }
+                                if (value == "Hl7.Fhir.Model.CodeableConcept") // If the value starts with "Hl7.Fhir.Model.", remove it
+                                {
+                                    value = resource.Select(path + ".coding.code").FirstOrDefault()?.ToString() ?? string.Empty; // Get the value from the resource
+                                }
+                                if (value == "Hl7.Fhir.Model.Quantity") // If the value starts with "Hl7.Fhir.Model.", remove it
+                                {
+                                    value = resource.Select(path + ".value").FirstOrDefault()?.ToString() ?? string.Empty; // Get the value from the resource
+                                }
+                            }
+                        }
+
+                        catch (Exception ex)
+                        {
+                            txtMsg.Text = txtMsg.Text + "Error selecting path: " + path + " - " + ex.Message + Environment.NewLine;
+                            continue; // Skip this item if there is an error
+                        }
+
+                        item.SubItems.Add(value); // Get the value from the tuple
+                        item.SubItems.Add(q.Item1);
+                        item.SubItems.Add(rule); // Get the apply model from the tuple
+                        lvBase.Items.Add(item); // Add the item to the listview
+                    }
+                }
+                lvBase.GridLines = true; // Enable grid lines in the listview
+                lvBase.FullRowSelect = true; // Enable full row selection in the listview
+                lvBase.Scrollable = true; // Enable scrolling in the listview
+                lvBase.AutoArrange = true; // Enable auto-arranging of items in the listview
+                lvBase.Refresh(); // Refresh the listview to display the items
+            }
         }
         else
         {
@@ -4982,7 +5058,7 @@ public partial class FormIGAnalyzer : Form
                     c => c.Id ?? string.Empty);
                 break;
             default:
-                MessageBox.Show("Profile not supported: " + profileName);
+                // MessageBox.Show("Profile not supported: " + profileName);
                 break;
         }
     }
@@ -5015,7 +5091,7 @@ public partial class FormIGAnalyzer : Form
             MessageBox.Show($"Failed to parse FHIR resource from the provided JSON. Error: {ex.Message}", "Parsing Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return;
         }
-        
+
 
         if (resourceToValidate != null)
         {
@@ -5041,6 +5117,86 @@ public partial class FormIGAnalyzer : Form
             // This case should ideally be caught by the try-catch block during parsing
             MessageBox.Show("Failed to parse FHIR resource from the provided JSON.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
+
+    }
+
+    private void btnBundleCreate_Click(object sender, EventArgs e)
+    {
+        string bundleElement = lvBundleProfile.SelectedItems.Count > 0 ? lvBundleProfile.SelectedItems[0].SubItems[0].Text : string.Empty;
+        string reference = lvBundle.SelectedItems.Count > 0 ? lvBundle.SelectedItems[0].SubItems[1].Text : string.Empty;
+        MessageBox.Show("Bundle element: " + bundleElement + "\nReference: " + reference, "Bundle Create", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
+    private void btnBundleSelect_Click(object sender, EventArgs e)
+    {
+        string bundleElement = lvBundleProfile.SelectedItems.Count > 0 ? lvBundleProfile.SelectedItems[0].SubItems[3].Text : string.Empty;
+        string reference = lvBundle.SelectedItems.Count > 0 ? lvBundle.SelectedItems[0].SubItems[0].Text : string.Empty;
+        string resourceType = lvBundle.SelectedItems.Count > 0 ? lvBundle.SelectedItems[0].SubItems[1].Text : string.Empty;
+        bool hasReferenceColumn = false;
+        foreach (ColumnHeader col in lvBundleProfile.Columns)
+        {
+            if (col.Text == "Reference")
+            {
+                hasReferenceColumn = true;
+                break;
+            }
+        }
+        if (!hasReferenceColumn)
+        {
+            lvBundleProfile.Columns.Add("Reference", 200); // Add a column for the reference
+        }
+        // add reference to the listview's selected item
+        if (string.IsNullOrEmpty(reference))
+        {
+            MessageBox.Show("Please select a reference from the list.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return;
+        }
+        else
+        {
+            lvBundleProfile.SelectedItems[0].SubItems.Add(resourceType + "/" + reference); // Add the reference to the selected item in the bundle profile listview
+            lvBundleProfile.SelectedItems[0].ForeColor = Color.Green; // Change the color of the selected item to green
+        }
+    }
+
+    private async void lvBundle_DoubleClickAsync(object sender, EventArgs e)
+    {
+        if (lvBundle.SelectedItems.Count == 0)
+        {
+            MessageBox.Show("Please select an item from the list.");
+            return;
+        }
+        // get the resource from FHIR server by the selected item in the listview
+        string id = lvBundle.SelectedItems[0].SubItems[0].Text;
+        string type = lvBundle.SelectedItems[0].SubItems[1].Text;
+        if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(type))
+        {
+            MessageBox.Show("Please select a valid item from the list.");
+            return;
+        }
+        client = new FhirClient(txtFHIRServer.Text);
+        DomainResource? resource = null;
+        string resourcePath = $"{type}/{id}";
+        try
+        {
+            Resource? fetchedResource = await client.ReadAsync<Resource>(resourcePath);
+            DomainResource? domainResource = fetchedResource as DomainResource;
+            resource = domainResource;
+        }
+        catch (FhirOperationException ex)
+        {
+            MessageBox.Show("Error reading resource: " + ex.Message);
+            return;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Error: " + ex.Message);
+            return;
+        }
         
+        if (resource != null)
+        {
+            var refList = resource.Select("descendants().where($this is Reference).reference");
+            txtBundle.Text = string.Join(Environment.NewLine, refList.Select(r => r?.ToString() ?? string.Empty));
+        }
     }
 }
