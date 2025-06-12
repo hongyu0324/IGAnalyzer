@@ -119,6 +119,7 @@ partial class FormIGAnalyzer : Form
         lvBundleConstraint = new ListView();
         splitBundle4 = new SplitContainer();
         lvBundle = new ListView();
+        btnBundleSelect = new Button();
         btnBundleCreate = new Button();
         txtBundle = new TextBox();
         tabMsg = new TabPage();
@@ -139,7 +140,7 @@ partial class FormIGAnalyzer : Form
         rbDifferential = new RadioButton();
         rbSnapshot = new RadioButton();
         rbApplyModel = new RadioButton();
-        btnBundleSelect = new Button();
+        btnBundleValidate = new Button();
         tabIG.SuspendLayout();
         tabConfiguration.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)splitBase).BeginInit();
@@ -1338,6 +1339,7 @@ partial class FormIGAnalyzer : Form
         // 
         // splitBundle4.Panel2
         // 
+        splitBundle4.Panel2.Controls.Add(btnBundleValidate);
         splitBundle4.Panel2.Controls.Add(btnBundleSelect);
         splitBundle4.Panel2.Controls.Add(btnBundleCreate);
         splitBundle4.Size = new Size(387, 259);
@@ -1357,6 +1359,17 @@ partial class FormIGAnalyzer : Form
         lvBundle.View = View.Details;
         lvBundle.DoubleClick += lvBundle_DoubleClickAsync;
         // 
+        // btnBundleSelect
+        // 
+        btnBundleSelect.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
+        btnBundleSelect.Location = new Point(3, 7);
+        btnBundleSelect.Name = "btnBundleSelect";
+        btnBundleSelect.Size = new Size(112, 34);
+        btnBundleSelect.TabIndex = 1;
+        btnBundleSelect.Text = "選擇";
+        btnBundleSelect.UseVisualStyleBackColor = true;
+        btnBundleSelect.Click += btnBundleSelect_Click;
+        // 
         // btnBundleCreate
         // 
         btnBundleCreate.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right;
@@ -1374,6 +1387,7 @@ partial class FormIGAnalyzer : Form
         txtBundle.Location = new Point(0, 0);
         txtBundle.Multiline = true;
         txtBundle.Name = "txtBundle";
+        txtBundle.ScrollBars = ScrollBars.Both;
         txtBundle.Size = new Size(230, 418);
         txtBundle.TabIndex = 0;
         // 
@@ -1568,16 +1582,16 @@ partial class FormIGAnalyzer : Form
         rbApplyModel.Visible = false;
         rbApplyModel.CheckedChanged += lbProfile_SelectedIndexChanged;
         // 
-        // btnBundleSelect
+        // btnBundleValidate
         // 
-        btnBundleSelect.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
-        btnBundleSelect.Location = new Point(3, 7);
-        btnBundleSelect.Name = "btnBundleSelect";
-        btnBundleSelect.Size = new Size(112, 34);
-        btnBundleSelect.TabIndex = 1;
-        btnBundleSelect.Text = "選擇";
-        btnBundleSelect.UseVisualStyleBackColor = true;
-        btnBundleSelect.Click += btnBundleSelect_Click;
+        btnBundleValidate.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right;
+        btnBundleValidate.Location = new Point(154, 7);
+        btnBundleValidate.Name = "btnBundleValidate";
+        btnBundleValidate.Size = new Size(112, 34);
+        btnBundleValidate.TabIndex = 2;
+        btnBundleValidate.Text = "驗證";
+        btnBundleValidate.UseVisualStyleBackColor = true;
+        btnBundleValidate.Click += btnBundleValidate_Click;
         // 
         // FormIGAnalyzer
         // 
@@ -1840,4 +1854,5 @@ partial class FormIGAnalyzer : Form
     private ListView lvBundleConstraint;
     private Button btnBundleCreate;
     private Button btnBundleSelect;
+    private Button btnBundleValidate;
 }

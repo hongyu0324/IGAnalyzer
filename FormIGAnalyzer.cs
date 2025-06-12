@@ -3598,7 +3598,7 @@ public partial class FormIGAnalyzer : Form
                         if (master.Name == profile)
                         {
                             isMaster = true;
-                            txtMsg.Text = txtMsg.Text + "Profile: " + profile + " is a master profile." + Environment.NewLine;
+                            //txtMsg.Text = txtMsg.Text + "Profile: " + profile + " is a master profile." + Environment.NewLine;
                         }
                     }
                     if (isMaster == false)
@@ -5066,19 +5066,23 @@ public partial class FormIGAnalyzer : Form
     private void btnStagingValidate_Click(object sender, EventArgs e)
     {
         // Validate the staging text box content
+        Cursor = Cursors.WaitCursor; // Change cursor to wait state
+
         string fhirDataText = txtFHIRData.Text; // Renamed for clarity
         if (string.IsNullOrEmpty(fhirDataText))
         {
             MessageBox.Show("Please enter some FHIR data in the FHIR Data text box to validate.", "Input Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            Cursor = Cursors.Default; // Reset cursor to default state
             return;
         }
         if (resolver == null)
         {
             MessageBox.Show("Resolver is not initialized. Cannot validate staging.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            Cursor = Cursors.Default; // Reset cursor to default state
             return;
         }
-        var terminologySource = new LocalTerminologyService(resolver);
 
+        var terminologySource = new LocalTerminologyService(resolver);
         var validator = new Validator(resolver, terminologySource);
 
         Resource? resourceToValidate = null; // Use the base Resource type
@@ -5089,6 +5093,7 @@ public partial class FormIGAnalyzer : Form
         catch (Exception ex)
         {
             MessageBox.Show($"Failed to parse FHIR resource from the provided JSON. Error: {ex.Message}", "Parsing Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            Cursor = Cursors.Default; // Reset cursor to default state
             return;
         }
 
@@ -5099,6 +5104,7 @@ public partial class FormIGAnalyzer : Form
             // Display the validation results
             if (validationResult.Success)
             {
+                Cursor = Cursors.Default; // Reset cursor to default state
                 MessageBox.Show("Validation successful! No issues found.", "Validation Result", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             else
@@ -5107,31 +5113,122 @@ public partial class FormIGAnalyzer : Form
                 sb.AppendLine("Validation failed with the following issues:");
                 foreach (var issue in validationResult.Issue)
                 {
-                    sb.AppendLine($"- {issue.Severity}: {issue.Details?.Text} (at {issue.Location?.FirstOrDefault()})");
+                    if (issue.Severity == OperationOutcome.IssueSeverity.Error)
+                    {
+                        sb.AppendLine($"- {issue.Severity}: {issue.Details?.Text} (at {issue.Location?.FirstOrDefault()})");
+                    }  
                 }
-                MessageBox.Show(sb.ToString(), "Validation Result", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtMsg.Text = sb.ToString(); // Display the issues in the message box
+                Cursor = Cursors.Default; // Reset cursor to default state
+                tabIG.SelectedTab = tabMsg; // Switch to the message tab
+                
+                //MessageBox.Show(sb.ToString(), "Validation Result", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
         else
         {
             // This case should ideally be caught by the try-catch block during parsing
+            Cursor = Cursors.Default; // Reset cursor to default state
             MessageBox.Show("Failed to parse FHIR resource from the provided JSON.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
     }
 
-    private void btnBundleCreate_Click(object sender, EventArgs e)
+    private async void btnBundleCreate_Click(object sender, EventArgs e)
     {
-        string bundleElement = lvBundleProfile.SelectedItems.Count > 0 ? lvBundleProfile.SelectedItems[0].SubItems[0].Text : string.Empty;
-        string reference = lvBundle.SelectedItems.Count > 0 ? lvBundle.SelectedItems[0].SubItems[1].Text : string.Empty;
-        MessageBox.Show("Bundle element: " + bundleElement + "\nReference: " + reference, "Bundle Create", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        // Create a new Bundle from the selected items in the bundle profile listview
+        Bundle bundle = new Bundle
+        {
+            Type = Bundle.BundleType.Collection,
+            Timestamp = DateTimeOffset.Now,
+            Meta = new Meta
+            {
+                Profile = new List<string> { "https://nhicore.nhi.gov.tw/pas/StructureDefinition/Bundle-twpas" }
+            }
+
+        };
+
+        if (lvBundle.SelectedItems.Count == 0)
+        {
+            MessageBox.Show("Please select an item from the bundle profile list.");
+            return;
+        }
+        else
+        {
+            string profileName = lvBundle.SelectedItems[0].SubItems[3].Text;
+            string resourceType = lvBundle.SelectedItems[0].SubItems[1].Text;
+            string resourceId = lvBundle.SelectedItems[0].SubItems[0].Text;
+            //read FHIR server to get the resource by type and id
+            if (string.IsNullOrEmpty(resourceType) || string.IsNullOrEmpty(resourceId))
+            {
+                MessageBox.Show("Please select a valid resource type and id from the bundle profile list.");
+                return;
+            }
+            client = new FhirClient(txtFHIRServer.Text);
+            Resource? resource = null;
+            string resourcePath = $"{resourceType}/{resourceId}";
+            try
+            {
+                resource = await client.ReadAsync<Resource>(resourcePath);
+                //add the resource to the bundle
+                if (resource != null)
+                {
+                    Bundle.EntryComponent entry = new Bundle.EntryComponent
+                    {
+                        FullUrl = resourcePath,
+                        Resource = resource,
+                    };
+                    bundle.Entry.Add(entry);
+                    //add the resource to the listview
+                    var refList = resource.Select("descendants().where($this is Reference).reference");
+                    List<string> references = refList.Select(r => r?.ToString() ?? string.Empty).ToList();
+
+                    // added each reference to the bundle
+                    foreach (var reference in references)
+                    {
+                        if (!string.IsNullOrEmpty(reference))
+                        {
+                            Bundle.EntryComponent refEntry = new Bundle.EntryComponent
+                            {
+                                FullUrl = reference,
+                                Resource = await client.ReadAsync<Resource>(reference)
+                            };
+                            bundle.Entry.Add(refEntry);
+                        }
+                    }
+
+                }
+                else
+                {
+                    MessageBox.Show("Resource not found: " + resourcePath);
+                }
+            }
+            catch (FhirOperationException ex)
+            {
+                MessageBox.Show("Error reading resource: " + ex.Message);
+                return;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error: " + ex.Message);
+                return;
+            }
+
+        }
+        // Serialize the bundle to JSON
+        FhirJsonSerializer serializer = new FhirJsonSerializer(new SerializerSettings()
+        {
+            Pretty = true,
+        });
+        string bundleJson = serializer.SerializeToString(bundle);
+        // Display the bundle JSON in the text box
+        txtBundle.Text = bundleJson;
+
     }
 
-    private void btnBundleSelect_Click(object sender, EventArgs e)
+    private void AddColumnHeaderforBundleProfile()
     {
-        string bundleElement = lvBundleProfile.SelectedItems.Count > 0 ? lvBundleProfile.SelectedItems[0].SubItems[3].Text : string.Empty;
-        string reference = lvBundle.SelectedItems.Count > 0 ? lvBundle.SelectedItems[0].SubItems[0].Text : string.Empty;
-        string resourceType = lvBundle.SelectedItems.Count > 0 ? lvBundle.SelectedItems[0].SubItems[1].Text : string.Empty;
+        // Add a column for the reference if it does not exist
         bool hasReferenceColumn = false;
         foreach (ColumnHeader col in lvBundleProfile.Columns)
         {
@@ -5145,6 +5242,13 @@ public partial class FormIGAnalyzer : Form
         {
             lvBundleProfile.Columns.Add("Reference", 200); // Add a column for the reference
         }
+    }
+    private void btnBundleSelect_Click(object sender, EventArgs e)
+    {
+        string bundleElement = lvBundleProfile.SelectedItems.Count > 0 ? lvBundleProfile.SelectedItems[0].SubItems[3].Text : string.Empty;
+        string reference = lvBundle.SelectedItems.Count > 0 ? lvBundle.SelectedItems[0].SubItems[0].Text : string.Empty;
+        string resourceType = lvBundle.SelectedItems.Count > 0 ? lvBundle.SelectedItems[0].SubItems[1].Text : string.Empty;
+        AddColumnHeaderforBundleProfile(); // Ensure the reference column is added before proceeding
         // add reference to the listview's selected item
         if (string.IsNullOrEmpty(reference))
         {
@@ -5156,6 +5260,7 @@ public partial class FormIGAnalyzer : Form
             lvBundleProfile.SelectedItems[0].SubItems.Add(resourceType + "/" + reference); // Add the reference to the selected item in the bundle profile listview
             lvBundleProfile.SelectedItems[0].ForeColor = Color.Green; // Change the color of the selected item to green
         }
+
     }
 
     private async void lvBundle_DoubleClickAsync(object sender, EventArgs e)
@@ -5192,11 +5297,132 @@ public partial class FormIGAnalyzer : Form
             MessageBox.Show("Error: " + ex.Message);
             return;
         }
-        
+
         if (resource != null)
         {
             var refList = resource.Select("descendants().where($this is Reference).reference");
             txtBundle.Text = string.Join(Environment.NewLine, refList.Select(r => r?.ToString() ?? string.Empty));
+            foreach (var reference in refList)
+            {
+                string referenceStr = reference?.ToString() ?? string.Empty;
+                if (!string.IsNullOrEmpty(referenceStr))
+                {
+                    try
+                    {
+                        AddColumnHeaderforBundleProfile(); // Ensure the reference column is added before proceeding
+                        Resource? refResource = await client.ReadAsync<Resource>(referenceStr);
+                        if (refResource != null)
+                        {
+                            //get the resource type from the reference
+                            string refType = refResource.Meta.Profile?.FirstOrDefault()?.Split('/').Last() ?? "Unknown";
+                            SelectApprove(refType, referenceStr); // Call the SelectApprove method to handle the reference
+                            txtMsg.Text += $"Reference: {referenceStr} (Type: {refType})" + Environment.NewLine;                            
+                        }
+                    }
+                    catch (FhirOperationException ex)
+                    {
+                        MessageBox.Show("Error reading reference resource: " + ex.Message);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("Error: " + ex.Message);
+                    }
+                }
+            }
+        }
+    }
+
+    private void SelectApprove(string refType, string referenceStr)
+    {
+        foreach (ListViewItem item in lvBundleProfile.Items)
+        {
+            if (item.SubItems[4].Text == refType)
+            {
+                item.SubItems.Add(referenceStr); // Set the reference in the selected item
+                item.ForeColor = Color.Green; // Change the color of the selected item to green
+                return; // Exit after finding the first match
+            }
+        }
+    }
+
+
+    private void btnBundleValidate_Click(object sender, EventArgs e)
+    {
+        // Validate the bundle text box content
+        // change the pointer to be waiting
+        Cursor = Cursors.WaitCursor; // Change the cursor to a waiting cursor
+        string bundleText = txtBundle.Text; // Renamed for clarity
+        if (string.IsNullOrEmpty(bundleText))
+        {
+            MessageBox.Show("Please enter some FHIR data in the Bundle text box to validate.", "Input Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            Cursor = Cursors.Default; // Change the cursor back to default
+            return;
+        }
+        if (resolver == null)
+        {
+            MessageBox.Show("Resolver is not initialized. Cannot validate bundle.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            Cursor = Cursors.Default; // Change the cursor back to default
+            return;
+        }
+        var terminologySource = new LocalTerminologyService(resolver);
+
+        var validator = new Validator(resolver, terminologySource);
+
+        Bundle? bundleToValidate = null; // Use the base Bundle type
+        try
+        {
+            bundleToValidate = new FhirJsonParser().Parse<Bundle>(bundleText);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Failed to parse FHIR Bundle from the provided JSON. Error: {ex.Message}", "Parsing Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            Cursor = Cursors.Default; // Change the cursor back to default
+            return;
+        }
+
+        if (bundleToValidate != null)
+        {
+            OperationOutcome result = new OperationOutcome(); // Initialize the result variable
+            try
+            {
+                // Validate the bundle
+                result = validator.Validate(bundleToValidate);
+            }
+            catch (Exception ex)
+            {
+                Cursor = Cursors.Default; // Change the cursor back to default
+                MessageBox.Show($"Error during validation: {ex.Message}", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            // Display the validation results
+            if (result.Success)
+            {
+                Cursor = Cursors.Default; // Change the cursor back to default
+                MessageBox.Show("Validation successful! No issues found.", "Validation Result", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            else
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine("Validation failed with the following issues:");
+                foreach (var issue in result.Issue)
+                {
+                    if (issue.Severity == OperationOutcome.IssueSeverity.Error)
+                    {
+                        // Append only error severity issues
+                        sb.AppendLine($"- {issue.Severity}: {issue.Details?.Text} (at {issue.Location?.FirstOrDefault()})");
+                    }
+                }
+                txtMsg.Text = sb.ToString(); // Display the validation result in the text box
+                Cursor = Cursors.Default; // Change the cursor back to default
+                tabIG.SelectedTab = tabMsg; // Switch to the message tab
+            }
+        }
+        else
+        {
+            // This case should ideally be caught by the try-catch block during parsing
+            MessageBox.Show("Failed to parse FHIR Bundle from the provided JSON.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            Cursor = Cursors.Default; // Change the cursor back to default
         }
     }
 }
