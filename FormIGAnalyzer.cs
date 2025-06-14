@@ -26,7 +26,7 @@ namespace IGAnalyzer;
 
 using Firely.Fhir.Validation;
 using Hl7.Fhir.Validation;
-
+using System.Security.Cryptography.Xml;
 using System.Text;
 
 public partial class FormIGAnalyzer : Form
@@ -3457,11 +3457,11 @@ public partial class FormIGAnalyzer : Form
                 }
             }
         }
-        lvBundleConstraint.Clear();
-        lvBundleConstraint.Columns.Clear();
-        lvBundleConstraint.Columns.Add("Id", 100);
-        lvBundleConstraint.Columns.Add("Human", 500);
-        lvBundleConstraint.Columns.Add("Expression", 500);
+        lvBundleInfo.Clear();
+        lvBundleInfo.Columns.Clear();
+        lvBundleInfo.Columns.Add("Id", 100);
+        lvBundleInfo.Columns.Add("Human", 500);
+        lvBundleInfo.Columns.Add("Expression", 500);
         foreach (var constraint in sd.Differential.Element.Where(e => e.Constraint != null && e.Constraint.Any()))
         {
             foreach (var c in constraint.Constraint)
@@ -3469,7 +3469,7 @@ public partial class FormIGAnalyzer : Form
                 ListViewItem item = new ListViewItem(c.Key);
                 item.SubItems.Add(c.Human ?? string.Empty);
                 item.SubItems.Add(c.Expression ?? string.Empty);
-                lvBundleConstraint.Items.Add(item);
+                lvBundleInfo.Items.Add(item);
             }
         }
     }
@@ -5148,6 +5148,77 @@ public partial class FormIGAnalyzer : Form
 
         };
 
+        string reference = txtBundle.Text.Trim();
+        if (string.IsNullOrEmpty(reference))
+        {
+            MessageBox.Show("Please enter a valid reference in the bundle text box.");
+            return;
+        }
+
+        List<string> references = reference.Split(Environment.NewLine).ToList<string>();
+        // remove the first two lines for header information
+        references = references.Skip(2).ToList<string>();
+
+        foreach (var refID in references)
+        {
+            if (client != null)
+            {
+                Bundle.EntryComponent entry = new Bundle.EntryComponent
+                {
+                    Resource = await client.ReadAsync<Resource>(refID) // Read the resource from the FHIR server
+                };
+                bundle.Entry.Add(entry); // Add the entry to the bundle
+            }
+            else
+            {
+                MessageBox.Show("FHIR client is not initialized.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+        }
+        lvBundleInfo.Clear(); // Clear the bundle info listview before adding new items
+        lvBundleInfo.Columns.Clear(); // Clear the columns before adding new ones
+        lvBundleInfo.Columns.Add("Index", 50); // Add a column for the resource type
+        lvBundleInfo.Columns.Add("Resource Type", 150); // Add a column for the resource type
+        lvBundleInfo.Columns.Add("Resource ID", 150); // Add a column for the resource ID
+        lvBundleInfo.Columns.Add("Resource Path", 250); // Add a column for the resource path
+
+        foreach (var entry in bundle.Entry)
+        {
+            if (entry.Resource != null)
+            {
+                ListViewItem item = new ListViewItem((lvBundleInfo.Items.Count).ToString()); // Resource Index
+                item.SubItems.Add(entry.Resource.TypeName); // Resource Type
+                item.SubItems.Add(entry.Resource.Id ?? "Unknown"); // Resource ID
+                item.SubItems.Add(entry.FullUrl ?? "Unknown"); // Resource Path
+                lvBundleInfo.Items.Add(item); // Add the item to the listview
+            }
+        }
+
+
+        // Serialize the bundle to JSON
+        FhirJsonSerializer serializer = new FhirJsonSerializer(new SerializerSettings()
+        {
+            Pretty = true,
+        });
+        string bundleJson = serializer.SerializeToString(bundle);
+        // Display the bundle JSON in the text box
+        txtBundle.Text = bundleJson;
+    }
+
+    private async void btnBundleCreate_Click2(object sender, EventArgs e)
+    {
+        // Create a new Bundle from the selected items in the bundle profile listview
+        Bundle bundle = new Bundle
+        {
+            Type = Bundle.BundleType.Collection,
+            Timestamp = DateTimeOffset.Now,
+            Meta = new Meta
+            {
+                Profile = new List<string> { "https://nhicore.nhi.gov.tw/pas/StructureDefinition/Bundle-twpas" }
+            }
+
+        };
+
         if (lvBundle.SelectedItems.Count == 0)
         {
             MessageBox.Show("Please select an item from the bundle profile list.");
@@ -5197,6 +5268,7 @@ public partial class FormIGAnalyzer : Form
                         }
                     }
 
+
                 }
                 else
                 {
@@ -5214,16 +5286,36 @@ public partial class FormIGAnalyzer : Form
                 return;
             }
 
-        }
-        // Serialize the bundle to JSON
-        FhirJsonSerializer serializer = new FhirJsonSerializer(new SerializerSettings()
-        {
-            Pretty = true,
-        });
-        string bundleJson = serializer.SerializeToString(bundle);
-        // Display the bundle JSON in the text box
-        txtBundle.Text = bundleJson;
+            lvBundleInfo.Clear(); // Clear the bundle info listview before adding new items
+            lvBundleInfo.Columns.Clear(); // Clear the columns before adding new ones
+            lvBundleInfo.Columns.Add("Index", 50); // Add a column for the resource type
+            lvBundleInfo.Columns.Add("Resource Type", 150); // Add a column for the resource type
+            lvBundleInfo.Columns.Add("Resource ID", 150); // Add a column for the resource ID
+            lvBundleInfo.Columns.Add("Resource Path", 250); // Add a column for the resource path
 
+            foreach (var entry in bundle.Entry)
+            {
+                if (entry.Resource != null)
+                {
+                    ListViewItem item = new ListViewItem((lvBundleInfo.Items.Count).ToString()); // Resource Index
+                    item.SubItems.Add(entry.Resource.TypeName); // Resource Type
+                    item.SubItems.Add(entry.Resource.Id ?? "Unknown"); // Resource ID
+                    item.SubItems.Add(entry.FullUrl ?? "Unknown"); // Resource Path
+                    lvBundleInfo.Items.Add(item); // Add the item to the listview
+                }
+            }
+
+
+            // Serialize the bundle to JSON
+            FhirJsonSerializer serializer = new FhirJsonSerializer(new SerializerSettings()
+            {
+                Pretty = true,
+            });
+            string bundleJson = serializer.SerializeToString(bundle);
+            // Display the bundle JSON in the text box
+            txtBundle.Text = bundleJson;
+
+        }
     }
 
     private void AddColumnHeaderforBundleProfile()
@@ -5262,8 +5354,73 @@ public partial class FormIGAnalyzer : Form
         }
 
     }
+    private async Task<int> CollectResourceReferences(Resource resource, List<string> references, FhirClient client)
+    {
+        var directReferenceValues = resource.Select("descendants().where($this is Reference).reference");
+        foreach (var value in directReferenceValues)
+        {
+            if (value == null) continue;
+            var refStr = value.ToString();
+            if (refStr != null && !references.Contains(refStr))
+            {
+                references.Add(refStr);
+                Resource? subResource = await client.ReadAsync<Resource>(refStr);
+                if (subResource != null)
+                {
+                    await CollectResourceReferences(subResource, references, client);
+                }
+                else
+                {
+                    Console.WriteLine("Resource not found: " + refStr);
+                }
+            }
+        }
+        return references.Count;
+    }
 
     private async void lvBundle_DoubleClickAsync(object sender, EventArgs e)
+    {
+        if (lvBundle.SelectedItems.Count == 0)
+        {
+            MessageBox.Show("Please select an item from the list.");
+            return;
+        }
+        string id = lvBundle.SelectedItems[0].SubItems[0].Text;
+        string type = lvBundle.SelectedItems[0].SubItems[1].Text;
+        if (type != "Claim")
+        {
+            MessageBox.Show("Please select a Claim item from the list.");
+            return;
+        }
+        client = new FhirClient(txtFHIRServer.Text);
+        DomainResource? resource = null;
+        string resourcePath = $"{type}/{id}";
+        try
+        {
+            Resource? fetchedResource = await client.ReadAsync<Resource>(resourcePath);
+            DomainResource? domainResource = fetchedResource as DomainResource;
+            resource = domainResource;
+        }
+        catch (FhirOperationException ex)
+        {
+            MessageBox.Show("Error reading resource: " + ex.Message);
+            return;
+        }
+
+        List<string> references = new List<string>();
+        references.Add(resourcePath); // Add the resource path to the references list
+
+        if (resource != null)
+        {
+            var refList = resource.Select("descendants().where($this is Reference).reference");
+            int refCnt = await CollectResourceReferences(resource, references, client);
+        }
+        string refText = "Total References: " + references.Count + Environment.NewLine + Environment.NewLine;
+        refText += string.Join(Environment.NewLine, references);
+        txtBundle.Text = refText;
+    }
+
+    private async void lvBundle_DoubleClickAsync2(object sender, EventArgs e)
     {
         if (lvBundle.SelectedItems.Count == 0)
         {
@@ -5316,7 +5473,9 @@ public partial class FormIGAnalyzer : Form
                             //get the resource type from the reference
                             string refType = refResource.Meta.Profile?.FirstOrDefault()?.Split('/').Last() ?? "Unknown";
                             SelectApprove(refType, referenceStr); // Call the SelectApprove method to handle the reference
-                            txtMsg.Text += $"Reference: {referenceStr} (Type: {refType})" + Environment.NewLine;                            
+                                                                  // Add the reference to string using string builder
+
+                            //txtMsg.Text += $"Reference: {referenceStr} (Type: {refType})" + Environment.NewLine;                            
                         }
                     }
                     catch (FhirOperationException ex)
@@ -5365,8 +5524,10 @@ public partial class FormIGAnalyzer : Form
             return;
         }
         var terminologySource = new LocalTerminologyService(resolver);
-
-        var validator = new Validator(resolver, terminologySource);
+        // Validate the bundle
+        ValidationSettings settings = new ValidationSettings();
+        settings.SetSkipConstraintValidation(true); // Skip constraint validation for the bundle
+        var validator = new Validator(resolver, terminologySource, null, settings);
 
         Bundle? bundleToValidate = null; // Use the base Bundle type
         try
@@ -5385,7 +5546,8 @@ public partial class FormIGAnalyzer : Form
             OperationOutcome result = new OperationOutcome(); // Initialize the result variable
             try
             {
-                // Validate the bundle
+                
+            
                 result = validator.Validate(bundleToValidate);
             }
             catch (Exception ex)
@@ -5410,7 +5572,7 @@ public partial class FormIGAnalyzer : Form
                     if (issue.Severity == OperationOutcome.IssueSeverity.Error)
                     {
                         // Append only error severity issues
-                        sb.AppendLine($"- {issue.Severity}: {issue.Details?.Text} (at {issue.Location?.FirstOrDefault()})");
+                        sb.AppendLine($"- {issue.Code}: {issue.Details?.Text} (at {issue.Expression?.FirstOrDefault()})");
                     }
                 }
                 txtMsg.Text = sb.ToString(); // Display the validation result in the text box

@@ -263,9 +263,14 @@ public class IGClass
     public async void SetIinitialProperty(string igPath)
     {
 
-        if (resolver == null)
+        if (resolver == null )
         {
+            ErrorMessage = "Resolver is not initialized or IG path is empty." + Environment.NewLine;
             return;
+        }
+        if(Title != string.Empty)
+        {
+            return; // 已經設定過了
         }
         ImplementationGuide? guide = await resolver.ResolveByUriAsync("ImplementationGuide/" + igPath) as ImplementationGuide;
         IGName = guide?.Name ?? string.Empty;

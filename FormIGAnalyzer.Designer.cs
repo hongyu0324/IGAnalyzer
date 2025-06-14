@@ -1,8 +1,6 @@
 ﻿namespace IGAnalyzer;
 
 
-
-
 partial class FormIGAnalyzer : Form
 {
     /// <summary>
@@ -116,7 +114,7 @@ partial class FormIGAnalyzer : Form
         lvBundleProfile = new ListView();
         splitBundle2 = new SplitContainer();
         splitBundle3 = new SplitContainer();
-        lvBundleConstraint = new ListView();
+        lvBundleInfo = new ListView();
         splitBundle4 = new SplitContainer();
         lvBundle = new ListView();
         btnBundleSelect = new Button();
@@ -1306,7 +1304,7 @@ partial class FormIGAnalyzer : Form
         // 
         // splitBundle3.Panel1
         // 
-        splitBundle3.Panel1.Controls.Add(lvBundleConstraint);
+        splitBundle3.Panel1.Controls.Add(lvBundleInfo);
         // 
         // splitBundle3.Panel2
         // 
@@ -1315,15 +1313,16 @@ partial class FormIGAnalyzer : Form
         splitBundle3.SplitterDistance = 155;
         splitBundle3.TabIndex = 0;
         // 
-        // lvBundleConstraint
+        // lvBundleInfo
         // 
-        lvBundleConstraint.Dock = DockStyle.Fill;
-        lvBundleConstraint.Location = new Point(0, 0);
-        lvBundleConstraint.Name = "lvBundleConstraint";
-        lvBundleConstraint.Size = new Size(387, 155);
-        lvBundleConstraint.TabIndex = 0;
-        lvBundleConstraint.UseCompatibleStateImageBehavior = false;
-        lvBundleConstraint.View = View.Details;
+        lvBundleInfo.Dock = DockStyle.Fill;
+        lvBundleInfo.Location = new Point(0, 0);
+        lvBundleInfo.Name = "lvBundleInfo";
+        lvBundleInfo.Size = new Size(387, 155);
+        lvBundleInfo.TabIndex = 0;
+        lvBundleInfo.UseCompatibleStateImageBehavior = false;
+        lvBundleInfo.View = View.Details;
+        lvBundleInfo.FullRowSelect = true;
         // 
         // splitBundle4
         // 
@@ -1851,7 +1850,7 @@ partial class FormIGAnalyzer : Form
     private Button btnStagingValidate;
     private TextBox txtStaging;
     internal SplitContainer splitBundle4;
-    private ListView lvBundleConstraint;
+    private ListView lvBundleInfo;
     private Button btnBundleCreate;
     private Button btnBundleSelect;
     private Button btnBundleValidate;
