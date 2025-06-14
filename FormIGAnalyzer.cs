@@ -5082,8 +5082,7 @@ public partial class FormIGAnalyzer : Form
             return;
         }
 
-        var terminologySource = new LocalTerminologyService(resolver);
-        var validator = new Validator(resolver, terminologySource);
+        var validator = CreateValidator();
 
         Resource? resourceToValidate = null; // Use the base Resource type
         try
@@ -5116,12 +5115,12 @@ public partial class FormIGAnalyzer : Form
                     if (issue.Severity == OperationOutcome.IssueSeverity.Error)
                     {
                         sb.AppendLine($"- {issue.Severity}: {issue.Details?.Text} (at {issue.Location?.FirstOrDefault()})");
-                    }  
+                    }
                 }
                 txtMsg.Text = sb.ToString(); // Display the issues in the message box
                 Cursor = Cursors.Default; // Reset cursor to default state
                 tabIG.SelectedTab = tabMsg; // Switch to the message tab
-                
+
                 //MessageBox.Show(sb.ToString(), "Validation Result", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
@@ -5504,7 +5503,17 @@ public partial class FormIGAnalyzer : Form
         }
     }
 
-
+    private Validator CreateValidator()
+    {
+        if (resolver == null)
+        {
+            throw new InvalidOperationException("Resolver is not initialized. Cannot create validator.");
+        }
+        var terminologySource = new LocalTerminologyService(resolver);
+        ValidationSettings settings = new ValidationSettings();
+        settings.SetSkipConstraintValidation(true); // Skip constraint validation for the bundle
+        return new Validator(resolver, terminologySource, null, settings);
+    }
     private void btnBundleValidate_Click(object sender, EventArgs e)
     {
         // Validate the bundle text box content
@@ -5523,11 +5532,11 @@ public partial class FormIGAnalyzer : Form
             Cursor = Cursors.Default; // Change the cursor back to default
             return;
         }
-        var terminologySource = new LocalTerminologyService(resolver);
+        //var terminologySource = new LocalTerminologyService(resolver);
         // Validate the bundle
-        ValidationSettings settings = new ValidationSettings();
-        settings.SetSkipConstraintValidation(true); // Skip constraint validation for the bundle
-        var validator = new Validator(resolver, terminologySource, null, settings);
+        //ValidationSettings settings = new ValidationSettings();
+        //settings.SetSkipConstraintValidation(true); // Skip constraint validation for the bundle
+        var validator = CreateValidator(); // Create the validator using the resolver and terminology source
 
         Bundle? bundleToValidate = null; // Use the base Bundle type
         try
@@ -5546,8 +5555,8 @@ public partial class FormIGAnalyzer : Form
             OperationOutcome result = new OperationOutcome(); // Initialize the result variable
             try
             {
-                
-            
+
+
                 result = validator.Validate(bundleToValidate);
             }
             catch (Exception ex)
@@ -5585,6 +5594,49 @@ public partial class FormIGAnalyzer : Form
             // This case should ideally be caught by the try-catch block during parsing
             MessageBox.Show("Failed to parse FHIR Bundle from the provided JSON.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             Cursor = Cursors.Default; // Change the cursor back to default
+        }
+    }
+
+    private async void tabMajor_Enter(object sender, EventArgs e)
+    {
+        StructureDefinition? sd = new StructureDefinition();
+
+        sd = await GetStructureDefinition("Claim-twpas");
+
+        // fill the TreeView with the structure definition
+        if (sd != null)
+        {
+            tvMajor.Nodes.Clear(); // Clear existing nodes
+            TreeNode rootNode = new TreeNode(sd.Name ?? "Root");
+            rootNode.Tag = sd; // Store the StructureDefinition in the tag
+            tvMajor.Nodes.Add(rootNode);
+            PopulateTreeView(rootNode, sd);
+            tvMajor.ExpandAll(); // Expand all nodes for better visibility
+        }
+        else
+        {
+            MessageBox.Show("Failed to load StructureDefinition for Claim-pas.");
+        }
+    }
+    
+    private void PopulateTreeView(TreeNode parentNode, StructureDefinition sd)
+    {
+        // Recursively populate the TreeView with elements from the StructureDefinition
+        foreach (var element in sd.Differential?.Element ?? new List<ElementDefinition>())
+        {
+            TreeNode node = new TreeNode(element.Path ?? "Unnamed Element");
+            node.Tag = element; // Store the ElementDefinition in the tag
+            parentNode.Nodes.Add(node);
+
+            // Recursively add child elements if they exist
+            if (element.Type != null && element.Type.Count > 0)
+            {
+                foreach (var type in element.Type)
+                {
+                    TreeNode typeNode = new TreeNode(type.Code ?? "Unknown Type");
+                    node.Nodes.Add(typeNode);
+                }
+            }
         }
     }
 }

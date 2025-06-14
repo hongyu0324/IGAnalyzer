@@ -117,6 +117,7 @@ partial class FormIGAnalyzer : Form
         lvBundleInfo = new ListView();
         splitBundle4 = new SplitContainer();
         lvBundle = new ListView();
+        btnBundleValidate = new Button();
         btnBundleSelect = new Button();
         btnBundleCreate = new Button();
         txtBundle = new TextBox();
@@ -138,7 +139,9 @@ partial class FormIGAnalyzer : Form
         rbDifferential = new RadioButton();
         rbSnapshot = new RadioButton();
         rbApplyModel = new RadioButton();
-        btnBundleValidate = new Button();
+        tabMajor = new TabPage();
+        splitMajor1 = new SplitContainer();
+        tvMajor = new TreeView();
         tabIG.SuspendLayout();
         tabConfiguration.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)splitBase).BeginInit();
@@ -247,6 +250,10 @@ partial class FormIGAnalyzer : Form
         splitIGList2.Panel2.SuspendLayout();
         splitIGList2.SuspendLayout();
         statusBar.SuspendLayout();
+        tabMajor.SuspendLayout();
+        ((System.ComponentModel.ISupportInitialize)splitMajor1).BeginInit();
+        splitMajor1.Panel1.SuspendLayout();
+        splitMajor1.SuspendLayout();
         SuspendLayout();
         // 
         // btnClose
@@ -290,6 +297,7 @@ partial class FormIGAnalyzer : Form
         tabIG.Controls.Add(tabApplyModel);
         tabIG.Controls.Add(tabMaster);
         tabIG.Controls.Add(tabStaging);
+        tabIG.Controls.Add(tabMajor);
         tabIG.Controls.Add(tabBundle);
         tabIG.Controls.Add(tabMsg);
         tabIG.Controls.Add(tabVersion);
@@ -1316,13 +1324,13 @@ partial class FormIGAnalyzer : Form
         // lvBundleInfo
         // 
         lvBundleInfo.Dock = DockStyle.Fill;
+        lvBundleInfo.FullRowSelect = true;
         lvBundleInfo.Location = new Point(0, 0);
         lvBundleInfo.Name = "lvBundleInfo";
         lvBundleInfo.Size = new Size(387, 155);
         lvBundleInfo.TabIndex = 0;
         lvBundleInfo.UseCompatibleStateImageBehavior = false;
         lvBundleInfo.View = View.Details;
-        lvBundleInfo.FullRowSelect = true;
         // 
         // splitBundle4
         // 
@@ -1357,6 +1365,17 @@ partial class FormIGAnalyzer : Form
         lvBundle.UseCompatibleStateImageBehavior = false;
         lvBundle.View = View.Details;
         lvBundle.DoubleClick += lvBundle_DoubleClickAsync;
+        // 
+        // btnBundleValidate
+        // 
+        btnBundleValidate.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right;
+        btnBundleValidate.Location = new Point(154, 7);
+        btnBundleValidate.Name = "btnBundleValidate";
+        btnBundleValidate.Size = new Size(112, 34);
+        btnBundleValidate.TabIndex = 2;
+        btnBundleValidate.Text = "驗證";
+        btnBundleValidate.UseVisualStyleBackColor = true;
+        btnBundleValidate.Click += btnBundleValidate_Click;
         // 
         // btnBundleSelect
         // 
@@ -1581,16 +1600,37 @@ partial class FormIGAnalyzer : Form
         rbApplyModel.Visible = false;
         rbApplyModel.CheckedChanged += lbProfile_SelectedIndexChanged;
         // 
-        // btnBundleValidate
+        // tabMajor
         // 
-        btnBundleValidate.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right;
-        btnBundleValidate.Location = new Point(154, 7);
-        btnBundleValidate.Name = "btnBundleValidate";
-        btnBundleValidate.Size = new Size(112, 34);
-        btnBundleValidate.TabIndex = 2;
-        btnBundleValidate.Text = "驗證";
-        btnBundleValidate.UseVisualStyleBackColor = true;
-        btnBundleValidate.Click += btnBundleValidate_Click;
+        tabMajor.Controls.Add(splitMajor1);
+        tabMajor.Location = new Point(4, 32);
+        tabMajor.Name = "tabMajor";
+        tabMajor.Size = new Size(937, 418);
+        tabMajor.TabIndex = 9;
+        tabMajor.Text = "Major Profile";
+        tabMajor.UseVisualStyleBackColor = true;
+        tabMajor.Enter += tabMajor_Enter;
+        // 
+        // splitMajor1
+        // 
+        splitMajor1.Dock = DockStyle.Fill;
+        splitMajor1.Location = new Point(0, 0);
+        splitMajor1.Name = "splitMajor1";
+        // 
+        // splitMajor1.Panel1
+        // 
+        splitMajor1.Panel1.Controls.Add(tvMajor);
+        splitMajor1.Size = new Size(937, 418);
+        splitMajor1.SplitterDistance = 240;
+        splitMajor1.TabIndex = 0;
+        // 
+        // tvMajor
+        // 
+        tvMajor.Dock = DockStyle.Fill;
+        tvMajor.Location = new Point(0, 0);
+        tvMajor.Name = "tvMajor";
+        tvMajor.Size = new Size(240, 418);
+        tvMajor.TabIndex = 0;
         // 
         // FormIGAnalyzer
         // 
@@ -1727,6 +1767,10 @@ partial class FormIGAnalyzer : Form
         splitIGList2.ResumeLayout(false);
         statusBar.ResumeLayout(false);
         statusBar.PerformLayout();
+        tabMajor.ResumeLayout(false);
+        splitMajor1.Panel1.ResumeLayout(false);
+        ((System.ComponentModel.ISupportInitialize)splitMajor1).EndInit();
+        splitMajor1.ResumeLayout(false);
         ResumeLayout(false);
         PerformLayout();
     }
@@ -1854,4 +1898,7 @@ partial class FormIGAnalyzer : Form
     private Button btnBundleCreate;
     private Button btnBundleSelect;
     private Button btnBundleValidate;
+    private TabPage tabMajor;
+    private SplitContainer splitMajor1;
+    private TreeView tvMajor;
 }
