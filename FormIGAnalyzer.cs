@@ -2250,11 +2250,12 @@ public partial class FormIGAnalyzer : Form
         }
         fumeListTuple = CleanFumeTupleList(fumeListTuple); // ==> 問題可能是Slicing所造成，先取消操作
         fumeListTuple = RefineFUME(fumeListTuple);
+        fumeListTuple = GetFUMECoding(fumeListTuple);
         fumeListTuple = GetFUMEPattern(sd, fumeListTuple);
         fumeListTuple = GetFUMECodeable(profileName, fumeListTuple);
         //fumeListTuple = GetFUMEQuantity(fumeListTuple);
         fumeListTuple = GetFUMEPeriod(fumeListTuple);
-        fumeListTuple = GetFUMECoding(fumeListTuple);
+        //fumeListTuple = GetFUMECoding(fumeListTuple);
         fumeListTuple = await GetFUMESlice(fumeListTuple);
         fumeListTuple = GetFUMEQuantity(fumeListTuple);
         fumeListTuple = GetFUMEValue(fumeListTuple);
@@ -2866,6 +2867,40 @@ public partial class FormIGAnalyzer : Form
                             }
                         }
                     }
+                    else if (patternType == "Coding")
+                    {
+                        var coding = obj.Pattern as Coding;
+                        if (coding != null)
+                        {
+                            string system = coding.System;
+                            string code = coding.Code;
+                            for (int j = i; j < i + 3; j++)
+                            {
+                                isPattern = true;
+                                Tuple<string, string, string> fumeTuple = fumeListTuple[j];
+                                string pathFUME = fumeListTuple[j].Item3;
+                                string type = fumeListTuple[j].Item2;
+                                
+                                if (type == "code")
+                                {
+                                    string fumeInfo = fumeListTuple[j].Item1;
+                                    fumeTuple = new Tuple<string, string, string>(fumeInfo + " = " + "\"" + code + "\"", type, pathFUME);
+                                    patternFUME.Add(fumeTuple);
+                                }
+                                else if (type == "uri")
+                                {
+                                    string fumeInfo = fumeListTuple[j].Item1;
+                                    fumeTuple = new Tuple<string, string, string>(fumeInfo + " = " + "\"" + system + "\"", type, pathFUME);
+                                    patternFUME.Add(fumeTuple);
+                                }
+                                else
+                                {
+
+                                }
+                            }
+                            i = i + 3;
+                        }
+                    }
                     string pattern = value != null ? value.ToString() ?? string.Empty : string.Empty;
                     if (pattern != string.Empty)
                     {
@@ -2873,8 +2908,16 @@ public partial class FormIGAnalyzer : Form
                         string fumeInfo = fume.Item1;
                         string type = fume.Item2;
                         string pathFUME = fume.Item3;
-                        patternFUME.Add(new Tuple<string, string, string>(fumeInfo + " = " + "\"" + pattern + "\"", type, pathFUME));
+                        if (patternType == "Coding") // Hard code for Encounter ???
+                        {
+                            patternFUME.Add(fume);
+                        }
+                        else
+                        {
+                            patternFUME.Add(new Tuple<string, string, string>(fumeInfo + " = " + "\"" + pattern + "\"", type, pathFUME));
+                        }
                         isPattern = true;
+                        
                     }
                 }
             }
