@@ -35,11 +35,31 @@ public class AppSettings
     [JsonPropertyName("BindingIgnore")]
     public List<string> BindingIgnore { get; set; } = new List<string>();
 
+    [JsonPropertyName("StagingDefault")]
+    public List<StagingDefaultItem> StagingDefault { get; set; } = new List<StagingDefaultItem>();
+
     [JsonPropertyName("Constraints")]
     public List<Constraint> Constraints { get; set; } = new List<Constraint>();
 
-    
 
+    public class StagingDefaultItem
+    {
+        [JsonPropertyName("profile")]
+        public string? Profile { get; set; }
+
+        [JsonPropertyName("element")]
+        public string? Element { get; set; }
+
+        [JsonPropertyName("value")]
+        public string? Value { get; set; }
+
+        [JsonPropertyName("type")]
+        public string? Type { get; set; }
+
+        [JsonPropertyName("anchor")]
+        public string? Anchor { get; set; }
+        
+    }
 
     public class MasterDataItem
     {
@@ -198,6 +218,7 @@ public class AppSettings
                 Constraints = config.Constraints;
                 LogicModelAdd = config.LogicModelAdd;
                 BindingIgnore = config.BindingIgnore;
+                StagingDefault = config.StagingDefault;
             }
         }
         else

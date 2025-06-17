@@ -29,6 +29,8 @@ using Hl7.Fhir.Validation;
 using System.Security.Cryptography.Xml;
 using System.Text;
 
+using Hl7.Fhir.Specification.Source;
+
 public partial class FormIGAnalyzer : Form
 {
     private IGClass ig = new IGClass();
@@ -1204,14 +1206,17 @@ public partial class FormIGAnalyzer : Form
         {
             if (item is TextBox textBox)
             {
+                if (textBox.Text == string.Empty) continue; // Skip empty text boxes
                 questionnaireData.Add(textBox.Name.Replace(".", ""), textBox.Text);
             }
             else if (item is ComboBox comboBox)
             {
+                if (comboBox.SelectedItem == null || comboBox.SelectedItem.ToString() == string.Empty) continue; // Skip empty combo boxes
                 questionnaireData.Add(comboBox.Name.Replace(".", ""), comboBox.SelectedItem?.ToString() ?? string.Empty);
             }
             else if (item is CheckBox checkBox)
             {
+                
                 questionnaireData.Add(checkBox.Name.Replace(".", ""), checkBox.Checked.ToString());
             }
             else if (item is NumericUpDown numericUpDown)
@@ -1797,6 +1802,9 @@ public partial class FormIGAnalyzer : Form
                 }
             }
 
+            // add the FHIR Server data to the dictionary
+            AddFHIRData(data);
+
             // transform the dictionary to json
             string json = Newtonsoft.Json.JsonConvert.SerializeObject(data, Newtonsoft.Json.Formatting.Indented);
             // display json in textBox
@@ -1815,6 +1823,13 @@ public partial class FormIGAnalyzer : Form
         lvStaging.Refresh();
     }
 
+    private void AddFHIRData(Dictionary<string, string> data)
+    {
+        if(fhirData.Patient != null)
+        {
+            data.Add("fhirdatapatient", "Patient/" + fhirData.Patient);
+        }
+    }
     private string CreateFHIRData(string json, string itemName)
     {
 
@@ -2244,6 +2259,7 @@ public partial class FormIGAnalyzer : Form
         fumeListTuple = GetFUMEQuantity(fumeListTuple);
         fumeListTuple = GetFUMEValue(fumeListTuple);
         fumeListTuple = GetFUMELost(fumeListTuple);
+        fumeListTuple = GetFUMEDefault(fumeListTuple);
 
         //fumeListTuple = GetFUMEValueWithRule(fumeListTuple);
         lvFUME.Items.Clear();
@@ -2256,7 +2272,46 @@ public partial class FormIGAnalyzer : Form
         txtFHIRData.Text = fumeDetail;
         return fume2;
     }
+    private  List<Tuple<string, string, string>> GetFUMEDefault(List<Tuple<string, string, string>> fumeListTuple)
+    {
+        string profileName = lbStaging.SelectedItem?.ToString()?.Split('|')[0].Trim() ?? string.Empty;
 
+        foreach (var item in appSettings.StagingDefault)
+        {
+            if (item.Profile == profileName)
+            {
+                string path = profileName.Split("-")[0] + "." + item.Element ?? string.Empty;
+                string type = item.Type ?? string.Empty;
+                string anchor = item.Anchor ?? string.Empty;
+
+                foreach (var tuple in fumeListTuple)
+                {
+                    int level = ComputeLevel(tuple.Item1);
+                    string fumeAnchor = tuple.Item1.Split('=')[0].Trim('*').Trim();
+
+                    if (fumeAnchor == anchor)
+                    {
+                        string fumeInfo = GetPostionStar(level+2, item.Element + " = " + "\"" +  item.Value + "\"");
+                        Tuple<string, string, string> fumeTuple = new Tuple<string, string, string>(fumeInfo, type, path);
+                        //insert the fumeTuple into the fumeListTuple in front of the tuple with the same anchor
+                        int index = fumeListTuple.IndexOf(tuple);
+                        if (index >= 0)
+                        {
+                            fumeListTuple.Insert(index, fumeTuple);
+                        }
+                        break; // Exit the loop once the anchor is found
+                    }
+                    else
+                    {
+                        continue;
+                    }   
+                }
+
+            }
+        }
+
+        return fumeListTuple;
+    }
     private async Task<List<Tuple<string, string, string>>> GetFUMESlice(List<Tuple<string, string, string>> fumeListTuple)
     {
         List<Tuple<string, string, string>> sliceFUME = new List<Tuple<string, string, string>>();
@@ -2908,12 +2963,13 @@ public partial class FormIGAnalyzer : Form
                 path = path + ".reference";
                 if (fumeName == "subject")
                 {
-                    if (fhirData.Patients.Count == 0)
+                    if (fhirData.Patient == string.Empty)
                     {
                         continue;
                     }
-                    string patient = fhirData.Patients[0] ?? string.Empty;
-                    fumeInfo = "  " + fumeInfo.Replace(fumeName, "reference") + " = " + "\"Patient/" + patient + "\"";
+                    string patient = fhirData.Patient ?? string.Empty;
+                    //fumeInfo = "  " + fumeInfo.Replace(fumeName, "reference") + " = " + "\"Patient/" + patient + "\"";
+                    fumeInfo = "  " + fumeInfo.Replace(fumeName, "reference") + " = " + "fhirdatapatient";
                 }
                 else
                 {
@@ -5509,10 +5565,14 @@ public partial class FormIGAnalyzer : Form
         {
             throw new InvalidOperationException("Resolver is not initialized. Cannot create validator.");
         }
-        var terminologySource = new LocalTerminologyService(resolver);
+        string tw_core_ig = @"D:\Hongyu\Project\data\IGAnalyzer\profiles\twcore\package.tgz";
+        FhirPackageSource tw_core = new(ModelInfo.ModelInspector, new string[] { tw_core_ig });
+        
+        var multiResolver = new MultiResolver(resolver, tw_core);
+        var terminologySource = new LocalTerminologyService(tw_core);
         ValidationSettings settings = new ValidationSettings();
         settings.SetSkipConstraintValidation(true); // Skip constraint validation for the bundle
-        return new Validator(resolver, terminologySource, null, settings);
+        return new Validator(multiResolver, terminologySource, null, settings);
     }
     private void btnBundleValidate_Click(object sender, EventArgs e)
     {
@@ -5618,25 +5678,87 @@ public partial class FormIGAnalyzer : Form
             MessageBox.Show("Failed to load StructureDefinition for Claim-pas.");
         }
     }
-    
+
     private void PopulateTreeView(TreeNode parentNode, StructureDefinition sd)
     {
         // Recursively populate the TreeView with elements from the StructureDefinition
+
+        bool isSlicing = false;
+        string slicPath = string.Empty;
+        TreeNode? sliceNode = null;
+        TreeNode? sliceChildNode = null;
         foreach (var element in sd.Differential?.Element ?? new List<ElementDefinition>())
         {
-            TreeNode node = new TreeNode(element.Path ?? "Unnamed Element");
-            node.Tag = element; // Store the ElementDefinition in the tag
-            parentNode.Nodes.Add(node);
-
-            // Recursively add child elements if they exist
-            if (element.Type != null && element.Type.Count > 0)
+            if (element.Max == "0")
             {
-                foreach (var type in element.Type)
-                {
-                    TreeNode typeNode = new TreeNode(type.Code ?? "Unknown Type");
-                    node.Nodes.Add(typeNode);
-                }
+                // Skip elements with no minimum cardinality or negative minimum cardinality
+                continue;
             }
+
+            if (element.Slicing == null)
+            {
+                // Create a node for the element without slicing
+                TreeNode node = new TreeNode(element.Path ?? "Unnamed Element");
+                node.Tag = element; // Store the ElementDefinition in the tag
+                if (!string.IsNullOrEmpty(element.Path) && element.Path.Contains(slicPath) && isSlicing)
+                {
+                    // If the element is part of a slice, add it to the current slice node
+                    if (sliceNode != null)
+                    {
+                        if (element.Path == slicPath)
+                        {
+                            node.Text += "(" + element.SliceName + ")"; // Append slice name to the node text
+                            sliceNode.Nodes.Add(node);
+                            sliceChildNode = node;
+                        }
+                        else
+                        {
+                            string type = element.Type?.FirstOrDefault()?.Code ?? string.Empty; // Get the type code or default to "Unknown"
+                            if (type != string.Empty) node.Text = $"{element.Path} [{type}]"; // Set the node text with path and type
+                            //node.Text += element.Type?.FirstOrDefault()?.Code ?? string.Empty; // Append type code if available
+                            sliceChildNode?.Nodes.Add(node);
+                        }
+
+                    }
+                    else
+                    {
+                        parentNode.Nodes.Add(node); // If no slice node exists, add to parent
+                    }
+                }
+                else if (isSlicing && (string.IsNullOrEmpty(element.Path) || !element.Path.Contains(slicPath)))
+                {
+                    // If slicing has ended, reset the flag and slicPath
+                    isSlicing = false;
+                    slicPath = string.Empty;
+                    parentNode.Nodes.Add(node); // Add to parent node if not part of slicing
+                }
+
+            }
+            else
+            {
+                // Create a node for the element
+                TreeNode node = new TreeNode(element.Path ?? "Unnamed Element");
+                node.Tag = element; // Store the ElementDefinition in the tag
+                parentNode.Nodes.Add(node);
+                isSlicing = true; // Set the flag to true if slicing is present
+                slicPath = element.Path ?? string.Empty; // Store the slicing path
+                // Recursively add child elements if they exist
+                if (element.Slicing.Discriminator != null && element.Slicing.Discriminator.Count > 0)
+                {
+                    foreach (var discriminator in element.Slicing.Discriminator)
+                    {
+                        TreeNode discriminatorNode = new TreeNode(discriminator.Type.ToString() + ": " + discriminator.Path);
+                        node.Nodes.Add(discriminatorNode);
+                    }
+                }
+                sliceNode = node; // Store the current slice node for further processing
+            }
+
         }
+    }
+    
+    private void tabVersion_Enter(object sender, EventArgs e)
+    {
+        
     }
 }

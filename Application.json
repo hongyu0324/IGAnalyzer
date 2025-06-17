@@ -70,10 +70,6 @@
         {
             "path":"Claim-twpas.diagnosis.diagnosisCodeableConcept",
             "valueSet":"https://twcore.mohw.gov.tw/ig/twcore/ValueSet/icd-10-pcs-2023-tw"
-        },
-        {
-            "path":"Observation-cancer-stage-twpas.valueCodeableConcept",
-            "valueSet":"https://twcore.mohw.gov.tw/ig/pas/ValueSet/cancer-stage-score"
         }
     ],
     "PathUpdate":[
@@ -124,6 +120,26 @@
             "profile":"Coverage-twpas",
             "path":"payor.reference",
             "type":"Reference"
+        },
+        {
+            "name":"放射線檢查項目 | ApplyModel.treat.radiotherapy.rt",
+            "profile":"Substance-twpas",
+            "path":"code",
+            "type":"CodeableConcept"
+        }
+    ],
+    "StagingDefault":[
+        {
+            "profile":"Observation-pat-assessment-twpas",
+            "element":"status",
+            "value":"final",
+            "anchor":"meta"
+        },
+                {
+            "profile":"Observation-pat-assessment-twpas",
+            "element":"status",
+            "value":"final",
+            "anchor":"meta"
         }
     ],
     "Constraints":[

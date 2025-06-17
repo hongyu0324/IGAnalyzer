@@ -131,7 +131,7 @@ partial class FormIGAnalyzer : Form
         lbIG = new ListBox();
         lvIG = new ListView();
         lvIGNext = new ListView();
-        cmdIGList = new ComboBox();
+        cbIGList = new ComboBox();
         label6 = new Label();
         statusBar = new StatusStrip();
         lblSatatusBar = new ToolStripStatusLabel();
@@ -297,10 +297,10 @@ partial class FormIGAnalyzer : Form
         tabIG.Controls.Add(tabApplyModel);
         tabIG.Controls.Add(tabMaster);
         tabIG.Controls.Add(tabStaging);
-        tabIG.Controls.Add(tabMajor);
         tabIG.Controls.Add(tabBundle);
         tabIG.Controls.Add(tabMsg);
         tabIG.Controls.Add(tabVersion);
+        tabIG.Controls.Add(tabMajor);
         tabIG.Location = new Point(12, 12);
         tabIG.Name = "tabIG";
         tabIG.SelectedIndex = 0;
@@ -1434,7 +1434,7 @@ partial class FormIGAnalyzer : Form
         tabVersion.Controls.Add(btnIGCompare);
         tabVersion.Controls.Add(btnIGCheck);
         tabVersion.Controls.Add(splitIGList1);
-        tabVersion.Controls.Add(cmdIGList);
+        tabVersion.Controls.Add(cbIGList);
         tabVersion.Controls.Add(label6);
         tabVersion.Location = new Point(4, 32);
         tabVersion.Name = "tabVersion";
@@ -1442,6 +1442,7 @@ partial class FormIGAnalyzer : Form
         tabVersion.TabIndex = 7;
         tabVersion.Text = "Version";
         tabVersion.UseVisualStyleBackColor = true;
+        tabVersion.Enter += tabVersion_Enter;
         // 
         // btnIGCompare
         // 
@@ -1524,14 +1525,16 @@ partial class FormIGAnalyzer : Form
         lvIGNext.TabIndex = 0;
         lvIGNext.UseCompatibleStateImageBehavior = false;
         // 
-        // cmdIGList
+        // cbIGList
         // 
-        cmdIGList.FormattingEnabled = true;
-        cmdIGList.Location = new Point(136, 18);
-        cmdIGList.Name = "cmdIGList";
-        cmdIGList.Size = new Size(182, 31);
-        cmdIGList.TabIndex = 1;
-        cmdIGList.SelectedIndexChanged += comboBox1_SelectedIndexChanged;
+        cbIGList.FormattingEnabled = true;
+        cbIGList.Location = new Point(136, 18);
+        cbIGList.Name = "cbIGList";
+        cbIGList.Size = new Size(182, 31);
+        cbIGList.TabIndex = 1;
+        cbIGList.SelectedIndexChanged += comboBox1_SelectedIndexChanged;
+        cbIGList.Text = "pas";
+        cbIGList.Enabled = false;
         // 
         // label6
         // 
@@ -1843,7 +1846,7 @@ partial class FormIGAnalyzer : Form
     private Button btnStagingLoad;
     private ListView lvFUME;
     private TabPage tabVersion;
-    private ComboBox cmdIGList;
+    private ComboBox cbIGList;
     private Label label6;
     private SplitContainer splitIGList1;
     private Button btnIGCheck;
