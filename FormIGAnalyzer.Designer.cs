@@ -96,6 +96,7 @@ partial class FormIGAnalyzer : Form
         lvStaging = new ListView();
         splitContainer3 = new SplitContainer();
         splitStaging4 = new SplitContainer();
+        cmbDocument = new ComboBox();
         btnConfirm = new Button();
         btnFUMECheck = new Button();
         btnStagingLoad = new Button();
@@ -133,15 +134,16 @@ partial class FormIGAnalyzer : Form
         lvIGNext = new ListView();
         cbIGList = new ComboBox();
         label6 = new Label();
+        tabMajor = new TabPage();
+        splitMajor1 = new SplitContainer();
+        tvMajor = new TreeView();
         statusBar = new StatusStrip();
         lblSatatusBar = new ToolStripStatusLabel();
         columnHeader1 = new ColumnHeader();
         rbDifferential = new RadioButton();
         rbSnapshot = new RadioButton();
         rbApplyModel = new RadioButton();
-        tabMajor = new TabPage();
-        splitMajor1 = new SplitContainer();
-        tvMajor = new TreeView();
+        lblDocument = new Label();
         tabIG.SuspendLayout();
         tabConfiguration.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)splitBase).BeginInit();
@@ -249,11 +251,11 @@ partial class FormIGAnalyzer : Form
         splitIGList2.Panel1.SuspendLayout();
         splitIGList2.Panel2.SuspendLayout();
         splitIGList2.SuspendLayout();
-        statusBar.SuspendLayout();
         tabMajor.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)splitMajor1).BeginInit();
         splitMajor1.Panel1.SuspendLayout();
         splitMajor1.SuspendLayout();
+        statusBar.SuspendLayout();
         SuspendLayout();
         // 
         // btnClose
@@ -1081,6 +1083,8 @@ partial class FormIGAnalyzer : Form
         // 
         // splitStaging4.Panel1
         // 
+        splitStaging4.Panel1.Controls.Add(lblDocument);
+        splitStaging4.Panel1.Controls.Add(cmbDocument);
         splitStaging4.Panel1.Controls.Add(btnConfirm);
         splitStaging4.Panel1.Controls.Add(btnFUMECheck);
         splitStaging4.Panel1.Controls.Add(btnStagingLoad);
@@ -1096,11 +1100,22 @@ partial class FormIGAnalyzer : Form
         splitStaging4.SplitterDistance = 55;
         splitStaging4.TabIndex = 0;
         // 
+        // cmbDocument
+        // 
+        cmbDocument.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        cmbDocument.FormattingEnabled = true;
+        cmbDocument.Location = new Point(170, 13);
+        cmbDocument.Name = "cmbDocument";
+        cmbDocument.Size = new Size(220, 31);
+        cmbDocument.TabIndex = 4;
+        cmbDocument.Visible = false;
+        cmbDocument.SelectedIndexChanged += cmbDocument_SelectedIndexChanged;
+        // 
         // btnConfirm
         // 
         btnConfirm.Location = new Point(3, 13);
         btnConfirm.Name = "btnConfirm";
-        btnConfirm.Size = new Size(112, 34);
+        btnConfirm.Size = new Size(75, 34);
         btnConfirm.TabIndex = 3;
         btnConfirm.Text = "檢查";
         btnConfirm.UseVisualStyleBackColor = true;
@@ -1108,9 +1123,10 @@ partial class FormIGAnalyzer : Form
         // 
         // btnFUMECheck
         // 
-        btnFUMECheck.Location = new Point(266, 13);
+        btnFUMECheck.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+        btnFUMECheck.Location = new Point(158, 13);
         btnFUMECheck.Name = "btnFUMECheck";
-        btnFUMECheck.Size = new Size(112, 34);
+        btnFUMECheck.Size = new Size(72, 34);
         btnFUMECheck.TabIndex = 2;
         btnFUMECheck.Text = "切換";
         btnFUMECheck.UseVisualStyleBackColor = true;
@@ -1118,11 +1134,11 @@ partial class FormIGAnalyzer : Form
         // 
         // btnStagingLoad
         // 
-        btnStagingLoad.Location = new Point(121, 13);
+        btnStagingLoad.Location = new Point(84, 13);
         btnStagingLoad.Name = "btnStagingLoad";
-        btnStagingLoad.Size = new Size(112, 34);
+        btnStagingLoad.Size = new Size(68, 34);
         btnStagingLoad.TabIndex = 1;
-        btnStagingLoad.Text = "修正";
+        btnStagingLoad.Text = "匯入";
         btnStagingLoad.UseVisualStyleBackColor = true;
         btnStagingLoad.Click += btnStagingLoad_Click;
         // 
@@ -1527,14 +1543,14 @@ partial class FormIGAnalyzer : Form
         // 
         // cbIGList
         // 
+        cbIGList.Enabled = false;
         cbIGList.FormattingEnabled = true;
         cbIGList.Location = new Point(136, 18);
         cbIGList.Name = "cbIGList";
         cbIGList.Size = new Size(182, 31);
         cbIGList.TabIndex = 1;
-        cbIGList.SelectedIndexChanged += comboBox1_SelectedIndexChanged;
         cbIGList.Text = "pas";
-        cbIGList.Enabled = false;
+        cbIGList.SelectedIndexChanged += comboBox1_SelectedIndexChanged;
         // 
         // label6
         // 
@@ -1544,6 +1560,38 @@ partial class FormIGAnalyzer : Form
         label6.Size = new Size(130, 23);
         label6.TabIndex = 0;
         label6.Text = "實作指引(IG)：";
+        // 
+        // tabMajor
+        // 
+        tabMajor.Controls.Add(splitMajor1);
+        tabMajor.Location = new Point(4, 32);
+        tabMajor.Name = "tabMajor";
+        tabMajor.Size = new Size(937, 418);
+        tabMajor.TabIndex = 9;
+        tabMajor.Text = "Major Profile";
+        tabMajor.UseVisualStyleBackColor = true;
+        tabMajor.Enter += tabMajor_Enter;
+        // 
+        // splitMajor1
+        // 
+        splitMajor1.Dock = DockStyle.Fill;
+        splitMajor1.Location = new Point(0, 0);
+        splitMajor1.Name = "splitMajor1";
+        // 
+        // splitMajor1.Panel1
+        // 
+        splitMajor1.Panel1.Controls.Add(tvMajor);
+        splitMajor1.Size = new Size(937, 418);
+        splitMajor1.SplitterDistance = 240;
+        splitMajor1.TabIndex = 0;
+        // 
+        // tvMajor
+        // 
+        tvMajor.Dock = DockStyle.Fill;
+        tvMajor.Location = new Point(0, 0);
+        tvMajor.Name = "tvMajor";
+        tvMajor.Size = new Size(240, 418);
+        tvMajor.TabIndex = 0;
         // 
         // statusBar
         // 
@@ -1603,37 +1651,16 @@ partial class FormIGAnalyzer : Form
         rbApplyModel.Visible = false;
         rbApplyModel.CheckedChanged += lbProfile_SelectedIndexChanged;
         // 
-        // tabMajor
+        // lblDocument
         // 
-        tabMajor.Controls.Add(splitMajor1);
-        tabMajor.Location = new Point(4, 32);
-        tabMajor.Name = "tabMajor";
-        tabMajor.Size = new Size(937, 418);
-        tabMajor.TabIndex = 9;
-        tabMajor.Text = "Major Profile";
-        tabMajor.UseVisualStyleBackColor = true;
-        tabMajor.Enter += tabMajor_Enter;
-        // 
-        // splitMajor1
-        // 
-        splitMajor1.Dock = DockStyle.Fill;
-        splitMajor1.Location = new Point(0, 0);
-        splitMajor1.Name = "splitMajor1";
-        // 
-        // splitMajor1.Panel1
-        // 
-        splitMajor1.Panel1.Controls.Add(tvMajor);
-        splitMajor1.Size = new Size(937, 418);
-        splitMajor1.SplitterDistance = 240;
-        splitMajor1.TabIndex = 0;
-        // 
-        // tvMajor
-        // 
-        tvMajor.Dock = DockStyle.Fill;
-        tvMajor.Location = new Point(0, 0);
-        tvMajor.Name = "tvMajor";
-        tvMajor.Size = new Size(240, 418);
-        tvMajor.TabIndex = 0;
+        lblDocument.AutoSize = true;
+        lblDocument.Location = new Point(60, 16);
+        lblDocument.Name = "lblDocument";
+        lblDocument.Size = new Size(100, 23);
+        lblDocument.TabIndex = 5;
+        lblDocument.Text = "報告種類：";
+        lblDocument.Visible = false;
+        lblDocument.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         // 
         // FormIGAnalyzer
         // 
@@ -1730,6 +1757,7 @@ partial class FormIGAnalyzer : Form
         ((System.ComponentModel.ISupportInitialize)splitContainer3).EndInit();
         splitContainer3.ResumeLayout(false);
         splitStaging4.Panel1.ResumeLayout(false);
+        splitStaging4.Panel1.PerformLayout();
         splitStaging4.Panel2.ResumeLayout(false);
         splitStaging4.Panel2.PerformLayout();
         ((System.ComponentModel.ISupportInitialize)splitStaging4).EndInit();
@@ -1768,12 +1796,12 @@ partial class FormIGAnalyzer : Form
         splitIGList2.Panel2.ResumeLayout(false);
         ((System.ComponentModel.ISupportInitialize)splitIGList2).EndInit();
         splitIGList2.ResumeLayout(false);
-        statusBar.ResumeLayout(false);
-        statusBar.PerformLayout();
         tabMajor.ResumeLayout(false);
         splitMajor1.Panel1.ResumeLayout(false);
         ((System.ComponentModel.ISupportInitialize)splitMajor1).EndInit();
         splitMajor1.ResumeLayout(false);
+        statusBar.ResumeLayout(false);
+        statusBar.PerformLayout();
         ResumeLayout(false);
         PerformLayout();
     }
@@ -1904,4 +1932,6 @@ partial class FormIGAnalyzer : Form
     private TabPage tabMajor;
     private SplitContainer splitMajor1;
     private TreeView tvMajor;
+    private ComboBox cmbDocument;
+    private Label lblDocument;
 }

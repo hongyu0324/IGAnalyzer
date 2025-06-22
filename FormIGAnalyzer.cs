@@ -673,9 +673,26 @@ public partial class FormIGAnalyzer : Form
                         ElementDefinition? obj = sd.Select(ruleBase).FirstOrDefault() as ElementDefinition;
                         if (obj != null)
                         {
-                            string typeProfile = obj.Type.FirstOrDefault()?.Code ?? string.Empty;
+                            if(obj.Type != null && obj.Type.Count > 0)
+                            {
+                                // if CodeableConcept is in Type, use CodeableConcept else use the first type
+                                if (obj.Type.Any(t => t.Code == "CodeableConcept"))
+                                {
+                                    type = "CodeableConcept";
+                                }
+                                else
+                                {
+                                    type = obj.Type.FirstOrDefault()?.Code ?? string.Empty;
+                                }
+                            }
+                            else
+                            {
+                                // If no type is defined, use the default type
+                                type = string.Empty; // Default to string if no type is defined
+                            }
+                            //string typeProfile = obj.Type.FirstOrDefault()?.Code ?? string.Empty;
                             string urlProfile = obj.Binding?.ValueSet ?? string.Empty;
-                            type = typeProfile;
+                            //type = typeProfile;
                             if (url == string.Empty) url = urlProfile;
                         }
                     }
@@ -708,7 +725,7 @@ public partial class FormIGAnalyzer : Form
 
                     lvApplyModel.Items.Add(item);
 
-                    //var qItem = new Tuple<string, string, string, string, string>(q.Item1, q.Item2, q.Item3, q.Item4, url);
+                    //var qItem = new Tuple<string, string, string, string, string>(q.Item1, q.Item2, path, q.Item4, url);
                     var qItem = new Tuple<string, string, string, string, string>(q.Item1, q.Item2, path, type, url);
                     qItemList.Add(qItem);
                 }
@@ -1593,6 +1610,31 @@ public partial class FormIGAnalyzer : Form
                     DisplayFHIRData("Practitioner", practitioners, lvMaster,
                         p => (p.Name != null && p.Name.Any()) ? p.Name[0].ToString() : "No Name");
                     break;
+                case "Substance":
+                    var substances = await LoadFHIRDataAsync<Substance>("Substance");
+                    DisplayFHIRData("Substance", substances, lvMaster,
+                        s => s.Code?.Text ?? "No Code");
+                    break;
+                case "Media":
+                    var media = await LoadFHIRDataAsync<Media>("Media");
+                    DisplayFHIRData("Media", media, lvMaster,
+                        m => m.Type?.Text ?? "No Type");
+                    break;
+                case "ImagingStudy":
+                    var imagingStudies = await LoadFHIRDataAsync<ImagingStudy>("ImagingStudy");
+                    DisplayFHIRData("ImagingStudy", imagingStudies, lvMaster,
+                        i => i.Description ?? "No Description");
+                    break;
+                case "Specimen":
+                    var specimens = await LoadFHIRDataAsync<Specimen>("Specimen");
+                    DisplayFHIRData("Specimen", specimens, lvMaster,
+                        s => s.Type?.Text ?? "No Type");
+                    break;
+                case "DocumentReference":
+                    var documentReferences = await LoadFHIRDataAsync<DocumentReference>("DocumentReference");
+                    DisplayFHIRData("DocumentReference", documentReferences, lvMaster,
+                        d => d.Description ?? "No Description");
+                    break;
                 default:
                     MessageBox.Show($"非主數據範圍，請重新選擇: {itemName}", "重新選擇", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     txtMsg.Text += $"Unsupported master data type selected: {itemName}" + Environment.NewLine;
@@ -1699,6 +1741,60 @@ public partial class FormIGAnalyzer : Form
             txtMsg.Text += $"Error in DisplayMasterData for {resourceTypeDisplayName}s: {ex.Message}" + Environment.NewLine;
         }
     }
+
+    private void cmbDocument_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        string docType = cmbDocument.SelectedItem?.ToString()?.Split('|')[0].Trim() ?? string.Empty;
+        Dictionary<string, string> jsonData = new Dictionary<string, string>();
+
+        //MessageBox.Show("Selected Document Type: " + docType, "Document Type Selected", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        
+
+        if (string.IsNullOrEmpty(txtStaging.Text))
+        {
+            //MessageBox.Show("No staging data available to process.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return;
+        }
+        if(cmbDocument.Tag == null)
+        {
+            cmbDocument.Tag = txtStaging.Text;
+        }
+        string jsonStaging = cmbDocument.Tag.ToString() ?? string.Empty;
+        // Deserialize the JSON staging data to a dictionary
+        var stagingData = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(jsonStaging);
+
+        jsonData.Add("applyreportType", docType);
+
+        for (int i = 0; i < lvStaging.Items.Count; i++)
+        {
+            string itemType = lvStaging.Items[i].SubItems[3].Text;
+            string itemApplyModel = lvStaging.Items[i].SubItems[1].Text;
+
+            if (itemType == "url" && itemApplyModel.Contains(docType))
+            {
+                if (stagingData != null && stagingData.ContainsKey(itemApplyModel))
+                {
+                    jsonData.Add("treatcarePlanDocument", stagingData[itemApplyModel]);
+                }
+                continue;
+            }
+
+            if (itemType == "string" && itemApplyModel.Contains(docType))
+            {
+                if (stagingData != null && stagingData.ContainsKey(itemApplyModel))
+                {
+                    jsonData.Add("treatcarePlanDocumentTitle", stagingData[itemApplyModel]);
+                }
+                continue;
+            }
+        }
+        AddFHIRData(jsonData);
+        // serialize the jsonData to json
+        string json = Newtonsoft.Json.JsonConvert.SerializeObject(jsonData, Newtonsoft.Json.Formatting.Indented);
+        // Display the JSON in the text box
+        txtStaging.Text = json;
+    }
+
     private async void lbStaging_SelectedIndexChanged(object sender, EventArgs e)
     {
         // Clear the Panel2 as selected item changes
@@ -1706,6 +1802,10 @@ public partial class FormIGAnalyzer : Form
         //this.splitQuestionnaire.Panel2.AutoScroll = true;
 
         // Clear ListView
+        lblDocument.Visible = false;
+        cmbDocument.Visible = false;
+        cmbDocument.Items.Clear();
+
         lvStaging.Items.Clear();
         lvStaging.Columns.Clear();
         txtFHIRData.Text = string.Empty;
@@ -1723,6 +1823,39 @@ public partial class FormIGAnalyzer : Form
         if (lbStaging.SelectedItem != null)
         {
             string itemName = lbStaging.SelectedItem?.ToString()?.Split('|')[0].Trim() ?? string.Empty;
+
+            if (itemName == "DocumentReference-twpas")
+            {
+                if (client == null)
+                {
+                    client = new FhirClient(txtFHIRServer.Text);
+                }
+                string valueSetUrl = "https://nhicore.nhi.gov.tw/pas/ValueSet/nhi-pdf-type";
+                string type = "expand";
+                var valueSet = await EpandValueSetByUrlAsync(client, valueSetUrl);
+                if (valueSet == null)
+                {
+                    valueSet = await GetValueSetByUrlAsync(client, valueSetUrl);
+                    type = "compose";
+                }
+
+                if (valueSet != null)
+                {
+                    var jsonValueSet = new FhirJsonSerializer(new SerializerSettings()
+                    {
+                        Pretty = true,
+                    }).SerializeToString(valueSet);
+                    var vsMap = fhirOperator.ParsingValueSet(valueSet, type);
+                    foreach (var m in vsMap)
+                    {
+                        // Add the display name to the ComboBox
+                        cmbDocument.Items.Add(m.Item2 + " | " + m.Item3);
+                    }
+                    cmbDocument.SelectedIndex = 0; // Select the first item by default
+                    cmbDocument.Visible = true;
+                    lblDocument.Visible = true;
+                }
+            }
 
 
             // read json form 
@@ -1930,19 +2063,29 @@ public partial class FormIGAnalyzer : Form
         //using POST command to send the data
         var content = new StringContent(staging, System.Text.Encoding.UTF8, "application/json");
 
-        var response = await fumeClient.PostAsync(url, content);
-        if (response.IsSuccessStatusCode)
+        try
         {
-            // Read the response content
-            var responseContent = await response.Content.ReadAsStringAsync();
-            // Display the response content in the TextBox
-            jsonFHIR = responseContent;
+            var response = await fumeClient.PostAsync(url, content);
+            if (response.IsSuccessStatusCode)
+            {
+                // Read the response content
+                var responseContent = await response.Content.ReadAsStringAsync();
+                // Display the response content in the TextBox
+                jsonFHIR = responseContent;
+            }
+            else
+            {
+                // Handle error response
+                MessageBox.Show("Error: " + response.StatusCode);
+            }
         }
-        else
+        catch (HttpRequestException ex)
         {
-            // Handle error response
-            MessageBox.Show("Error: " + response.StatusCode);
+            MessageBox.Show($"Error connecting to FUME server: {ex.Message}", "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            txtMsg.Text += $"Error connecting to FUME server: {ex.Message}" + Environment.NewLine;
+            return; // Exit if the request fails
         }
+        
 
         if (jsonFHIR != string.Empty)
         {
@@ -2588,9 +2731,9 @@ public partial class FormIGAnalyzer : Form
                 if (cnt == 0)
                 {
                     string fumeName = fumeInfo.Replace("*", "").Trim();
-                    fume = new Tuple<string, string, string>("    " + fumeInfo.Replace(fumeName, "system"), "uri", path + ".coding.system");
+                    fume = new Tuple<string, string, string>("  " + fumeInfo.Replace(fumeName, "system"), "uri", path + ".coding.system");
                     codingFUME.Add(fume);
-                    fume = new Tuple<string, string, string>("    " + fumeInfo.Replace(fumeName, "code"), "code", path + ".coding.code");
+                    fume = new Tuple<string, string, string>("  " + fumeInfo.Replace(fumeName, "code"), "code", path + ".coding.code");
                     codingFUME.Add(fume);
                 }
                 else
@@ -3022,7 +3165,7 @@ public partial class FormIGAnalyzer : Form
                 var updatedFume = new Tuple<string, string, string>(fumeInfo, fume.Item2, fume.Item3);
                 valuedFUME.Add(updatedFume);
             }
-            else if (type == "boolean" || type == "decimal")
+            else if (type == "boolean" || type == "decimal" || type == "positiveInt")
             {
                 if (fume.Item1.Contains("="))
                 {
@@ -3088,7 +3231,7 @@ public partial class FormIGAnalyzer : Form
                 {
                     system = string.Empty;
                 }
-                var updatedFume = new Tuple<string, string, string>(fume.Item1 + " = " + system, fume.Item2, fume.Item3);
+                var updatedFume = new Tuple<string, string, string>(fume.Item1 + " = " + "\"" + system + "\"", fume.Item2, fume.Item3);
                 valuedFUME.Add(updatedFume);
             }
             // CodeableConcept 可能有多個值，未來可能修改
@@ -3359,10 +3502,12 @@ public partial class FormIGAnalyzer : Form
             string fume2 = targetFumeTupleList[i].Item1;
             string path1 = targetFumeTupleList[i - 1].Item3;
             string path2 = targetFumeTupleList[i].Item3;
+            
             if (fume1 == fume2)
             {
                 int sliceStart = 0;
                 int sliceEnd = 0;
+
                 for (int j = 0; j < ig.SliceList.Count; j++)
                 {
                     Tuple<string, string, string> slice = ig.SliceList[j];
@@ -3371,6 +3516,12 @@ public partial class FormIGAnalyzer : Form
 
                     if (path2.Contains(slicePath) == false) continue;
                     string sliceRule = slice.Item3;
+                    if (sliceRule.Contains("Pattern") == true)
+                    {
+                        sliceStart = 0;
+                        sliceEnd = 0;
+                        continue;
+                    }
 
                     sliceStart = i;
                     int k = 1;
@@ -3392,12 +3543,14 @@ public partial class FormIGAnalyzer : Form
                 }
                 targetFumeTupleList.RemoveAt(i);
                 i--;
+
                 //sliceStart = sliceStart + 3;
                 for (int k = sliceStart; k < sliceEnd; k++)
                 {
                     targetFumeTupleList.RemoveAt(sliceStart);
                 }
                 //i = i - (sliceEnd - sliceStart - 1);
+                
             }
             if (fume2.Trim().EndsWith("="))
             {
@@ -3720,23 +3873,30 @@ public partial class FormIGAnalyzer : Form
 
         lvReference.Items.Clear();
         lvReference.Columns.Clear();
-        lvReference.Columns.Add("Role", 200);
+        lvReference.Columns.Add("Display", 200);
         lvReference.Columns.Add("Reference", 200);
         lvReference.Columns.Add("Resource Type", 200);
+        lvReference.Columns.Add("Role", 200);
         foreach (var master in appSettings.MasterData)
         {
-            if (master.Role != null)
+            if (master.Display != null)
             {
-                string role = master.Role;
+                string display = master.Display;
                 string reference = string.Empty;
                 string resourceType = master.ResourceType ?? string.Empty;
+                string role = master.Role ?? string.Empty;
                 // add role, reference and resourceType to the ListView
-                lvReference.Items.Add(new ListViewItem(new string[] { role, reference, resourceType }));
+                lvReference.Items.Add(new ListViewItem(new string[] { display, reference, resourceType ,role}));
             }
         }
     }
 
-    private async void btnStagingLoad_Click(object sender, EventArgs e)
+    private void btnStagingLoad_Click(object sender, EventArgs e)
+    {
+
+    }
+
+    private async void btnStagingLoad_Click2(object sender, EventArgs e)
     {
 
         foreach (ListViewItem item in lvStaging.Items)
@@ -4799,7 +4959,7 @@ public partial class FormIGAnalyzer : Form
         // get the resource from FHIR server by the selected item in the listview
         string id = lvMaster.SelectedItems[0].Text;
         string type = lvMaster.SelectedItems[0].SubItems[1].Text;
-        string role = lvReference.SelectedItems[0].Text;
+        string role = lvReference.SelectedItems[0].SubItems[3].Text;
 
         if (type != lvReference.SelectedItems[0].SubItems[2].Text)
         {
@@ -4819,6 +4979,7 @@ public partial class FormIGAnalyzer : Form
                 fhirData.AddOrganization(role, id);
                 break;
             default:
+                fhirData.AddIGData(role, type, id);
                 break;
         }
     }
@@ -5030,6 +5191,7 @@ public partial class FormIGAnalyzer : Form
             {
                 case "R":
                     root = fumeListTuple[i].Item3; // Set the root item
+                    root = root.Replace("[x]", ""); // Remove [x] from the root item // hard code for [x] removal 20250621
                     node = string.Empty; // Reset the node item
                     leaf = string.Empty; // Reset the left item
                     if (rootList.Contains(root) == false)
@@ -5044,10 +5206,12 @@ public partial class FormIGAnalyzer : Form
                     break;
                 case "N":
                     node = fumeListTuple[i].Item3; // Set the node item
+                    node = node.Replace("[x]", ""); // Remove [x] from the node item // hard code for [x] removal 20250621
                     if (node.Contains(root) == false) levels.Add(i); // Set the color of the node item to blue
                     break;
                 case "L":
                     leaf = fumeListTuple[i].Item3; // Set the left item
+                    leaf = leaf.Replace("[x]", ""); // Remove [x] from the left item // hard code for [x] removal 20250621
                     //if(leafFume.EndsWith("=") == true)item.ForeColor = Color.Red;
 
                     if (leaf.Contains(root) == false) levels.Add(i); // Set the color of the left item to blue
@@ -5462,14 +5626,25 @@ public partial class FormIGAnalyzer : Form
             if (refStr != null && !references.Contains(refStr))
             {
                 references.Add(refStr);
-                Resource? subResource = await client.ReadAsync<Resource>(refStr);
-                if (subResource != null)
+                try
                 {
-                    await CollectResourceReferences(subResource, references, client);
+                    Resource? subResource = await client.ReadAsync<Resource>(refStr);
+                    if (subResource != null)
+                    {
+                        await CollectResourceReferences(subResource, references, client);
+                    }
+                    else
+                    {
+                        MessageBox.Show("Resource not found: " + refStr);
+                    }
                 }
-                else
+                catch (FhirOperationException ex)
                 {
-                    Console.WriteLine("Resource not found: " + refStr);
+                    MessageBox.Show("Resource " + ex.Message);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message);
                 }
             }
         }

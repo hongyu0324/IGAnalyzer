@@ -2,57 +2,116 @@
     "DataDirectory" : "D:\\Hongyu\\Project\\data\\IGAnalyzer\\",
     "FHIRServer": "http://localhost:8080/fhir",
     "IGName": "pas",
+    "ICD10PCSVersion": "2023",
     "MasterData":[
         {
             "Name": "Patient-twpas",
             "ResourceType": "Patient",
+            "Display": "病人資訊",
             "Role":"病人資訊"
         },
         {
             "Name": "Organization-twpas",
             "ResourceType": "Organization",
+            "Display": "醫療機構",
             "Role":"醫療機構"
         },  
         {
             "Name": "Organization-twpas",
             "ResourceType": "Organization",
+            "Display": "中央健保署",
             "Role":"中央健保署"
         }, 
         {
             "Name": "Organization-genetic-testing-twpas",
             "ResourceType": "Organization",
+            "Display": "基因檢測機構",
             "Role":"基因檢測機構"
         },
         {
             "Name": "Practitioner-twpas",
             "ResourceType": "Practitioner",
+            "Display": "申請醫師",
             "Role":"申請醫師"
         },
         {
             "Name": "Practitioner-twpas",
             "ResourceType": "Practitioner",
+            "Display": "評估項目醫事人員",
             "Role":"評估項目醫事人員"
         },
         {
             "Name": "Practitioner-twpas",
             "ResourceType": "Practitioner",
+            "Display": "簽發癌症分期報告醫師",
             "Role":"簽發癌症分期報告醫師"
         },
         {
             "Name": "Practitioner-twpas",
             "ResourceType": "Practitioner",
+            "Display": "簽發檢驗(查)報告醫事人員",
             "Role":"簽發檢驗(查)報告醫事人員"
         },
         {
             "Name": "Practitioner-twpas",
             "ResourceType": "Practitioner",
-            "Role":"簽發影像報告醫師"
+            "Display": "檢查報告醫師",
+            "Role":"檢查報告醫師"
         },
         {
             "Name": "Practitioner-twpas",
             "ResourceType": "Practitioner",
-            "Role":"檢查報告醫師"
-        }    	
+            "Display": "簽發影像報告醫師",
+            "Role":"簽發影像報告醫師"
+        },
+        {
+            "Name": "Substance-twpas",
+            "ResourceType": "Substance",
+            "Display":"放射治療總劑量",
+            "Role":"放射治療總劑量"
+        },
+        {
+            "Name": "Specimen-twpas",
+            "ResourceType": "Specimen",
+            "Display":"基因檢測檢體",
+            "Role":"基因檢測檢體"
+        },
+        {
+            "Name": "Media-twpas",
+            "ResourceType": "Media",
+            "Display":"非DICOM影像",
+            "Role":"非DICOM影像"
+        },
+        {
+            "Name": "ImagingStudy-twpas",
+            "ResourceType": "ImagingStudy",
+            "Display":"DICOM影像",
+            "Role":"DICOM影像"
+        },
+        {
+            "Name": "DocumentReference-twpas",
+            "ResourceType": "DocumentReference",
+            "Display":"病歷資料",
+            "Role":"病歷資料"
+        },
+        {
+            "Name": "DocumentReference-twpas",
+            "ResourceType": "DocumentReference",
+            "Display":"治療計畫文件",
+            "Role":"治療計畫文件"
+        },
+        {
+            "Name": "DocumentReference-twpas",
+            "ResourceType": "DocumentReference",
+            "Display":"基因報告",
+            "Role":"基因報告"
+        },
+        {
+            "Name": "DocumentReference-twpas",
+            "ResourceType": "DocumentReference",
+            "Display":"檢驗(查)附件",
+            "Role":"檢驗(查)附件"
+        }  	
     ],
     "BindingsAdd":[
         {
@@ -66,11 +125,11 @@
         {
             "path":"Claim-twpas.procedure.procedureCodeableConcept.coding",
             "valueSet":"https://twcore.mohw.gov.tw/ig/twcore/ValueSet/icd-10-pcs-2023-tw"
-        },
-        {
-            "path":"Claim-twpas.diagnosis.diagnosisCodeableConcept",
-            "valueSet":"https://twcore.mohw.gov.tw/ig/twcore/ValueSet/icd-10-pcs-2023-tw"
         }
+    ],
+    "BindingIgnore":[
+        "https://twcore.mohw.gov.tw/ig/twcore/CodeSystem/icd-10-pcs-2014-tw",
+        "https://twcore.mohw.gov.tw/ig/twcore/CodeSystem/icd-10-cm-2014-tw"
     ],
     "PathUpdate":[
         {
@@ -122,10 +181,22 @@
             "type":"Reference"
         },
         {
-            "name":"放射線檢查項目 | ApplyModel.treat.radiotherapy.rt",
-            "profile":"Substance-twpas",
-            "path":"code",
-            "type":"CodeableConcept"
+            "name": "放射治療項目 | ApplyModel.treat.radiotherapy.rt",
+            "profile": "Substance-twpas",
+            "path": "code",
+            "type": "CodeableConcept"
+        },
+        {
+            "name": "放射治療項目 | ApplyModel.treat.radiotherapy.rt",
+            "profile": "Substance-twpas",
+            "path": "ingredient.substance",
+            "type": "CodeableConcept"
+        },
+        {
+            "name": "報告種類 | ApplyModel.apply.reportType",
+            "profile": "DocumentReference-twpas",
+            "path": "category",
+            "type": "CodeableConcept"
         }
     ],
     "StagingDefault":[
@@ -133,13 +204,15 @@
             "profile":"Observation-pat-assessment-twpas",
             "element":"status",
             "value":"final",
-            "anchor":"meta"
+            "type":"code",
+            "anchor":"category"
         },
-                {
-            "profile":"Observation-pat-assessment-twpas",
+        {
+            "profile":"Observation-tx-assessment-twpas",
             "element":"status",
             "value":"final",
-            "anchor":"meta"
+            "type":"code",
+            "anchor":"code"
         }
     ],
     "Constraints":[

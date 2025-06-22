@@ -71,6 +71,8 @@ public class AppSettings
 
         [JsonPropertyName("Role")]
         public string? Role { get; set; }
+        [JsonPropertyName("Display")]
+        public string? Display { get; set; }
     }
 
     public class BindingAddItem
