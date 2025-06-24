@@ -22,6 +22,9 @@ public class AppSettings
     [JsonPropertyName("MasterData")]
     public List<MasterDataItem> MasterData { get; set; } = new List<MasterDataItem>();
 
+    [JsonPropertyName("SupplementalData")]
+    public List<SupplementalDataItem> SupplementalData { get; set; } = new List<SupplementalDataItem>();
+
     [JsonPropertyName("BindingsAdd")]
     public List<BindingAddItem> BindingsAdd { get; set; } = new List<BindingAddItem>();
 
@@ -71,6 +74,20 @@ public class AppSettings
 
         [JsonPropertyName("Role")]
         public string? Role { get; set; }
+        [JsonPropertyName("Display")]
+        public string? Display { get; set; }
+    }
+    public class SupplementalDataItem
+    {
+        [JsonPropertyName("Name")]
+        public string? Name { get; set; }
+
+        [JsonPropertyName("ResourceType")]
+        public string? ResourceType { get; set; }
+
+        [JsonPropertyName("Role")]
+        public string? Role { get; set; }
+
         [JsonPropertyName("Display")]
         public string? Display { get; set; }
     }
@@ -221,6 +238,7 @@ public class AppSettings
                 LogicModelAdd = config.LogicModelAdd;
                 BindingIgnore = config.BindingIgnore;
                 StagingDefault = config.StagingDefault;
+                SupplementalData = config.SupplementalData;
             }
         }
         else

@@ -1576,6 +1576,63 @@ public partial class FormIGAnalyzer : Form
         MessageBox.Show("Export Questionnaire to FHIR.");
     }
 
+    private async void lbSupplemental_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        // Clear the ListView and TextBox when selection changes
+        lvMaster.Items.Clear();
+        lvMaster.Columns.Clear();
+        txtFHIRData.Text = string.Empty;
+
+        if (lbSupplemental.SelectedItem == null)
+        {
+            return; // Nothing selected
+        }
+
+        try
+        {
+            client = new FhirClient(txtFHIRServer.Text); // Ensure client is initialized with the latest server URL
+            string itemName = lbSupplemental.SelectedItem?.ToString()?.Split('-')[0].Trim() ?? string.Empty;
+
+            switch (itemName)
+            {
+                case "Observation":
+                    var observations = await LoadFHIRDataAsync<Observation>("Observation");
+                    DisplayFHIRData("Observation", observations, lvMaster,
+                        o => o.Code?.Text ?? "No Code");
+                    break;
+                case "MedicationRequest":
+                    var medicationRequests = await LoadFHIRDataAsync<MedicationRequest>("MedicationRequest");
+                    DisplayFHIRData("MedicationRequest", medicationRequests, lvMaster,
+                        m => m.Medication?.ToString() ?? "No Medication");
+                    break;
+                case "Coverage":
+                    var coverages = await LoadFHIRDataAsync<Coverage>("Coverage");
+                    DisplayFHIRData("Coverage", coverages, lvMaster,
+                        c => c.Id ?? "No ID");
+                    break;
+                case "Procedure":
+                    var procedures = await LoadFHIRDataAsync<Procedure>("Procedure");
+                    DisplayFHIRData("Procedure", procedures, lvMaster,
+                        p => p.Code?.Text ?? "No Code");
+                    break;
+                case "DiagnosticReport":
+                    var diagnosticReports = await LoadFHIRDataAsync<DiagnosticReport>("DiagnosticReport");
+                    DisplayFHIRData("DiagnosticReport", diagnosticReports, lvMaster,
+                        d => d.Code?.Text ?? "No Code");
+                    break;  
+                default:
+                    MessageBox.Show($"非輔助數據範圍，請重新選擇: {itemName}", "重新選擇", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    txtMsg.Text += $"Unsupported supplemental data type selected: {itemName}" + Environment.NewLine;
+                    break;
+            }
+        }
+        catch (Exception ex) // Catch issues like invalid FHIR server URL during client creation or other general errors
+        {
+            MessageBox.Show($"Error processing selection: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            txtMsg.Text += $"Error in lbSupplemental_SelectedIndexChanged: {ex.Message}" + Environment.NewLine;
+        }
+    }
+
 
     private async void lbMaster_SelectedIndexChanged(object sender, EventArgs e)
     {
@@ -1998,6 +2055,24 @@ public partial class FormIGAnalyzer : Form
                         break;
                     case "DocumentReference":
                         data[role] = "DocumentReference/" + reference;
+                        break;
+                    case "Observation":
+                        data[role] = "Observation/" + reference;
+                        break;
+                    case "MedicationRequest":
+                        data[role] = "MedicationRequest/" + reference;
+                        break;
+                    case "Coverage":
+                        data[role] = "Coverage/" + reference;
+                        break;
+                    case "Procedure":
+                        data[role] = "Procedure/" + reference;
+                        break;
+                    case "DiagnosticReport":
+                        data[role] = "DiagnosticReport/" + reference;
+                        break;
+                    case "Encounter":
+                        data[role] = "Encounter/" + reference;
                         break;
                     default:
                         MessageBox.Show("Unknown profile type: " + profile, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -3960,6 +4035,34 @@ public partial class FormIGAnalyzer : Form
                 lvReference.Items.Add(new ListViewItem(new string[] { display, reference, resourceType, role }));
             }
         }
+
+
+        lvSupplemental.Items.Clear();
+        lvSupplemental.Columns.Clear();
+        lvSupplemental.Columns.Add("Display", 200);
+        lvSupplemental.Columns.Add("Reference", 200);
+        lvSupplemental.Columns.Add("Resource Type", 200);
+        lvSupplemental.Columns.Add("Role", 200);
+        List<string> sList = new List<string>();
+        foreach (var supplemental in appSettings.SupplementalData)
+        {
+            if (supplemental.Display != null)
+            {
+                string display = supplemental.Display;
+                string reference = string.Empty;
+                string resourceType = supplemental.ResourceType ?? string.Empty;
+                if (sList.Contains(resourceType) != true) sList.Add(resourceType);
+                string role = supplemental.Role ?? string.Empty;
+                // add role, reference and resourceType to the ListView
+                lvSupplemental.Items.Add(new ListViewItem(new string[] { display, reference, resourceType, role }));
+            }
+        }
+
+        //add sList tp lbSupplemental
+        foreach (var s in sList)
+        {
+            lbSupplemental.Items.Add(s);
+        }
     }
 
     private void btnStagingLoad_Click(object sender, EventArgs e)
@@ -4251,7 +4354,7 @@ public partial class FormIGAnalyzer : Form
                     Tuple<string, string, string> fumeTuple = new Tuple<string, string, string>(fumeInfo, type, root + "." + path);
                     extensionFume.Add(fumeTuple);
                     string fumeName = fumeInfo.Replace("*", "").Trim();
-                    fumeInfo = "  "+ fumeInfo.Replace(fumeName, "reference");
+                    fumeInfo = "  " + fumeInfo.Replace(fumeName, "reference");
                     fumeTuple = new Tuple<string, string, string>(fumeInfo, "Reference", root + "." + path + ".reference");
                     extensionFume.Add(fumeTuple);
                 }
@@ -5020,25 +5123,27 @@ public partial class FormIGAnalyzer : Form
 
     }
 
-    private void LvMaster_DoubleClickAsync(object sender, EventArgs e)
+    private void lvMaster_DoubleClickAsync(object sender, EventArgs e)
     {
-        if (lvMaster.SelectedItems.Count == 0 || lvReference.SelectedItems.Count == 0)
+        if (lvMaster.SelectedItems.Count == 0 || (lvReference.SelectedItems.Count == 0 && lvSupplemental.SelectedItems.Count == 0) )
         {
             MessageBox.Show("Please select an item from the list.");
             return;
         }
-
+        // lvSelect
+        ListView lvSelect = lvReference.SelectedItems.Count > 0 ? lvReference : lvSupplemental; // Check which listview is visible
+      
         // get the resource from FHIR server by the selected item in the listview
         string id = lvMaster.SelectedItems[0].Text;
         string type = lvMaster.SelectedItems[0].SubItems[1].Text;
-        string role = lvReference.SelectedItems[0].SubItems[3].Text;
+        string role = lvSelect.SelectedItems[0].SubItems[3].Text;
 
-        if (type != lvReference.SelectedItems[0].SubItems[2].Text)
+        if (type != lvSelect.SelectedItems[0].SubItems[2].Text)
         {
             MessageBox.Show("The selected item type does not match the reference item type.");
             return;
         }
-        lvReference.SelectedItems[0].SubItems[1].Text = id; // Set the id to the selected item in the reference listview
+        lvSelect.SelectedItems[0].SubItems[1].Text = id; // Set the id to the selected item in the reference listview
         switch (type)
         {
             case "Patient":
@@ -5854,15 +5959,15 @@ public partial class FormIGAnalyzer : Form
         FhirPackageSource tw_core = new(ModelInfo.ModelInspector, new string[] { tw_core_ig });
 
         var multiResolver = new MultiResolver(resolver, tw_core);
-        
+
         ValueSetExpanderSettings expanderSettings = new ValueSetExpanderSettings();
-        expanderSettings.MaxExpansionSize = 1000; // Set the cache size for the value set expander
+        expanderSettings.MaxExpansionSize = 80000; // Set the cache size for the value set expander
         var terminologySource = new LocalTerminologyService(tw_core, expanderSettings);
 
         ValidationSettings settings = new ValidationSettings();
         settings.SetSkipConstraintValidation(true); // Skip constraint validation for the bundle
         settings.HandleValidateCodeServiceFailure += HandleValidateCodeServiceFailure(this, EventArgs.Empty); // Handle code validation service failures
-    
+
         return new Validator(multiResolver, terminologySource, null, settings);
     }
 
@@ -5874,7 +5979,7 @@ public partial class FormIGAnalyzer : Form
             return TerminologyServiceExceptionResult.Warning; // Ensure a value is returned for all code paths
         };
     }
- 
+
 
     private void btnBundleValidate_Click(object sender, EventArgs e)
     {
@@ -6075,4 +6180,5 @@ public partial class FormIGAnalyzer : Form
             MessageBox.Show("No data to copy. Please enter some FHIR data in the staging text box.", "Copy Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
     }
+
 }

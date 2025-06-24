@@ -80,13 +80,17 @@ partial class FormIGAnalyzer : Form
         btnRefresh = new Button();
         tabMaster = new TabPage();
         splitMaster = new SplitContainer();
+        splitMaster4 = new SplitContainer();
         lbMaster = new ListBox();
-        splitMaster1 = new SplitContainer();
-        lvMaster = new ListView();
-        splitMaster2 = new SplitContainer();
         lvReference = new ListView();
-        btnMasterSelect = new Button();
+        splitMaster1 = new SplitContainer();
+        splitContainer4 = new SplitContainer();
+        lvMaster = new ListView();
         txtMasterFHIR = new TextBox();
+        btnMasterSelect = new Button();
+        splitMaster2 = new SplitContainer();
+        lbSupplemental = new ListBox();
+        lvSupplemental = new ListView();
         tabStaging = new TabPage();
         splitContainer1 = new SplitContainer();
         splitContainer12 = new SplitContainer();
@@ -96,6 +100,7 @@ partial class FormIGAnalyzer : Form
         lvStaging = new ListView();
         splitContainer3 = new SplitContainer();
         splitStaging4 = new SplitContainer();
+        lblDocument = new Label();
         cmbDocument = new ComboBox();
         btnConfirm = new Button();
         btnFUMECheck = new Button();
@@ -143,7 +148,7 @@ partial class FormIGAnalyzer : Form
         rbDifferential = new RadioButton();
         rbSnapshot = new RadioButton();
         rbApplyModel = new RadioButton();
-        lblDocument = new Label();
+        statusLabel = new ToolStripStatusLabel();
         tabIG.SuspendLayout();
         tabConfiguration.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)splitBase).BeginInit();
@@ -191,10 +196,18 @@ partial class FormIGAnalyzer : Form
         splitMaster.Panel1.SuspendLayout();
         splitMaster.Panel2.SuspendLayout();
         splitMaster.SuspendLayout();
+        ((System.ComponentModel.ISupportInitialize)splitMaster4).BeginInit();
+        splitMaster4.Panel1.SuspendLayout();
+        splitMaster4.Panel2.SuspendLayout();
+        splitMaster4.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)splitMaster1).BeginInit();
         splitMaster1.Panel1.SuspendLayout();
         splitMaster1.Panel2.SuspendLayout();
         splitMaster1.SuspendLayout();
+        ((System.ComponentModel.ISupportInitialize)splitContainer4).BeginInit();
+        splitContainer4.Panel1.SuspendLayout();
+        splitContainer4.Panel2.SuspendLayout();
+        splitContainer4.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)splitMaster2).BeginInit();
         splitMaster2.Panel1.SuspendLayout();
         splitMaster2.Panel2.SuspendLayout();
@@ -262,7 +275,7 @@ partial class FormIGAnalyzer : Form
         // 
         btnClose.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
         btnClose.BackColor = Color.LightBlue;
-        btnClose.Location = new Point(849, 472);
+        btnClose.Location = new Point(849, 464);
         btnClose.Name = "btnClose";
         btnClose.Size = new Size(100, 40);
         btnClose.TabIndex = 2;
@@ -851,14 +864,32 @@ partial class FormIGAnalyzer : Form
         // 
         // splitMaster.Panel1
         // 
-        splitMaster.Panel1.Controls.Add(lbMaster);
+        splitMaster.Panel1.Controls.Add(splitMaster4);
         // 
         // splitMaster.Panel2
         // 
         splitMaster.Panel2.Controls.Add(splitMaster1);
         splitMaster.Size = new Size(937, 418);
-        splitMaster.SplitterDistance = 312;
+        splitMaster.SplitterDistance = 262;
         splitMaster.TabIndex = 0;
+        // 
+        // splitMaster4
+        // 
+        splitMaster4.Dock = DockStyle.Fill;
+        splitMaster4.Location = new Point(0, 0);
+        splitMaster4.Name = "splitMaster4";
+        splitMaster4.Orientation = Orientation.Horizontal;
+        // 
+        // splitMaster4.Panel1
+        // 
+        splitMaster4.Panel1.Controls.Add(lbMaster);
+        // 
+        // splitMaster4.Panel2
+        // 
+        splitMaster4.Panel2.Controls.Add(lvReference);
+        splitMaster4.Size = new Size(262, 418);
+        splitMaster4.SplitterDistance = 196;
+        splitMaster4.TabIndex = 0;
         // 
         // lbMaster
         // 
@@ -867,27 +898,59 @@ partial class FormIGAnalyzer : Form
         lbMaster.Location = new Point(0, 0);
         lbMaster.Name = "lbMaster";
         lbMaster.ScrollAlwaysVisible = true;
-        lbMaster.Size = new Size(312, 418);
-        lbMaster.TabIndex = 1;
+        lbMaster.Size = new Size(262, 196);
+        lbMaster.TabIndex = 3;
         lbMaster.SelectedIndexChanged += lbMaster_SelectedIndexChanged;
+        // 
+        // lvReference
+        // 
+        lvReference.Dock = DockStyle.Fill;
+        lvReference.FullRowSelect = true;
+        lvReference.Location = new Point(0, 0);
+        lvReference.MultiSelect = false;
+        lvReference.Name = "lvReference";
+        lvReference.Size = new Size(262, 218);
+        lvReference.TabIndex = 2;
+        lvReference.UseCompatibleStateImageBehavior = false;
+        lvReference.View = View.Details;
+
         // 
         // splitMaster1
         // 
         splitMaster1.Dock = DockStyle.Fill;
         splitMaster1.Location = new Point(0, 0);
         splitMaster1.Name = "splitMaster1";
-        splitMaster1.Orientation = Orientation.Horizontal;
         // 
         // splitMaster1.Panel1
         // 
-        splitMaster1.Panel1.Controls.Add(lvMaster);
+        splitMaster1.Panel1.Controls.Add(splitContainer4);
         // 
         // splitMaster1.Panel2
         // 
         splitMaster1.Panel2.Controls.Add(splitMaster2);
-        splitMaster1.Size = new Size(621, 418);
-        splitMaster1.SplitterDistance = 207;
+        splitMaster1.Size = new Size(671, 418);
+        splitMaster1.SplitterDistance = 394;
         splitMaster1.TabIndex = 0;
+        // 
+        // splitContainer4
+        // 
+        splitContainer4.Dock = DockStyle.Fill;
+        splitContainer4.Location = new Point(0, 0);
+        splitContainer4.Name = "splitContainer4";
+        splitContainer4.Orientation = Orientation.Horizontal;
+        // 
+        // splitContainer4.Panel1
+        // 
+        splitContainer4.Panel1.Controls.Add(lvMaster);
+        // 
+        // splitContainer4.Panel2
+        // 
+        splitContainer4.Panel2.Controls.Add(txtMasterFHIR);
+        splitContainer4.Panel2.Controls.Add(btnMasterSelect);
+        splitContainer4.Size = new Size(394, 418);
+        splitContainer4.SplitterDistance = 213;
+        splitContainer4.TabIndex = 0;
+
         // 
         // lvMaster
         // 
@@ -896,62 +959,71 @@ partial class FormIGAnalyzer : Form
         lvMaster.GridLines = true;
         lvMaster.Location = new Point(0, 0);
         lvMaster.Name = "lvMaster";
-        lvMaster.Size = new Size(621, 207);
-        lvMaster.TabIndex = 0;
+        lvMaster.Size = new Size(394, 213);
+        lvMaster.TabIndex = 1;
         lvMaster.UseCompatibleStateImageBehavior = false;
         lvMaster.View = View.Details;
-        lvMaster.SelectedIndexChanged += lvMaster_SelectedIndexChanged;
-        lvMaster.DoubleClick += LvMaster_DoubleClickAsync;
+        lvMaster.DoubleClick += lvMaster_DoubleClickAsync;
+        // 
+        // txtMasterFHIR
+        // 
+        txtMasterFHIR.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+        txtMasterFHIR.Location = new Point(3, 43);
+        txtMasterFHIR.Multiline = true;
+        txtMasterFHIR.Name = "txtMasterFHIR";
+        txtMasterFHIR.ScrollBars = ScrollBars.Both;
+        txtMasterFHIR.Size = new Size(389, 155);
+        txtMasterFHIR.TabIndex = 4;
+        // 
+        // btnMasterSelect
+        // 
+        btnMasterSelect.Location = new Point(3, 3);
+        btnMasterSelect.Name = "btnMasterSelect";
+        btnMasterSelect.Size = new Size(112, 34);
+        btnMasterSelect.TabIndex = 1;
+        btnMasterSelect.Text = "確認";
+        btnMasterSelect.UseVisualStyleBackColor = true;
+        btnMasterSelect.Click += btnMasterSelect_ClickAsync;
         // 
         // splitMaster2
         // 
         splitMaster2.Dock = DockStyle.Fill;
         splitMaster2.Location = new Point(0, 0);
         splitMaster2.Name = "splitMaster2";
+        splitMaster2.Orientation = Orientation.Horizontal;
         // 
         // splitMaster2.Panel1
         // 
-        splitMaster2.Panel1.Controls.Add(lvReference);
-        splitMaster2.Panel1.Controls.Add(btnMasterSelect);
+        splitMaster2.Panel1.Controls.Add(lbSupplemental);
         // 
         // splitMaster2.Panel2
         // 
-        splitMaster2.Panel2.Controls.Add(txtMasterFHIR);
-        splitMaster2.Size = new Size(621, 207);
-        splitMaster2.SplitterDistance = 277;
+        splitMaster2.Panel2.Controls.Add(lvSupplemental);
+        splitMaster2.Size = new Size(273, 418);
+        splitMaster2.SplitterDistance = 200;
         splitMaster2.TabIndex = 0;
         // 
-        // lvReference
+        // lbSupplemental
         // 
-        lvReference.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-        lvReference.FullRowSelect = true;
-        lvReference.Location = new Point(0, 46);
-        lvReference.MultiSelect = false;
-        lvReference.Name = "lvReference";
-        lvReference.Size = new Size(275, 161);
-        lvReference.TabIndex = 1;
-        lvReference.UseCompatibleStateImageBehavior = false;
-        lvReference.View = View.Details;
+        lbSupplemental.Dock = DockStyle.Fill;
+        lbSupplemental.FormattingEnabled = true;
+        lbSupplemental.Location = new Point(0, 0);
+        lbSupplemental.Name = "lbSupplemental";
+        lbSupplemental.ScrollAlwaysVisible = true;
+        lbSupplemental.Size = new Size(273, 200);
+        lbSupplemental.TabIndex = 5;
+        lbSupplemental.SelectedIndexChanged += lbSupplemental_SelectedIndexChanged;
         // 
-        // btnMasterSelect
+        // lvSupplemental
         // 
-        btnMasterSelect.Location = new Point(9, 6);
-        btnMasterSelect.Name = "btnMasterSelect";
-        btnMasterSelect.Size = new Size(112, 34);
-        btnMasterSelect.TabIndex = 0;
-        btnMasterSelect.Text = "確認";
-        btnMasterSelect.UseVisualStyleBackColor = true;
-        btnMasterSelect.Click += btnMasterSelect_ClickAsync;
-        // 
-        // txtMasterFHIR
-        // 
-        txtMasterFHIR.Dock = DockStyle.Fill;
-        txtMasterFHIR.Location = new Point(0, 0);
-        txtMasterFHIR.Multiline = true;
-        txtMasterFHIR.Name = "txtMasterFHIR";
-        txtMasterFHIR.ScrollBars = ScrollBars.Both;
-        txtMasterFHIR.Size = new Size(340, 207);
-        txtMasterFHIR.TabIndex = 0;
+        lvSupplemental.Dock = DockStyle.Fill;
+        lvSupplemental.Location = new Point(0, 0);
+        lvSupplemental.Name = "lvSupplemental";
+        lvSupplemental.Size = new Size(273, 214);
+        lvSupplemental.TabIndex = 0;
+        lvSupplemental.UseCompatibleStateImageBehavior = false;
+        lvSupplemental.View = View.Details;
+        lvSupplemental.FullRowSelect = true;
         // 
         // tabStaging
         // 
@@ -1100,6 +1172,17 @@ partial class FormIGAnalyzer : Form
         splitStaging4.SplitterDistance = 55;
         splitStaging4.TabIndex = 0;
         // 
+        // lblDocument
+        // 
+        lblDocument.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        lblDocument.AutoSize = true;
+        lblDocument.Location = new Point(60, 16);
+        lblDocument.Name = "lblDocument";
+        lblDocument.Size = new Size(100, 23);
+        lblDocument.TabIndex = 5;
+        lblDocument.Text = "報告種類：";
+        lblDocument.Visible = false;
+        // 
         // cmbDocument
         // 
         cmbDocument.Anchor = AnchorStyles.Top | AnchorStyles.Right;
@@ -1123,7 +1206,6 @@ partial class FormIGAnalyzer : Form
         // 
         // btnFUMECheck
         // 
-        btnFUMECheck.Anchor = AnchorStyles.Top | AnchorStyles.Left;
         btnFUMECheck.Location = new Point(158, 13);
         btnFUMECheck.Name = "btnFUMECheck";
         btnFUMECheck.Size = new Size(72, 34);
@@ -1597,17 +1679,17 @@ partial class FormIGAnalyzer : Form
         // statusBar
         // 
         statusBar.ImageScalingSize = new Size(24, 24);
-        statusBar.Items.AddRange(new ToolStripItem[] { lblSatatusBar });
-        statusBar.Location = new Point(0, 515);
+        statusBar.Items.AddRange(new ToolStripItem[] { lblSatatusBar, statusLabel });
+        statusBar.Location = new Point(0, 507);
         statusBar.Name = "statusBar";
-        statusBar.Size = new Size(961, 22);
+        statusBar.Size = new Size(961, 30);
         statusBar.TabIndex = 7;
         statusBar.Text = "statusStrip1";
         // 
         // lblSatatusBar
         // 
         lblSatatusBar.Name = "lblSatatusBar";
-        lblSatatusBar.Size = new Size(0, 15);
+        lblSatatusBar.Size = new Size(0, 23);
         lblSatatusBar.TextImageRelation = TextImageRelation.Overlay;
         lblSatatusBar.Click += toolStripStatusLabel1_Click;
         // 
@@ -1652,16 +1734,11 @@ partial class FormIGAnalyzer : Form
         rbApplyModel.Visible = false;
         rbApplyModel.CheckedChanged += lbProfile_SelectedIndexChanged;
         // 
-        // lblDocument
+        // statusLabel
         // 
-        lblDocument.AutoSize = true;
-        lblDocument.Location = new Point(60, 16);
-        lblDocument.Name = "lblDocument";
-        lblDocument.Size = new Size(100, 23);
-        lblDocument.TabIndex = 5;
-        lblDocument.Text = "報告種類：";
-        lblDocument.Visible = false;
-        lblDocument.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        statusLabel.Name = "statusLabel";
+        statusLabel.Size = new Size(72, 23);
+        statusLabel.Text = "Status :";
         // 
         // FormIGAnalyzer
         // 
@@ -1729,13 +1806,21 @@ partial class FormIGAnalyzer : Form
         splitMaster.Panel2.ResumeLayout(false);
         ((System.ComponentModel.ISupportInitialize)splitMaster).EndInit();
         splitMaster.ResumeLayout(false);
+        splitMaster4.Panel1.ResumeLayout(false);
+        splitMaster4.Panel2.ResumeLayout(false);
+        ((System.ComponentModel.ISupportInitialize)splitMaster4).EndInit();
+        splitMaster4.ResumeLayout(false);
         splitMaster1.Panel1.ResumeLayout(false);
         splitMaster1.Panel2.ResumeLayout(false);
         ((System.ComponentModel.ISupportInitialize)splitMaster1).EndInit();
         splitMaster1.ResumeLayout(false);
+        splitContainer4.Panel1.ResumeLayout(false);
+        splitContainer4.Panel2.ResumeLayout(false);
+        splitContainer4.Panel2.PerformLayout();
+        ((System.ComponentModel.ISupportInitialize)splitContainer4).EndInit();
+        splitContainer4.ResumeLayout(false);
         splitMaster2.Panel1.ResumeLayout(false);
         splitMaster2.Panel2.ResumeLayout(false);
-        splitMaster2.Panel2.PerformLayout();
         ((System.ComponentModel.ISupportInitialize)splitMaster2).EndInit();
         splitMaster2.ResumeLayout(false);
         tabStaging.ResumeLayout(false);
@@ -1904,18 +1989,13 @@ partial class FormIGAnalyzer : Form
     private Button btnUpload;
     private TabPage tabMaster;
     private SplitContainer splitMaster;
-    private ListBox lbMaster;
     private SplitContainer splitMaster1;
-    private ListView lvMaster;
     private SplitContainer splitMaster2;
-    private TextBox txtMasterFHIR;
-    private Button btnMasterSelect;
     private SplitContainer splitIGList2;
     private ListBox lbIG;
     private ListView lvIG;
     private Button btnIGCompare;
     private ToolStripStatusLabel lblSatatusBar;
-    private ListView lvReference;
     private Button btnExample;
     private Button btnStagingCopy;
     private Button btnApplyLoad;
@@ -1935,4 +2015,14 @@ partial class FormIGAnalyzer : Form
     private TreeView tvMajor;
     private ComboBox cmbDocument;
     private Label lblDocument;
+    private SplitContainer splitMaster4;
+    private SplitContainer splitContainer4;
+    private ListView lvMaster;
+    private ListBox lbMaster;
+    private ListView lvReference;
+    private TextBox txtMasterFHIR;
+    private Button btnMasterSelect;
+    private ListBox lbSupplemental;
+    private ListView lvSupplemental;
+    private ToolStripStatusLabel statusLabel;
 }
