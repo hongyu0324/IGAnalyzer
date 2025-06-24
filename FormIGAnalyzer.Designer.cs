@@ -81,7 +81,7 @@ partial class FormIGAnalyzer : Form
         tabMaster = new TabPage();
         splitMaster = new SplitContainer();
         splitMaster4 = new SplitContainer();
-        lbMaster = new ListBox();
+        lbReference = new ListBox();
         lvReference = new ListView();
         splitMaster1 = new SplitContainer();
         splitContainer4 = new SplitContainer();
@@ -882,7 +882,7 @@ partial class FormIGAnalyzer : Form
         // 
         // splitMaster4.Panel1
         // 
-        splitMaster4.Panel1.Controls.Add(lbMaster);
+        splitMaster4.Panel1.Controls.Add(lbReference);
         // 
         // splitMaster4.Panel2
         // 
@@ -891,16 +891,16 @@ partial class FormIGAnalyzer : Form
         splitMaster4.SplitterDistance = 196;
         splitMaster4.TabIndex = 0;
         // 
-        // lbMaster
+        // lbReference
         // 
-        lbMaster.Dock = DockStyle.Fill;
-        lbMaster.FormattingEnabled = true;
-        lbMaster.Location = new Point(0, 0);
-        lbMaster.Name = "lbMaster";
-        lbMaster.ScrollAlwaysVisible = true;
-        lbMaster.Size = new Size(262, 196);
-        lbMaster.TabIndex = 3;
-        lbMaster.SelectedIndexChanged += lbMaster_SelectedIndexChanged;
+        lbReference.Dock = DockStyle.Fill;
+        lbReference.FormattingEnabled = true;
+        lbReference.Location = new Point(0, 0);
+        lbReference.Name = "lbReference";
+        lbReference.ScrollAlwaysVisible = true;
+        lbReference.Size = new Size(262, 196);
+        lbReference.TabIndex = 3;
+        lbReference.SelectedIndexChanged += lbMaster_SelectedIndexChanged;
         // 
         // lvReference
         // 
@@ -2018,7 +2018,7 @@ partial class FormIGAnalyzer : Form
     private SplitContainer splitMaster4;
     private SplitContainer splitContainer4;
     private ListView lvMaster;
-    private ListBox lbMaster;
+    private ListBox lbReference;
     private ListView lvReference;
     private TextBox txtMasterFHIR;
     private Button btnMasterSelect;

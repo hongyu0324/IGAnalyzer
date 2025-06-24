@@ -1582,6 +1582,8 @@ public partial class FormIGAnalyzer : Form
         lvMaster.Items.Clear();
         lvMaster.Columns.Clear();
         txtFHIRData.Text = string.Empty;
+        lbReference.SelectedItem = null; // Clear master selection to avoid confusion
+        lvReference.SelectedItems.Clear(); // Clear any selected references
 
         if (lbSupplemental.SelectedItem == null)
         {
@@ -1595,6 +1597,11 @@ public partial class FormIGAnalyzer : Form
 
             switch (itemName)
             {
+                case "Encounter":
+                    var encounters = await LoadFHIRDataAsync<Encounter>("Encounter");
+                    DisplayFHIRData("Encounter", encounters, lvMaster,
+                        e => e.Class?.Code ?? "No Code");
+                    break;
                 case "Observation":
                     var observations = await LoadFHIRDataAsync<Observation>("Observation");
                     DisplayFHIRData("Observation", observations, lvMaster,
@@ -1640,8 +1647,10 @@ public partial class FormIGAnalyzer : Form
         lvMaster.Items.Clear();
         lvMaster.Columns.Clear();
         txtFHIRData.Text = string.Empty;
+        lbSupplemental.SelectedItem = null; // Clear supplemental selection to avoid confusion
+        lvSupplemental.SelectedItems.Clear(); // Clear any selected references
 
-        if (lbMaster.SelectedItem == null)
+        if (lbReference.SelectedItem == null)
         {
             return; // Nothing selected
         }
@@ -1649,7 +1658,7 @@ public partial class FormIGAnalyzer : Form
         try
         {
             client = new FhirClient(txtFHIRServer.Text); // Ensure client is initialized with the latest server URL
-            string itemName = lbMaster.SelectedItem?.ToString()?.Split('-')[0].Trim() ?? string.Empty;
+            string itemName = lbReference.SelectedItem?.ToString()?.Split('-')[0].Trim() ?? string.Empty;
 
             switch (itemName)
             {
@@ -3972,7 +3981,7 @@ public partial class FormIGAnalyzer : Form
     private void tabStaging_Enter(object sender, EventArgs e)
     {
         lbStaging.Items.Clear();
-        lbMaster.Items.Clear();
+        lbReference.Items.Clear();
         bool isMaster = false;
         bool isLogic = false;
         bool isBase = false;
@@ -4004,7 +4013,7 @@ public partial class FormIGAnalyzer : Form
                     }
                     if (isMaster == true)
                     {
-                        lbMaster.Items.Add(profile);
+                        lbReference.Items.Add(profile);
                     }
                     isMaster = false;
                     isBase = false;
@@ -4013,7 +4022,7 @@ public partial class FormIGAnalyzer : Form
             }
             if (isLogic == false)
             {
-                //lbMaster.Items.Add(profile);
+                //lbReference.Items.Add(profile);
             }
         }
 
