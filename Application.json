@@ -8,109 +8,109 @@
             "Name": "Patient-twpas",
             "ResourceType": "Patient",
             "Display": "病人資訊",
-            "Role":"病人資訊"
+            "Role":"applyinsurancebeneficiary"
         },
         {
             "Name": "Organization-twpas",
             "ResourceType": "Organization",
             "Display": "醫療機構",
-            "Role":"醫療機構"
+            "Role":"organization"
         },  
         {
             "Name": "Organization-twpas",
             "ResourceType": "Organization",
             "Display": "中央健保署",
-            "Role":"中央健保署"
+            "Role":"applyinsurancepayor"
         }, 
         {
             "Name": "Organization-genetic-testing-twpas",
             "ResourceType": "Organization",
             "Display": "基因檢測機構",
-            "Role":"基因檢測機構"
+            "Role":"genegenOrg"
         },
         {
             "Name": "Practitioner-twpas",
             "ResourceType": "Practitioner",
             "Display": "申請醫師",
-            "Role":"申請醫師"
+            "Role":"hospapplPrsnId"
         },
         {
             "Name": "Practitioner-twpas",
             "ResourceType": "Practitioner",
             "Display": "評估項目醫事人員",
-            "Role":"評估項目醫事人員"
+            "Role":"evaluatepatientAssessmentpatAstPerformer"
         },
         {
             "Name": "Practitioner-twpas",
             "ResourceType": "Practitioner",
             "Display": "簽發癌症分期報告醫師",
-            "Role":"簽發癌症分期報告醫師"
+            "Role":"diagnosiscancerStageassessPerformer"
         },
         {
             "Name": "Practitioner-twpas",
             "ResourceType": "Practitioner",
             "Display": "簽發檢驗(查)報告醫事人員",
-            "Role":"簽發檢驗(查)報告醫事人員"
+            "Role":"evaluatetestsinspectPerformer"
         },
         {
             "Name": "Practitioner-twpas",
             "ResourceType": "Practitioner",
             "Display": "檢查報告醫師",
-            "Role":"檢查報告醫師"
+            "Role":"diagnosisexaminationReportreportPerformer"
         },
         {
             "Name": "Practitioner-twpas",
             "ResourceType": "Practitioner",
             "Display": "簽發影像報告醫師",
-            "Role":"簽發影像報告醫師"
+            "Role":"diagnosisimageStudyimgInterpreter"
         },
         {
             "Name": "Substance-twpas",
             "ResourceType": "Substance",
             "Display":"放射治療總劑量",
-            "Role":"放射治療總劑量"
+            "Role":"treatradiotherapyrtDose"
         },
         {
             "Name": "Specimen-twpas",
             "ResourceType": "Specimen",
             "Display":"基因檢測檢體",
-            "Role":"基因檢測檢體"
+            "Role":"genespecimenType"
         },
         {
             "Name": "Media-twpas",
             "ResourceType": "Media",
             "Display":"非DICOM影像",
-            "Role":"非DICOM影像"
+            "Role":"diagnosisimageStudyimgNonDicom"
         },
         {
             "Name": "ImagingStudy-twpas",
             "ResourceType": "ImagingStudy",
             "Display":"DICOM影像",
-            "Role":"DICOM影像"
+            "Role":"diagnosisimageStudyimgDicom"
         },
         {
             "Name": "DocumentReference-twpas",
             "ResourceType": "DocumentReference",
             "Display":"病歷資料",
-            "Role":"病歷資料"
+            "Role":"diagnosismedrec"
         },
         {
             "Name": "DocumentReference-twpas",
             "ResourceType": "DocumentReference",
             "Display":"治療計畫文件",
-            "Role":"治療計畫文件"
+            "Role":"treatcarePlanDocument"
         },
         {
             "Name": "DocumentReference-twpas",
             "ResourceType": "DocumentReference",
             "Display":"基因報告",
-            "Role":"基因報告"
+            "Role":"genegenPdf"
         },
         {
             "Name": "DocumentReference-twpas",
             "ResourceType": "DocumentReference",
             "Display":"檢驗(查)附件",
-            "Role":"檢驗(查)附件"
+            "Role":"evaluatetestsinspectPdf"
         }  	
     ],
     "BindingsAdd":[
@@ -147,6 +147,10 @@
         {
             "before":"contnet.url",
             "after":"content.url"
+        },
+        {
+            "before":"procedure.procedureCodeableConcept.coding",
+            "after":"procedure.procedureCodeableConcept"
         }
     ],
     "LogicModelAdd":[
@@ -197,6 +201,12 @@
             "profile": "DocumentReference-twpas",
             "path": "category",
             "type": "CodeableConcept"
+        },
+        {
+            "name": "檢查報告種類 | ApplyModel.diagnosis.examinationReport.reportResult.type",
+            "profile": "DiagnosticReport-twpas",
+            "path": "presentedForm.contentType",
+            "type": "code"
         }
     ],
     "StagingDefault":[
@@ -209,6 +219,27 @@
         },
         {
             "profile":"Observation-tx-assessment-twpas",
+            "element":"status",
+            "value":"final",
+            "type":"code",
+            "anchor":"code"
+        },
+        {
+            "profile":"Observation-cancer-stage-twpas",
+            "element":"status",
+            "value":"final",
+            "type":"code",
+            "anchor":"category"
+        },
+        {
+            "profile":"DiagnosticReport-twpas",
+            "element":"status",
+            "value":"final",
+            "type":"code",
+            "anchor":"code"
+        },
+        {
+            "profile":"DiagnosticReport-image-twpas",
             "element":"status",
             "value":"final",
             "type":"code",

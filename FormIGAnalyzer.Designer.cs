@@ -1151,6 +1151,7 @@ partial class FormIGAnalyzer : Form
         btnStagingCopy.TabIndex = 4;
         btnStagingCopy.Text = "Copy";
         btnStagingCopy.UseVisualStyleBackColor = true;
+        btnStagingCopy.Click += btnStagingCopy_Click;
         // 
         // lvFUME
         // 

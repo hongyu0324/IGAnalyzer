@@ -30,6 +30,7 @@ using System.Security.Cryptography.Xml;
 using System.Text;
 
 using Hl7.Fhir.Specification.Source;
+using System.Collections;
 
 public partial class FormIGAnalyzer : Form
 {
@@ -673,7 +674,7 @@ public partial class FormIGAnalyzer : Form
                         ElementDefinition? obj = sd.Select(ruleBase).FirstOrDefault() as ElementDefinition;
                         if (obj != null)
                         {
-                            if(obj.Type != null && obj.Type.Count > 0)
+                            if (obj.Type != null && obj.Type.Count > 0)
                             {
                                 // if CodeableConcept is in Type, use CodeableConcept else use the first type
                                 if (obj.Type.Any(t => t.Code == "CodeableConcept"))
@@ -1233,7 +1234,7 @@ public partial class FormIGAnalyzer : Form
             }
             else if (item is CheckBox checkBox)
             {
-                
+
                 questionnaireData.Add(checkBox.Name.Replace(".", ""), checkBox.Checked.ToString());
             }
             else if (item is NumericUpDown numericUpDown)
@@ -1748,14 +1749,14 @@ public partial class FormIGAnalyzer : Form
         Dictionary<string, string> jsonData = new Dictionary<string, string>();
 
         //MessageBox.Show("Selected Document Type: " + docType, "Document Type Selected", MessageBoxButtons.OK, MessageBoxIcon.Information);
-        
+
 
         if (string.IsNullOrEmpty(txtStaging.Text))
         {
             //MessageBox.Show("No staging data available to process.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return;
         }
-        if(cmbDocument.Tag == null)
+        if (cmbDocument.Tag == null)
         {
             cmbDocument.Tag = txtStaging.Text;
         }
@@ -1958,10 +1959,54 @@ public partial class FormIGAnalyzer : Form
 
     private void AddFHIRData(Dictionary<string, string> data)
     {
-        if(fhirData.Patient != null)
+        if (fhirData.Patient != null)
         {
             data.Add("fhirdatapatient", "Patient/" + fhirData.Patient);
         }
+
+        foreach (var fhir in fhirData.IGData)
+        {
+            string role = fhir.Item1;
+            string profile = fhir.Item2;
+            string reference = fhir.Item3;
+
+            if (data.ContainsKey(role))
+            {
+                switch (profile)
+                {
+                    case "Patient":
+                        data[role] = "Patient/" + reference;
+                        fhirData.Patient = reference; // Update the patient reference
+                        break;
+                    case "Organization":
+                        data[role] = "Organization/" + reference;
+                        break;
+                    case "Practitioner":
+                        data[role] = "Practitioner/" + reference;
+                        break;
+                    case "Substance":
+                        data[role] = "Substance/" + reference;
+                        break;
+                    case "Media":
+                        data[role] = "Media/" + reference;
+                        break;
+                    case "ImagingStudy":
+                        data[role] = "ImagingStudy/" + reference;
+                        break;
+                    case "Specimen":
+                        data[role] = "Specimen/" + reference;
+                        break;
+                    case "DocumentReference":
+                        data[role] = "DocumentReference/" + reference;
+                        break;
+                    default:
+                        MessageBox.Show("Unknown profile type: " + profile, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        txtMsg.Text += $"Unknown profile type: {profile}" + Environment.NewLine;
+                        break;
+                }
+            }
+        }
+
     }
     private string CreateFHIRData(string json, string itemName)
     {
@@ -2085,7 +2130,7 @@ public partial class FormIGAnalyzer : Form
             txtMsg.Text += $"Error connecting to FUME server: {ex.Message}" + Environment.NewLine;
             return; // Exit if the request fails
         }
-        
+
 
         if (jsonFHIR != string.Empty)
         {
@@ -2281,7 +2326,10 @@ public partial class FormIGAnalyzer : Form
 
         foreach (ListViewItem item in lvStaging.Items)
         {
-            if (path == item.SubItems[2].Text) applyModel = item.SubItems[1].Text;
+            string itemPath = item.SubItems[2].Text.Trim();
+            itemPath = itemPath.Replace("CodeableConcept", ""); // remove [x] from the path
+            // 20250623
+            if (path == itemPath) applyModel = item.SubItems[1].Text;
 
             //if (item.SubItems[2].Text.Contains(path)) applyModel = item.SubItems[1].Text;
         }
@@ -2416,7 +2464,7 @@ public partial class FormIGAnalyzer : Form
         txtFHIRData.Text = fumeDetail;
         return fume2;
     }
-    private  List<Tuple<string, string, string>> GetFUMEDefault(List<Tuple<string, string, string>> fumeListTuple)
+    private List<Tuple<string, string, string>> GetFUMEDefault(List<Tuple<string, string, string>> fumeListTuple)
     {
         string profileName = lbStaging.SelectedItem?.ToString()?.Split('|')[0].Trim() ?? string.Empty;
 
@@ -2431,11 +2479,11 @@ public partial class FormIGAnalyzer : Form
                 foreach (var tuple in fumeListTuple)
                 {
                     int level = ComputeLevel(tuple.Item1);
-                    string fumeAnchor = tuple.Item1.Split('=')[0].Trim('*').Trim();
+                    string fumeAnchor = tuple.Item1.Split('=')[0].Replace("*", "").Trim();
 
                     if (fumeAnchor == anchor)
                     {
-                        string fumeInfo = GetPostionStar(level+2, item.Element + " = " + "\"" +  item.Value + "\"");
+                        string fumeInfo = GetPostionStar(level + 2, item.Element + " = " + "\"" + item.Value + "\"");
                         Tuple<string, string, string> fumeTuple = new Tuple<string, string, string>(fumeInfo, type, path);
                         //insert the fumeTuple into the fumeListTuple in front of the tuple with the same anchor
                         int index = fumeListTuple.IndexOf(tuple);
@@ -2448,7 +2496,7 @@ public partial class FormIGAnalyzer : Form
                     else
                     {
                         continue;
-                    }   
+                    }
                 }
 
             }
@@ -2893,6 +2941,7 @@ public partial class FormIGAnalyzer : Form
                     if (path == applyModelPath)
                     {
                         path = profileName + "." + path;
+                        path = path.Replace("CodeableConcept", "[x]"); // 修正path名稱 20250623
                         if (ig.Binding.ContainsKey(path))
                         {
                             system = ig.Binding[path];
@@ -2983,7 +3032,7 @@ public partial class FormIGAnalyzer : Form
                             {
                                 string system = coding.System;
                                 string code = coding.Code;
-                                for (int j = i; j < i + 3; j++)
+                                for (int j = i; j < i + 4; j++)
                                 {
                                     isPattern = true;
                                     Tuple<string, string, string> fumeTuple = fumeListTuple[j];
@@ -3006,7 +3055,7 @@ public partial class FormIGAnalyzer : Form
                                         patternFUME.Add(fumeTuple);
                                     }
                                 }
-                                i = i + 3;
+                                i = i + 4;
                             }
                         }
                     }
@@ -3023,7 +3072,7 @@ public partial class FormIGAnalyzer : Form
                                 Tuple<string, string, string> fumeTuple = fumeListTuple[j];
                                 string pathFUME = fumeListTuple[j].Item3;
                                 string type = fumeListTuple[j].Item2;
-                                
+
                                 if (type == "code")
                                 {
                                     string fumeInfo = fumeListTuple[j].Item1;
@@ -3051,7 +3100,7 @@ public partial class FormIGAnalyzer : Form
                         string fumeInfo = fume.Item1;
                         string type = fume.Item2;
                         string pathFUME = fume.Item3;
-                        if (patternType == "Coding") // Hard code for Encounter ???
+                        if (patternType == "Coding" || patternType == "CodeableConcept") // Hard code for Encounter ???
                         {
                             patternFUME.Add(fume);
                         }
@@ -3060,7 +3109,7 @@ public partial class FormIGAnalyzer : Form
                             patternFUME.Add(new Tuple<string, string, string>(fumeInfo + " = " + "\"" + pattern + "\"", type, pathFUME));
                         }
                         isPattern = true;
-                        
+
                     }
                 }
             }
@@ -3143,8 +3192,18 @@ public partial class FormIGAnalyzer : Form
             }
             else if (type == "Reference")
             {
-                if (fumeInfo.Contains("=")) continue;
+                // 20250623 for claim 
+                if (fumeInfo.Contains("="))
+                {
+                    valuedFUME.Add(fume);
+                    continue;
+                }
                 valuedFUME.Add(fume);
+                if (fumeListTuple[i + 1].Item2 == "Reference" && fumeListTuple[i + 1].Item1.Contains("="))
+                {
+                    continue;
+                }
+                // 20250623 for claim 
                 string fumeName = fumeInfo.Replace("*", "").Trim();
                 path = path + ".reference";
                 if (fumeName == "subject")
@@ -3167,6 +3226,11 @@ public partial class FormIGAnalyzer : Form
             }
             else if (type == "boolean" || type == "decimal" || type == "positiveInt")
             {
+                if (fume.Item1.Trim().EndsWith("sequence"))// hard code for Claim.diagnosis.sequence
+                {
+                    valuedFUME.Add(new Tuple<string, string, string>(fume.Item1 + " = 1", fume.Item2, fume.Item3));
+                    continue;
+                }
                 if (fume.Item1.Contains("="))
                 {
                     valuedFUME.Add(fume);
@@ -3502,7 +3566,7 @@ public partial class FormIGAnalyzer : Form
             string fume2 = targetFumeTupleList[i].Item1;
             string path1 = targetFumeTupleList[i - 1].Item3;
             string path2 = targetFumeTupleList[i].Item3;
-            
+
             if (fume1 == fume2)
             {
                 int sliceStart = 0;
@@ -3550,7 +3614,7 @@ public partial class FormIGAnalyzer : Form
                     targetFumeTupleList.RemoveAt(sliceStart);
                 }
                 //i = i - (sliceEnd - sliceStart - 1);
-                
+
             }
             if (fume2.Trim().EndsWith("="))
             {
@@ -3836,6 +3900,8 @@ public partial class FormIGAnalyzer : Form
         lbMaster.Items.Clear();
         bool isMaster = false;
         bool isLogic = false;
+        bool isBase = false;
+        List<string> baseList = new List<string> { "Patient", "Practitioner", "Organization" };
         foreach (var profile in ig.Profiles)
         {
             // check if the profile is contained in the qList
@@ -3850,18 +3916,23 @@ public partial class FormIGAnalyzer : Form
                         if (master.Name == profile)
                         {
                             isMaster = true;
+                            if (!string.IsNullOrEmpty(master.ResourceType) && baseList.Contains(master.ResourceType))
+                            {
+                                isBase = true;
+                            }
                             //txtMsg.Text = txtMsg.Text + "Profile: " + profile + " is a master profile." + Environment.NewLine;
                         }
                     }
-                    if (isMaster == false)
+                    if (isMaster == false || isBase == false)
                     {
                         lbStaging.Items.Add(profile);
                     }
-                    else
+                    if (isMaster == true)
                     {
                         lbMaster.Items.Add(profile);
                     }
                     isMaster = false;
+                    isBase = false;
                     break;
                 }
             }
@@ -3886,7 +3957,7 @@ public partial class FormIGAnalyzer : Form
                 string resourceType = master.ResourceType ?? string.Empty;
                 string role = master.Role ?? string.Empty;
                 // add role, reference and resourceType to the ListView
-                lvReference.Items.Add(new ListViewItem(new string[] { display, reference, resourceType ,role}));
+                lvReference.Items.Add(new ListViewItem(new string[] { display, reference, resourceType, role }));
             }
         }
     }
@@ -4180,7 +4251,7 @@ public partial class FormIGAnalyzer : Form
                     Tuple<string, string, string> fumeTuple = new Tuple<string, string, string>(fumeInfo, type, root + "." + path);
                     extensionFume.Add(fumeTuple);
                     string fumeName = fumeInfo.Replace("*", "").Trim();
-                    fumeInfo = space + fumeInfo.Replace(fumeName, "reference");
+                    fumeInfo = "  "+ fumeInfo.Replace(fumeName, "reference");
                     fumeTuple = new Tuple<string, string, string>(fumeInfo, "Reference", root + "." + path + ".reference");
                     extensionFume.Add(fumeTuple);
                 }
@@ -4424,6 +4495,7 @@ public partial class FormIGAnalyzer : Form
                         {
                             string pathname = path.Replace("*", "").Trim();
                             string fumeReference = "  " + path.Replace(pathname, "reference");
+                            //string fumeReference = path.Replace(pathname, "reference"); // 20250623
                             //fumeReference = fumeReference + " : " + pathX + " = " + "'" + nameX + "'";
 
                             fumePath = e.Path.Replace("[x]", type);
@@ -4971,12 +5043,7 @@ public partial class FormIGAnalyzer : Form
         {
             case "Patient":
                 fhirData.AddPatient(id);
-                break;
-            case "Practitioner":
-                fhirData.AddPractitioner(role, id);
-                break;
-            case "Organization":
-                fhirData.AddOrganization(role, id);
+                fhirData.AddIGData(role, type, id);
                 break;
             default:
                 fhirData.AddIGData(role, type, id);
@@ -5785,13 +5852,30 @@ public partial class FormIGAnalyzer : Form
         }
         string tw_core_ig = @"D:\Hongyu\Project\data\IGAnalyzer\profiles\twcore\package.tgz";
         FhirPackageSource tw_core = new(ModelInfo.ModelInspector, new string[] { tw_core_ig });
-        
+
         var multiResolver = new MultiResolver(resolver, tw_core);
-        var terminologySource = new LocalTerminologyService(tw_core);
+        
+        ValueSetExpanderSettings expanderSettings = new ValueSetExpanderSettings();
+        expanderSettings.MaxExpansionSize = 1000; // Set the cache size for the value set expander
+        var terminologySource = new LocalTerminologyService(tw_core, expanderSettings);
+
         ValidationSettings settings = new ValidationSettings();
         settings.SetSkipConstraintValidation(true); // Skip constraint validation for the bundle
+        settings.HandleValidateCodeServiceFailure += HandleValidateCodeServiceFailure(this, EventArgs.Empty); // Handle code validation service failures
+    
         return new Validator(multiResolver, terminologySource, null, settings);
     }
+
+    private static Firely.Fhir.Validation.ValidateCodeServiceFailureHandler HandleValidateCodeServiceFailure(object sender, EventArgs e)
+    {
+        // Handle code validation service failures
+        return (sender, e) =>
+        {
+            return TerminologyServiceExceptionResult.Warning; // Ensure a value is returned for all code paths
+        };
+    }
+ 
+
     private void btnBundleValidate_Click(object sender, EventArgs e)
     {
         // Validate the bundle text box content
@@ -5833,8 +5917,6 @@ public partial class FormIGAnalyzer : Form
             OperationOutcome result = new OperationOutcome(); // Initialize the result variable
             try
             {
-
-
                 result = validator.Validate(bundleToValidate);
             }
             catch (Exception ex)
@@ -5974,9 +6056,23 @@ public partial class FormIGAnalyzer : Form
 
         }
     }
-    
+
     private void tabVersion_Enter(object sender, EventArgs e)
     {
-        
+
+    }
+
+    private void btnStagingCopy_Click(object sender, EventArgs e)
+    {
+        // Copy the content of the staging text box to the clipboard
+        if (!string.IsNullOrEmpty(txtFume.Text))
+        {
+            Clipboard.SetText(txtFume.Text);
+            MessageBox.Show("Staging data copied to clipboard.", "Copy Successful", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        else
+        {
+            MessageBox.Show("No data to copy. Please enter some FHIR data in the staging text box.", "Copy Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
     }
 }
