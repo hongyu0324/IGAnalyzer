@@ -64,7 +64,7 @@ partial class FormIGAnalyzer : Form
         splitContainer9 = new SplitContainer();
         lvElement = new ListView();
         splitContainer11 = new SplitContainer();
-        lvProfile = new ListView();
+        lvBinding = new ListView();
         lvConstraint = new ListView();
         tabApplyModel = new TabPage();
         splitContainer7 = new SplitContainer();
@@ -315,7 +315,7 @@ partial class FormIGAnalyzer : Form
         tabIG.Controls.Add(tabBundle);
         tabIG.Controls.Add(tabMsg);
         tabIG.Controls.Add(tabVersion);
-        tabIG.Controls.Add(tabMajor);
+        //tabIG.Controls.Add(tabMajor);
         tabIG.Location = new Point(12, 12);
         tabIG.Name = "tabIG";
         tabIG.SelectedIndex = 0;
@@ -586,6 +586,7 @@ partial class FormIGAnalyzer : Form
         lvBase.UseCompatibleStateImageBehavior = false;
         lvBase.View = View.Details;
         lvBase.SelectedIndexChanged += lvBase_SelectedIndexChanged;
+        lvBase.DoubleClick += lvBase_DoubleClick;
         // 
         // tabProfile
         // 
@@ -653,6 +654,7 @@ partial class FormIGAnalyzer : Form
         lvElement.TabIndex = 0;
         lvElement.UseCompatibleStateImageBehavior = false;
         lvElement.View = View.Details;
+        lvElement.DoubleClick += lvElement_DoubleClick;
         // 
         // splitContainer11
         // 
@@ -663,7 +665,7 @@ partial class FormIGAnalyzer : Form
         // 
         // splitContainer11.Panel1
         // 
-        splitContainer11.Panel1.Controls.Add(lvProfile);
+        splitContainer11.Panel1.Controls.Add(lvBinding);
         // 
         // splitContainer11.Panel2
         // 
@@ -672,17 +674,18 @@ partial class FormIGAnalyzer : Form
         splitContainer11.SplitterDistance = 71;
         splitContainer11.TabIndex = 0;
         // 
-        // lvProfile
+        // lvBinding
         // 
-        lvProfile.Dock = DockStyle.Fill;
-        lvProfile.FullRowSelect = true;
-        lvProfile.GridLines = true;
-        lvProfile.Location = new Point(0, 0);
-        lvProfile.Name = "lvProfile";
-        lvProfile.Size = new Size(780, 71);
-        lvProfile.TabIndex = 1;
-        lvProfile.UseCompatibleStateImageBehavior = false;
-        lvProfile.View = View.Details;
+        lvBinding.Dock = DockStyle.Fill;
+        lvBinding.FullRowSelect = true;
+        lvBinding.GridLines = true;
+        lvBinding.Location = new Point(0, 0);
+        lvBinding.Name = "lvBinding";
+        lvBinding.Size = new Size(780, 71);
+        lvBinding.TabIndex = 1;
+        lvBinding.UseCompatibleStateImageBehavior = false;
+        lvBinding.View = View.Details;
+        lvBinding.DoubleClick += lvBinding_DoubleClick;
         // 
         // lvConstraint
         // 
@@ -695,6 +698,7 @@ partial class FormIGAnalyzer : Form
         lvConstraint.TabIndex = 0;
         lvConstraint.UseCompatibleStateImageBehavior = false;
         lvConstraint.View = View.Details;
+        lvConstraint.DoubleClick += lvConstraint_DoubleClick;
         // 
         // tabApplyModel
         // 
@@ -763,7 +767,6 @@ partial class FormIGAnalyzer : Form
         lvApplyModel.TabIndex = 0;
         lvApplyModel.UseCompatibleStateImageBehavior = false;
         lvApplyModel.View = View.Details;
-        lvApplyModel.SelectedIndexChanged += lvApplyModel_SelectedIndexChanged;
         lvApplyModel.DoubleClick += lvApplyModel_DoubleClick;
         // 
         // splitQuestionnaire
@@ -1953,7 +1956,7 @@ partial class FormIGAnalyzer : Form
     private Button btnFUME;
     private Button btnSaveFHIR;
     private SplitContainer splitContainer11;
-    private ListView lvProfile;
+    private ListView lvBinding;
     private ListView lvConstraint;
     private Button btnConfirm;
     private Button btnFUMECheck;

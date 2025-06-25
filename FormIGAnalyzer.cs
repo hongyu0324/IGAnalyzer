@@ -93,7 +93,7 @@ public partial class FormIGAnalyzer : Form
         lbProfile.Items.Clear();
         lbStaging.Items.Clear();
         lbBundleList.Items.Clear();
-        lvProfile.Items.Clear();
+        lvBinding.Items.Clear();
         lvApplyModel.Items.Clear();
         lvElement.Items.Clear();
         client = new FhirClient(appSettings.FHIRServer);
@@ -428,12 +428,12 @@ public partial class FormIGAnalyzer : Form
             return;
         }
 
-        lvProfile.Items.Clear();
+        lvBinding.Items.Clear();
         // add header to listview
-        lvProfile.Columns.Clear();
-        lvProfile.Columns.Add("Path", 400);
-        lvProfile.Columns.Add("Strength", 100);
-        lvProfile.Columns.Add("ValueSet", 800);
+        lvBinding.Columns.Clear();
+        lvBinding.Columns.Add("Path", 400);
+        lvBinding.Columns.Add("Strength", 100);
+        lvBinding.Columns.Add("ValueSet", 800);
 
         lvElement.Items.Clear();
         lvElement.Columns.Clear();
@@ -549,7 +549,7 @@ public partial class FormIGAnalyzer : Form
                     ListViewItem item = new ListViewItem(element.Path);
                     item.SubItems.Add(element.Binding.Strength.ToString());
                     item.SubItems.Add(element.Binding.ValueSet);
-                    lvProfile.Items.Add(item);
+                    lvBinding.Items.Add(item);
                 }
                 if (element.Constraint != null)
                 {
@@ -1315,16 +1315,84 @@ public partial class FormIGAnalyzer : Form
         }
     }
 
-    private void lvApplyModel_SelectedIndexChanged(object sender, EventArgs e)
+    private void ShowLVDialog(ListView lv, string title)
     {
+        int yPos = 10; // Starting Y position for the labels
+        int xPos = 10; // Starting X position for the labels
+        int height = 0; // Height of the labels
+        FormListView form = new FormListView();
+        form.FormBorderStyle = FormBorderStyle.FixedDialog; // Set the form border style to fixed dialog
+        form.MaximizeBox = false; // Disable the maximize button
+        form.MinimizeBox = false; // Disable the minimize button
+        form.Controls.Clear(); // Clear the form controls before adding new ones
+                               // Clear the Panel2 before adding new labels
+        List<string> nameList = new List<string>();
+        int total = lv.Columns.Count;
+        foreach (var col in lv.Columns)
+        {
+            // Display the LinkId and Text of each item
+            // Create a new Label for each item in the questionnaire
+            Label label = new Label();
+            var splitResult = col.ToString()?.Split(":");
+            label.Text = splitResult != null && splitResult.Length > 2 ? $"{splitResult[2]}: " : "Invalid Data: ";
+            nameList.Add(label.Text);
+            label.AutoSize = true;
+            label.Location = new Point(10, yPos);
+            form.Controls.Add(label);
+            if (xPos < 10 + label.Width + 10)
+            {
+                xPos = 10 + label.Width + 10; // Set the location of the TextBox
+            }
+            yPos += label.Height + 10; // Move down for the next label
+            height = label.Height; // Height of the label
+        }
+        yPos = 10; // Move down for the next label
+        int cnt = 0;
+        List<Object> textBoxList = new List<Object>();
+        for (int i = 0; i < total; i++)
+        {
+            TextBox textBox = new TextBox();
+            textBox.Text = lv.SelectedItems[0].SubItems[cnt].Text;
+            textBox.Width = 600; // Set the width of the TextBox
+            textBox.AutoSize = true; // Set the TextBox to auto-size based on its content
+            textBox.Location = new Point(xPos, yPos); // Set the location of the TextBox
+            textBoxList.Add(textBox);
+            form.Controls.Add(textBox);
+            yPos += height + 10; // Move down for the next label
+            cnt++;
+        }
+        Button btnLVClose = new Button();
+        btnLVClose.Text = "Close";
+        btnLVClose.Click += LVClose; // Add a click event handler to the Button
+        btnLVClose.AutoSize = true; // Set the Button to auto-size based on its content
+        btnLVClose.Location = new Point(xPos + 600 - btnLVClose.Width, yPos + 10); // Set the location of the Button
+        form.Controls.Add(btnLVClose);
 
+        form.Text = title;
+        form.Size = new Size(xPos + 640, total * (height + 10) + 120); // Set the size of the form
+        form.StartPosition = FormStartPosition.CenterParent;
+        form.ShowDialog();
     }
 
-    private void lblHosp_Click(object sender, EventArgs e)
+    private void lvBinding_DoubleClick(object sender, EventArgs e)
     {
-
+        ShowLVDialog(lvBinding, "Binding Information");
     }
 
+    private void lvConstraint_DoubleClick(object sender, EventArgs e)
+    {
+        ShowLVDialog(lvConstraint, "Constraint Information");
+    }
+
+    private void lvBase_DoubleClick(object sender, EventArgs e)
+    {
+        ShowLVDialog(lvBase, "Base Information");
+    }
+
+    private void lvElement_DoubleClick(object sender, EventArgs e)
+    {
+        ShowLVDialog(lvElement, "Element Information");
+    }
     private void lvApplyModel_DoubleClick(object sender, EventArgs e)
     {
         //Label label = new Label();
@@ -1626,7 +1694,7 @@ public partial class FormIGAnalyzer : Form
                     var diagnosticReports = await LoadFHIRDataAsync<DiagnosticReport>("DiagnosticReport");
                     DisplayFHIRData("DiagnosticReport", diagnosticReports, lvMaster,
                         d => d.Code?.Text ?? "No Code");
-                    break;  
+                    break;
                 default:
                     MessageBox.Show($"非輔助數據範圍，請重新選擇: {itemName}", "重新選擇", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     txtMsg.Text += $"Unsupported supplemental data type selected: {itemName}" + Environment.NewLine;
@@ -4727,8 +4795,7 @@ public partial class FormIGAnalyzer : Form
     }
     private void lvStaging_DoubleClick(object sender, EventArgs e)
     {
-
-
+        ShowLVDialog(lvStaging, "Staging Details");
     }
 
     private void lvStaging_SelectedIndexChanged(object sender, EventArgs e)
@@ -5134,14 +5201,14 @@ public partial class FormIGAnalyzer : Form
 
     private void lvMaster_DoubleClickAsync(object sender, EventArgs e)
     {
-        if (lvMaster.SelectedItems.Count == 0 || (lvReference.SelectedItems.Count == 0 && lvSupplemental.SelectedItems.Count == 0) )
+        if (lvMaster.SelectedItems.Count == 0 || (lvReference.SelectedItems.Count == 0 && lvSupplemental.SelectedItems.Count == 0))
         {
             MessageBox.Show("Please select an item from the list.");
             return;
         }
         // lvSelect
         ListView lvSelect = lvReference.SelectedItems.Count > 0 ? lvReference : lvSupplemental; // Check which listview is visible
-      
+
         // get the resource from FHIR server by the selected item in the listview
         string id = lvMaster.SelectedItems[0].Text;
         string type = lvMaster.SelectedItems[0].SubItems[1].Text;
@@ -6189,5 +6256,7 @@ public partial class FormIGAnalyzer : Form
             MessageBox.Show("No data to copy. Please enter some FHIR data in the staging text box.", "Copy Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
     }
+    
+    
 
 }
