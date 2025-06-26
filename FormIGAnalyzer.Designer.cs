@@ -130,6 +130,7 @@ partial class FormIGAnalyzer : Form
         tabMsg = new TabPage();
         txtMsg = new TextBox();
         tabVersion = new TabPage();
+        btnIGDownload = new Button();
         btnIGCompare = new Button();
         btnIGCheck = new Button();
         splitIGList1 = new SplitContainer();
@@ -139,16 +140,28 @@ partial class FormIGAnalyzer : Form
         lvIGNext = new ListView();
         cbIGList = new ComboBox();
         label6 = new Label();
+        tabValidate = new TabPage();
+        splitValidate1 = new SplitContainer();
+        splitValidate2 = new SplitContainer();
+        lblValidateFile = new Label();
+        lbValidateBundleList = new ListBox();
+        btnValidate = new Button();
+        btnValidateLoad = new Button();
+        txtValidateFile = new TextBox();
+        txtValidateEntry = new TextBox();
+        splitValidate3 = new SplitContainer();
+        txtValidateBundle = new TextBox();
+        txtValidateMsg = new TextBox();
         tabMajor = new TabPage();
         splitMajor1 = new SplitContainer();
         tvMajor = new TreeView();
         statusBar = new StatusStrip();
         lblSatatusBar = new ToolStripStatusLabel();
+        statusLabel = new ToolStripStatusLabel();
         columnHeader1 = new ColumnHeader();
         rbDifferential = new RadioButton();
         rbSnapshot = new RadioButton();
         rbApplyModel = new RadioButton();
-        statusLabel = new ToolStripStatusLabel();
         tabIG.SuspendLayout();
         tabConfiguration.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)splitBase).BeginInit();
@@ -264,6 +277,19 @@ partial class FormIGAnalyzer : Form
         splitIGList2.Panel1.SuspendLayout();
         splitIGList2.Panel2.SuspendLayout();
         splitIGList2.SuspendLayout();
+        tabValidate.SuspendLayout();
+        ((System.ComponentModel.ISupportInitialize)splitValidate1).BeginInit();
+        splitValidate1.Panel1.SuspendLayout();
+        splitValidate1.Panel2.SuspendLayout();
+        splitValidate1.SuspendLayout();
+        ((System.ComponentModel.ISupportInitialize)splitValidate2).BeginInit();
+        splitValidate2.Panel1.SuspendLayout();
+        splitValidate2.Panel2.SuspendLayout();
+        splitValidate2.SuspendLayout();
+        ((System.ComponentModel.ISupportInitialize)splitValidate3).BeginInit();
+        splitValidate3.Panel1.SuspendLayout();
+        splitValidate3.Panel2.SuspendLayout();
+        splitValidate3.SuspendLayout();
         tabMajor.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)splitMajor1).BeginInit();
         splitMajor1.Panel1.SuspendLayout();
@@ -315,7 +341,7 @@ partial class FormIGAnalyzer : Form
         tabIG.Controls.Add(tabBundle);
         tabIG.Controls.Add(tabMsg);
         tabIG.Controls.Add(tabVersion);
-        //tabIG.Controls.Add(tabMajor);
+        tabIG.Controls.Add(tabValidate);
         tabIG.Location = new Point(12, 12);
         tabIG.Name = "tabIG";
         tabIG.SelectedIndex = 0;
@@ -916,7 +942,6 @@ partial class FormIGAnalyzer : Form
         lvReference.TabIndex = 2;
         lvReference.UseCompatibleStateImageBehavior = false;
         lvReference.View = View.Details;
-
         // 
         // splitMaster1
         // 
@@ -953,7 +978,6 @@ partial class FormIGAnalyzer : Form
         splitContainer4.Size = new Size(394, 418);
         splitContainer4.SplitterDistance = 213;
         splitContainer4.TabIndex = 0;
-
         // 
         // lvMaster
         // 
@@ -1020,13 +1044,13 @@ partial class FormIGAnalyzer : Form
         // lvSupplemental
         // 
         lvSupplemental.Dock = DockStyle.Fill;
+        lvSupplemental.FullRowSelect = true;
         lvSupplemental.Location = new Point(0, 0);
         lvSupplemental.Name = "lvSupplemental";
         lvSupplemental.Size = new Size(273, 214);
         lvSupplemental.TabIndex = 0;
         lvSupplemental.UseCompatibleStateImageBehavior = false;
         lvSupplemental.View = View.Details;
-        lvSupplemental.FullRowSelect = true;
         // 
         // tabStaging
         // 
@@ -1505,6 +1529,7 @@ partial class FormIGAnalyzer : Form
         // 
         txtBundle.Dock = DockStyle.Fill;
         txtBundle.Location = new Point(0, 0);
+        txtBundle.MaxLength = 100000000;
         txtBundle.Multiline = true;
         txtBundle.Name = "txtBundle";
         txtBundle.ScrollBars = ScrollBars.Both;
@@ -1533,6 +1558,7 @@ partial class FormIGAnalyzer : Form
         // 
         // tabVersion
         // 
+        tabVersion.Controls.Add(btnIGDownload);
         tabVersion.Controls.Add(btnIGCompare);
         tabVersion.Controls.Add(btnIGCheck);
         tabVersion.Controls.Add(splitIGList1);
@@ -1546,6 +1572,16 @@ partial class FormIGAnalyzer : Form
         tabVersion.UseVisualStyleBackColor = true;
         tabVersion.Enter += tabVersion_Enter;
         // 
+        // btnIGDownload
+        // 
+        btnIGDownload.Location = new Point(464, 15);
+        btnIGDownload.Name = "btnIGDownload";
+        btnIGDownload.Size = new Size(112, 34);
+        btnIGDownload.TabIndex = 5;
+        btnIGDownload.Text = "下載";
+        btnIGDownload.UseVisualStyleBackColor = true;
+        btnIGDownload.Click += btnIGDownload_Click;
+        // 
         // btnIGCompare
         // 
         btnIGCompare.Anchor = AnchorStyles.Top | AnchorStyles.Right;
@@ -1558,7 +1594,7 @@ partial class FormIGAnalyzer : Form
         // 
         // btnIGCheck
         // 
-        btnIGCheck.Location = new Point(340, 18);
+        btnIGCheck.Location = new Point(344, 15);
         btnIGCheck.Name = "btnIGCheck";
         btnIGCheck.Size = new Size(112, 34);
         btnIGCheck.TabIndex = 3;
@@ -1647,6 +1683,157 @@ partial class FormIGAnalyzer : Form
         label6.TabIndex = 0;
         label6.Text = "實作指引(IG)：";
         // 
+        // tabValidate
+        // 
+        tabValidate.Controls.Add(splitValidate1);
+        tabValidate.Location = new Point(4, 32);
+        tabValidate.Name = "tabValidate";
+        tabValidate.Size = new Size(937, 418);
+        tabValidate.TabIndex = 9;
+        tabValidate.Text = "Validate";
+        tabValidate.UseVisualStyleBackColor = true;
+        // 
+        // splitValidate1
+        // 
+        splitValidate1.Dock = DockStyle.Fill;
+        splitValidate1.Location = new Point(0, 0);
+        splitValidate1.Name = "splitValidate1";
+        splitValidate1.Orientation = Orientation.Horizontal;
+        // 
+        // splitValidate1.Panel1
+        // 
+        splitValidate1.Panel1.Controls.Add(splitValidate2);
+        // 
+        // splitValidate1.Panel2
+        // 
+        splitValidate1.Panel2.Controls.Add(splitValidate3);
+        splitValidate1.Size = new Size(937, 418);
+        splitValidate1.SplitterDistance = 195;
+        splitValidate1.TabIndex = 0;
+        // 
+        // splitValidate2
+        // 
+        splitValidate2.Dock = DockStyle.Fill;
+        splitValidate2.FixedPanel = FixedPanel.Panel1;
+        splitValidate2.Location = new Point(0, 0);
+        splitValidate2.Name = "splitValidate2";
+        // 
+        // splitValidate2.Panel1
+        // 
+        splitValidate2.Panel1.Controls.Add(lblValidateFile);
+        splitValidate2.Panel1.Controls.Add(lbValidateBundleList);
+        splitValidate2.Panel1.Controls.Add(btnValidate);
+        splitValidate2.Panel1.Controls.Add(btnValidateLoad);
+        splitValidate2.Panel1.Controls.Add(txtValidateFile);
+        splitValidate2.Panel1.Paint += splitContainer5_Panel1_Paint;
+        // 
+        // splitValidate2.Panel2
+        // 
+        splitValidate2.Panel2.Controls.Add(txtValidateEntry);
+        splitValidate2.Size = new Size(937, 195);
+        splitValidate2.SplitterDistance = 486;
+        splitValidate2.TabIndex = 0;
+        // 
+        // lblValidateFile
+        // 
+        lblValidateFile.AutoSize = true;
+        lblValidateFile.Location = new Point(16, 11);
+        lblValidateFile.Name = "lblValidateFile";
+        lblValidateFile.Size = new Size(53, 23);
+        lblValidateFile.TabIndex = 6;
+        lblValidateFile.Text = "File : ";
+        // 
+        // lbValidateBundleList
+        // 
+        lbValidateBundleList.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+        lbValidateBundleList.FormattingEnabled = true;
+        lbValidateBundleList.Location = new Point(16, 44);
+        lbValidateBundleList.Name = "lbValidateBundleList";
+        lbValidateBundleList.ScrollAlwaysVisible = true;
+        lbValidateBundleList.Size = new Size(338, 142);
+        lbValidateBundleList.TabIndex = 8;
+        lbValidateBundleList.SelectedIndexChanged += lbValidateBundleList_SelectedIndexChanged;
+        // 
+        // 
+        // btnValidate
+        // 
+        btnValidate.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+        btnValidate.Location = new Point(360, 152);
+        btnValidate.Name = "btnValidate";
+        btnValidate.Size = new Size(112, 34);
+        btnValidate.TabIndex = 9;
+        btnValidate.Text = "驗證";
+        btnValidate.UseVisualStyleBackColor = true;
+        btnValidate.Click += btnValidate_Click;
+        // 
+        // btnValidateLoad
+        // 
+        btnValidateLoad.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        btnValidateLoad.Location = new Point(360, 5);
+        btnValidateLoad.Name = "btnValidateLoad";
+        btnValidateLoad.Size = new Size(112, 34);
+        btnValidateLoad.TabIndex = 5;
+        btnValidateLoad.Text = "匯入";
+        btnValidateLoad.UseVisualStyleBackColor = true;
+        btnValidateLoad.Click += btnValidateLoad_Click;
+        // 
+        // txtValidateFile
+        // 
+        txtValidateFile.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+        txtValidateFile.Location = new Point(75, 8);
+        txtValidateFile.Name = "txtValidateFile";
+        txtValidateFile.Size = new Size(279, 30);
+        txtValidateFile.TabIndex = 7;
+        // 
+        // txtValidateEntry
+        // 
+        txtValidateEntry.Dock = DockStyle.Fill;
+        txtValidateEntry.Location = new Point(0, 0);
+        txtValidateEntry.MaxLength = 10000000;
+        txtValidateEntry.Multiline = true;
+        txtValidateEntry.Name = "txtValidateEntry";
+        txtValidateEntry.ScrollBars = ScrollBars.Both;
+        txtValidateEntry.Size = new Size(447, 195);
+        txtValidateEntry.TabIndex = 0;
+        // 
+        // splitValidate3
+        // 
+        splitValidate3.Dock = DockStyle.Fill;
+        splitValidate3.Location = new Point(0, 0);
+        splitValidate3.Name = "splitValidate3";
+        // 
+        // splitValidate3.Panel1
+        // 
+        splitValidate3.Panel1.Controls.Add(txtValidateBundle);
+        // 
+        // splitValidate3.Panel2
+        // 
+        splitValidate3.Panel2.Controls.Add(txtValidateMsg);
+        splitValidate3.Size = new Size(937, 219);
+        splitValidate3.SplitterDistance = 473;
+        splitValidate3.TabIndex = 0;
+        // 
+        // txtValidateBundle
+        // 
+        txtValidateBundle.Dock = DockStyle.Fill;
+        txtValidateBundle.Location = new Point(0, 0);
+        txtValidateBundle.MaxLength = 100000000;
+        txtValidateBundle.Multiline = true;
+        txtValidateBundle.Name = "txtValidateBundle";
+        txtValidateBundle.ScrollBars = ScrollBars.Both;
+        txtValidateBundle.Size = new Size(473, 219);
+        txtValidateBundle.TabIndex = 0;
+        // 
+        // txtValidateMsg
+        // 
+        txtValidateMsg.Dock = DockStyle.Fill;
+        txtValidateMsg.Location = new Point(0, 0);
+        txtValidateMsg.Multiline = true;
+        txtValidateMsg.Name = "txtValidateMsg";
+        txtValidateMsg.ScrollBars = ScrollBars.Both;
+        txtValidateMsg.Size = new Size(460, 219);
+        txtValidateMsg.TabIndex = 0;
+        // 
         // tabMajor
         // 
         tabMajor.Controls.Add(splitMajor1);
@@ -1696,6 +1883,13 @@ partial class FormIGAnalyzer : Form
         lblSatatusBar.TextImageRelation = TextImageRelation.Overlay;
         lblSatatusBar.Click += toolStripStatusLabel1_Click;
         // 
+        // statusLabel
+        // 
+        statusLabel.Name = "statusLabel";
+        statusLabel.Size = new Size(500, 23);
+        statusLabel.Text = "Status :";
+        statusLabel.AutoSize = true;
+        // 
         // rbDifferential
         // 
         rbDifferential.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
@@ -1736,12 +1930,6 @@ partial class FormIGAnalyzer : Form
         rbApplyModel.UseVisualStyleBackColor = true;
         rbApplyModel.Visible = false;
         rbApplyModel.CheckedChanged += lbProfile_SelectedIndexChanged;
-        // 
-        // statusLabel
-        // 
-        statusLabel.Name = "statusLabel";
-        statusLabel.Size = new Size(72, 23);
-        statusLabel.Text = "Status :";
         // 
         // FormIGAnalyzer
         // 
@@ -1885,6 +2073,23 @@ partial class FormIGAnalyzer : Form
         splitIGList2.Panel2.ResumeLayout(false);
         ((System.ComponentModel.ISupportInitialize)splitIGList2).EndInit();
         splitIGList2.ResumeLayout(false);
+        tabValidate.ResumeLayout(false);
+        splitValidate1.Panel1.ResumeLayout(false);
+        splitValidate1.Panel2.ResumeLayout(false);
+        ((System.ComponentModel.ISupportInitialize)splitValidate1).EndInit();
+        splitValidate1.ResumeLayout(false);
+        splitValidate2.Panel1.ResumeLayout(false);
+        splitValidate2.Panel1.PerformLayout();
+        splitValidate2.Panel2.ResumeLayout(false);
+        splitValidate2.Panel2.PerformLayout();
+        ((System.ComponentModel.ISupportInitialize)splitValidate2).EndInit();
+        splitValidate2.ResumeLayout(false);
+        splitValidate3.Panel1.ResumeLayout(false);
+        splitValidate3.Panel1.PerformLayout();
+        splitValidate3.Panel2.ResumeLayout(false);
+        splitValidate3.Panel2.PerformLayout();
+        ((System.ComponentModel.ISupportInitialize)splitValidate3).EndInit();
+        splitValidate3.ResumeLayout(false);
         tabMajor.ResumeLayout(false);
         splitMajor1.Panel1.ResumeLayout(false);
         ((System.ComponentModel.ISupportInitialize)splitMajor1).EndInit();
@@ -2028,4 +2233,17 @@ partial class FormIGAnalyzer : Form
     private ListBox lbSupplemental;
     private ListView lvSupplemental;
     private ToolStripStatusLabel statusLabel;
+    private Button btnIGDownload;
+    private TabPage tabValidate;
+    private SplitContainer splitValidate1;
+    private SplitContainer splitValidate2;
+    private SplitContainer splitValidate3;
+    private TextBox txtValidateEntry;
+    private Label lblValidateFile;
+    private ListBox lbValidateBundleList;
+    private Button btnValidate;
+    private Button btnValidateLoad;
+    private TextBox txtValidateFile;
+    private TextBox txtValidateBundle;
+    private TextBox txtValidateMsg;
 }

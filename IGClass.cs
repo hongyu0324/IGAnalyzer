@@ -6,6 +6,7 @@ using HtmlAgilityPack;
 using Firely.Fhir.Packages;
 using Hl7.Fhir.Model;
 using System.Configuration;
+using System.Threading.Tasks;
 
 public class IGClass
 {
@@ -159,6 +160,45 @@ public class IGClass
         Name = string.Empty;
         SubName = string.Empty;
         LogicModel = string.Empty;
+    }
+
+    public async Task<string> DownloadIGPackage()
+    {
+        string packagePath = "https://nhicore.nhi.gov.tw/pas/package.tgz"; // Default path, can be overridden by app settings";
+        if (string.IsNullOrEmpty(packagePath))
+        {
+            throw new InvalidOperationException("IGPackagePath is not configured in app settings.");
+        }
+
+        // Download the package file from the specified path
+        using (HttpClient client = new HttpClient())
+        {
+            try
+            {
+                // Send a GET request to the URL
+                HttpResponseMessage response = await client.GetAsync(packagePath);
+
+                // Ensure the request was successful
+                response.EnsureSuccessStatusCode();
+
+                // Read the response content as a byte array
+                byte[] fileBytes = response.Content.ReadAsByteArrayAsync().Result;
+
+                // Define where to save the file and what to name it.
+                string localFilePath = Path.Combine(Path.GetTempPath(), "package.tgz");
+                File.WriteAllBytes(localFilePath, fileBytes);
+
+                return localFilePath;
+            }
+            catch (HttpRequestException e)
+            {
+                throw new Exception($"Request error: {e.Message}");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"An error occurred: {ex.Message}");
+            }
+        }
     }
 
     public async Task<bool> CheckIGVersion()

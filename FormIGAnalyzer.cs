@@ -31,6 +31,7 @@ using System.Text;
 
 using Hl7.Fhir.Specification.Source;
 using System.Collections;
+using System.Drawing.Text;
 
 public partial class FormIGAnalyzer : Form
 {
@@ -3351,7 +3352,7 @@ public partial class FormIGAnalyzer : Form
                     continue;
                 }
                 valuedFUME.Add(fume);
-                if (fumeListTuple[i + 1].Item2 == "Reference" && fumeListTuple[i + 1].Item1.Contains("="))
+                if (i + 1 < fumeListTuple.Count && fumeListTuple[i + 1].Item2 == "Reference" && fumeListTuple[i + 1].Item1.Contains("="))
                 {
                     continue;
                 }
@@ -6256,7 +6257,200 @@ public partial class FormIGAnalyzer : Form
             MessageBox.Show("No data to copy. Please enter some FHIR data in the staging text box.", "Copy Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
     }
+
+    private async void btnIGDownload_Click(object sender, EventArgs e)
+    {
+        Cursor = Cursors.WaitCursor; // Change cursor to wait state
+        string igPackagePath = await ig.DownloadIGPackage();
+        Cursor = Cursors.Default; // Reset cursor to default state
+        MessageBox.Show($"IG package downloaded successfully to: {igPackagePath}", "Download Successful", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
+    private void splitContainer5_Panel1_Paint(object sender, PaintEventArgs e)
+    {
+
+    }
+
+    private void btnValidateLoad_Click(object sender, EventArgs e)
+    {
+        // Load the validation bundle from a file
+        using (OpenFileDialog openFileDialog = new OpenFileDialog())
+        {
+            openFileDialog.Filter = "JSON Files (*.json)|*.json|All Files (*.*)|*.*";
+            if (openFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    txtValidateBundle.Clear(); // Clear the existing content in the text box
+                    txtValidateFile.Text = openFileDialog.FileName; // Set the file name in the text box
+                    txtValidateFile.Enabled = false;
+                    string jsonContent = File.ReadAllText(openFileDialog.FileName);
+                    txtValidateBundle.Text = jsonContent; // Load the content into the bundle text box
+                    List<string> entryList = GetBundleEntryList(jsonContent); // Get the list of entry references from the bundle
+                    lbValidateBundleList.Items.Clear(); // Clear the existing items in the bundle profile listview
+                    int entryCnt = -1;
+                    foreach (var entry in entryList)
+                    {
+                        string entryText = "Entry" + "[" + (++entryCnt).ToString() + "]: " + entry; // Format the entry text
+                        lbValidateBundleList.Items.Add(entryText); // Add each entry reference to the listview
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error loading file: {ex.Message}", "Load Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+    }
+    private void lbValidateBundleList_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        // Handle the selection change in the bundle entry list
+        if (lbValidateBundleList.SelectedItem != null)
+        {
+            string selectedEntry = lbValidateBundleList.SelectedItem?.ToString() ?? string.Empty;
+            if (!string.IsNullOrEmpty(selectedEntry))
+            {
+                // Extract the resource type and full URL from the selected entry
+                string[] parts = selectedEntry.Split(new[] { " - " }, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length == 2)
+                {
+                    string resourceType = parts[0].Trim();
+                    string fullUrl = parts[1].Trim();
+
+                    // Display the selected entry details in the text box
+                    statusLabel.Text = $"Selected Entry:Resource Type: {resourceType} Full URL: {fullUrl}";
+
+                    // using FHIRPath to get the resource information from txtValidateBundle
+                    try
+                    {
+                        Bundle bundle = new FhirJsonParser().Parse<Bundle>(txtValidateBundle.Text);
+                        var entry = bundle.Entry.FirstOrDefault(e => e.FullUrl == fullUrl);
+                        if (entry != null && entry.Resource != null)
+                        {
+                            // Display the resource details in the text box
+                            // display the resource in the text box with pretty formatting
+                            txtValidateEntry.Clear(); // Clear the existing content in the text box
+                            FhirJsonSerializer serializer = new FhirJsonSerializer(new SerializerSettings()
+                            {
+                                Pretty = true,
+                            });
+                            string resourceJson = serializer.SerializeToString(entry.Resource);
+                            txtValidateEntry.Text = resourceJson; // Set the resource JSON in the text box
+                            statusLabel.Text = $"Selected entry found in the bundle: {resourceType} - {fullUrl}";
+                        }
+                        else
+                        {
+                            statusLabel.Text = "Selected entry not found in the bundle.";
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        statusLabel.Text = $"Error parsing bundle: {ex.Message}";
+                    }
+
+
+                }
+                else
+                {
+                    statusLabel.Text = "Invalid entry format. Please select a valid entry.";
+                }
+            }
+            else
+            {
+                statusLabel.Text = "No entry selected.";
+            }
+        }
+    }
+
+    private List<string> GetBundleEntryList(string bundleText)
+    {
+        // Parse the bundle text and return a list of entry references
+        List<string> entryList = new List<string>();
+        try
+        {
+            Bundle bundle = new FhirJsonParser().Parse<Bundle>(bundleText);
+            foreach (var entry in bundle.Entry)
+            {
+                if (entry.FullUrl != null)
+                {
+                    entryList.Add(entry.Resource.TypeName + " - " + entry.FullUrl); // Add the resource type and full URL to the list
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error parsing bundle: {ex.Message}", "Parse Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        return entryList;
+    }
     
-    
+    private void btnValidate_Click(object sender, EventArgs e)
+    {
+        // Validate the bundle in the txtValidateBundle text box
+        if (string.IsNullOrEmpty(txtValidateBundle.Text))
+        {
+            MessageBox.Show("Please load a bundle to validate.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        // Create a validator instance
+        var validator = CreateValidator();
+
+        Bundle? bundleToValidate = null; // Use the base Bundle type
+        try
+        {
+            bundleToValidate = new FhirJsonParser().Parse<Bundle>(txtValidateBundle.Text);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Failed to parse FHIR Bundle from the provided JSON. Error: {ex.Message}", "Parsing Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return;
+        }
+
+        if (bundleToValidate != null)
+        {
+            OperationOutcome result = new OperationOutcome(); // Initialize the result variable
+            try
+            {
+                Cursor = Cursors.WaitCursor; // Change the cursor to a waiting cursor
+                // Validate the bundle
+                result = validator.Validate(bundleToValidate);
+                Cursor = Cursors.Default; // Change the cursor back to default after validation
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error during validation: {ex.Message}", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            // Display the validation results
+            if (result.Success)
+            {
+                MessageBox.Show("Validation successful! No issues found.", "Validation Result", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            else
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine("Validation failed with the following issues:");
+                foreach (var issue in result.Issue)
+                {
+                    if (issue.Severity == OperationOutcome.IssueSeverity.Error)
+                    {
+                        // Append only error severity issues
+                        sb.AppendLine($"- {issue.Code}: {issue.Details?.Text} (at {issue.Expression?.FirstOrDefault()})");
+                    }
+                }
+                txtValidateMsg.Text = sb.ToString(); // Display the validation result in the text box
+                
+            }
+        }
+        else
+        {
+            // This case should ideally be caught by the try-catch block during parsing
+            MessageBox.Show("Failed to parse FHIR Bundle from the provided JSON.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
 
 }
