@@ -49,6 +49,8 @@ public partial class FormIGAnalyzer : Form
     private ModuleFHIR.FHIROperator fhirOperator = new ModuleFHIR.FHIROperator();
     FhirPackageSource? resolver;
 
+    Validator? validator;
+
     private string profileDirectory = "profiles\\";
 
     private string stagingDirectory = "staging\\";
@@ -6032,20 +6034,25 @@ public partial class FormIGAnalyzer : Form
         {
             throw new InvalidOperationException("Resolver is not initialized. Cannot create validator.");
         }
+        if(validator != null)
+        {
+            return validator; // Return the existing validator if already created
+        }
         string tw_core_ig = @"D:\Hongyu\Project\data\IGAnalyzer\profiles\twcore\package.tgz";
         FhirPackageSource tw_core = new(ModelInfo.ModelInspector, new string[] { tw_core_ig });
 
         var multiResolver = new MultiResolver(resolver, tw_core);
 
         ValueSetExpanderSettings expanderSettings = new ValueSetExpanderSettings();
-        expanderSettings.MaxExpansionSize = 80000; // Set the cache size for the value set expander
+        expanderSettings.MaxExpansionSize = 8000; // Set the cache size for the value set expander
         var terminologySource = new LocalTerminologyService(tw_core, expanderSettings);
 
         ValidationSettings settings = new ValidationSettings();
         settings.SetSkipConstraintValidation(true); // Skip constraint validation for the bundle
         settings.HandleValidateCodeServiceFailure += HandleValidateCodeServiceFailure(this, EventArgs.Empty); // Handle code validation service failures
 
-        return new Validator(multiResolver, terminologySource, null, settings);
+        validator = new Validator(multiResolver, terminologySource, null, settings);
+        return validator;
     }
 
     private static Firely.Fhir.Validation.ValidateCodeServiceFailureHandler HandleValidateCodeServiceFailure(object sender, EventArgs e)
@@ -6282,6 +6289,11 @@ public partial class FormIGAnalyzer : Form
                 try
                 {
                     txtValidateBundle.Clear(); // Clear the existing content in the text box
+                    txtValidateEntry.Clear(); // Clear the entry text box
+                    txtValidateMsg.Clear(); // Clear the message text box
+                    lbValidateBundleList.Items.Clear(); // Clear the existing items in the bundle profile listview
+                    txtValidateFile.Clear(); // Clear the file text box
+
                     txtValidateFile.Text = openFileDialog.FileName; // Set the file name in the text box
                     txtValidateFile.Enabled = false;
                     string jsonContent = File.ReadAllText(openFileDialog.FileName);
@@ -6394,13 +6406,24 @@ public partial class FormIGAnalyzer : Form
             return;
         }
 
+        txtValidateMsg.Clear(); // Clear the message text box before validation
         // Create a validator instance
         var validator = CreateValidator();
 
         Bundle? bundleToValidate = null; // Use the base Bundle type
+        DomainResource? domainResourceToValidate = null; // Use DomainResource for the entry text box
         try
         {
-            bundleToValidate = new FhirJsonParser().Parse<Bundle>(txtValidateBundle.Text);
+            if (txtValidateEntry.Text != string.Empty)
+            {
+                // If the entry text box is not empty, parse the bundle from there
+                domainResourceToValidate = new FhirJsonParser().Parse<DomainResource>(txtValidateEntry.Text);
+            }
+            else
+            {
+                // Otherwise, parse the bundle from the main text box
+                bundleToValidate = new FhirJsonParser().Parse<Bundle>(txtValidateBundle.Text);
+            }
         }
         catch (Exception ex)
         {
@@ -6438,18 +6461,51 @@ public partial class FormIGAnalyzer : Form
                     if (issue.Severity == OperationOutcome.IssueSeverity.Error)
                     {
                         // Append only error severity issues
-                        sb.AppendLine($"- {issue.Code}: {issue.Details?.Text} (at {issue.Expression?.FirstOrDefault()})");
+                        sb.AppendLine($"*** {issue.Code}: {issue.Details?.Text} (at {issue.Expression?.FirstOrDefault()}) {Environment.NewLine}");
                     }
                 }
                 txtValidateMsg.Text = sb.ToString(); // Display the validation result in the text box
-                
+                //tabIG.SelectedTab = tabMsg; // Switch to the message tab
             }
         }
-        else
+        else if (domainResourceToValidate != null)
         {
-            // This case should ideally be caught by the try-catch block during parsing
-            MessageBox.Show("Failed to parse FHIR Bundle from the provided JSON.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            // Validate a single resource entry
+            OperationOutcome result = new OperationOutcome(); // Initialize the result variable
+            try
+            {
+                Cursor = Cursors.WaitCursor; // Change the cursor to a waiting cursor
+                // Validate the single resource entry
+                result = validator.Validate(domainResourceToValidate);
+                Cursor = Cursors.Default; // Change the cursor back to default after validation
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error during validation: {ex.Message}", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            // Display the validation results for the single resource entry
+            if (result.Success)
+            {
+                MessageBox.Show("Validation successful! No issues found for the selected entry.", "Validation Result", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            else
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine("Validation failed with the following issues:");
+                foreach (var issue in result.Issue)
+                {
+                    if (issue.Severity == OperationOutcome.IssueSeverity.Error)
+                    {
+                        // Append only error severity issues
+                        sb.AppendLine($"*** {issue.Code}: {issue.Details?.Text} (at {issue.Expression?.FirstOrDefault()}) {Environment.NewLine}");
+                    }
+                }
+                txtValidateMsg.Text = sb.ToString(); // Display the validation result in the text box
+            }
         }
+
     }
 
 
