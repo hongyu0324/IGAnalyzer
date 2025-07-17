@@ -6038,13 +6038,13 @@ public partial class FormIGAnalyzer : Form
         {
             return validator; // Return the existing validator if already created
         }
-        string tw_core_ig = @"D:\Hongyu\Project\data\IGAnalyzer\profiles\twcore\package.tgz";
+        string tw_core_ig = @"D:\Hongyu\Project\data\IGAnalyzer\profiles\twcore\package-.tgz";
         FhirPackageSource tw_core = new(ModelInfo.ModelInspector, new string[] { tw_core_ig });
 
         var multiResolver = new MultiResolver(resolver, tw_core);
 
         ValueSetExpanderSettings expanderSettings = new ValueSetExpanderSettings();
-        expanderSettings.MaxExpansionSize = 8000; // Set the cache size for the value set expander
+        expanderSettings.MaxExpansionSize = 86400; // Set the cache size for the value set expander
         var terminologySource = new LocalTerminologyService(tw_core, expanderSettings);
 
         ValidationSettings settings = new ValidationSettings();
