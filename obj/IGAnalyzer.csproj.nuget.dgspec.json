@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Hongyu\\Project\\IGAnalyzer\\IGAnalyzer.csproj": {}
+    "D:\\Hongyu\\Project\\IGCooker\\IGAnalyzer\\IGAnalyzer.csproj": {}
   },
   "projects": {
-    "D:\\Hongyu\\Project\\IGAnalyzer\\IGAnalyzer.csproj": {
+    "D:\\Hongyu\\Project\\IGCooker\\IGAnalyzer\\IGAnalyzer.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Hongyu\\Project\\IGAnalyzer\\IGAnalyzer.csproj",
+        "projectUniqueName": "D:\\Hongyu\\Project\\IGCooker\\IGAnalyzer\\IGAnalyzer.csproj",
         "projectName": "IGAnalyzer",
-        "projectPath": "D:\\Hongyu\\Project\\IGAnalyzer\\IGAnalyzer.csproj",
+        "projectPath": "D:\\Hongyu\\Project\\IGCooker\\IGAnalyzer\\IGAnalyzer.csproj",
         "packagesPath": "C:\\Users\\hongyu\\.nuget\\packages\\",
-        "outputPath": "D:\\Hongyu\\Project\\IGAnalyzer\\obj\\",
+        "outputPath": "D:\\Hongyu\\Project\\IGCooker\\IGAnalyzer\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -54,9 +54,25 @@
               "target": "Package",
               "version": "[4.9.1, )"
             },
+            "Firely.Fhir.Validation": {
+              "target": "Package",
+              "version": "[2.6.7, )"
+            },
+            "Firely.Fhir.Validation.Compilation": {
+              "target": "Package",
+              "version": "[2.6.7, )"
+            },
+            "Firely.Fhir.Validation.R4": {
+              "target": "Package",
+              "version": "[2.6.7, )"
+            },
             "Hl7.Fhir.R4": {
               "target": "Package",
-              "version": "[5.11.4, )"
+              "version": "[5.11.7, )"
+            },
+            "HtmlAgilityPack": {
+              "target": "Package",
+              "version": "[1.12.1, )"
             }
           },
           "imports": [
@@ -78,7 +94,7 @@
               "privateAssets": "none"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.300/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.306/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

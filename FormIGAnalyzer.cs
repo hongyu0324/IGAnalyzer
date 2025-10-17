@@ -183,23 +183,7 @@ public partial class FormIGAnalyzer : Form
             }
         }
     }
-    /*
-    功能轉移至IGClass，先保留
-        private string GetLogicName(string ig, string igSub)
-        {
-            string logicName = ig;
 
-            if (logicName == "pas") logicName = "Apply";
-            if (logicName == "emr")
-            {
-                if (igSub == "pms") logicName = "PMS";
-                if (igSub == "ep") logicName = "EP";
-                if (igSub == "ic") logicName = "IC";
-                if (igSub == "dms") logicName = "DMS";
-            }
-            return logicName;
-        }
-    */
     private async void btnSelect_ClickAsync(object? sender, EventArgs e)
     {
 
@@ -242,39 +226,7 @@ public partial class FormIGAnalyzer : Form
                 ig.Binding.Add(binding.Path, binding.ValueSet);
             }
         }
-        /*
-                foreach (string profileName in ig.Profiles)
-                {
-
-                    var sd = await resolver.ResolveByUriAsync("StructureDefinition/" + profileName) as StructureDefinition;
-                    if (sd is not StructureDefinition resolvedProfile)
-                    {
-                        txtMsg.Text = txtMsg.Text + "Failed to resolve the StructureDefinition." + Environment.NewLine;
-                        return;
-                    }
-
-                    foreach (var element in sd.Differential.Element)
-                    {
-                        GenerateBinding(element, profileName, ig.Binding);
-                    }
-
-                    foreach (var element in sd.Snapshot.Element)
-                    {
-                        GenerateBinding(element, profileName, ig.Binding);
-                    }
-                    foreach (var element in sd.Differential.Element)
-                    {
-                        string slice = string.Empty;
-                        slice = GetElementSlicing(element);
-                        if (slice != string.Empty)
-                        {
-                            string path = element.Path;
-                            path = path.Replace(sd.Type + ".", "");
-                            ig.AddSliceItem(sd.Id, path, slice);
-                        }
-                    }
-                }
-        */
+        
         foreach (var s in ig.SliceList)
         {
             txtMsg.Text = txtMsg.Text + s.Item1 + " % " + s.Item2 + " % " + s.Item3 + Environment.NewLine;
@@ -288,57 +240,7 @@ public partial class FormIGAnalyzer : Form
         }
 
         lbApplyModel.Items.Clear();
-        /*
-                foreach (var ele in applyModelDef.Differential.Element)
-                {
-                    var elementList = ele.Path.Split('.').ToList();
-                    if (elementList.Count > 1)
-                    {
-                        //if (elementList.Count == 2)
-                        //{
-                        //    lbApplyModel.Items.Add(ele.Path + " | " + ele.Short);
-                        //}
-
-                        var map = ele.Mapping;
-                        foreach (var m in map)
-                        {
-                            // get profile name from profiles list 
-                            if (elementList.Count > 2)
-                            {
-                                string q3 = m.Map;
-                                if (q3.Contains("where"))
-                                {
-                                    q3 = m.Map;
-                                }
-                                else
-                                {
-                                    q3 = q3.Split(" ")[0];
-                                    // 如果以"coding.code"結束，則刪除"coding.code"
-                                    if (q3.EndsWith(".coding.code"))
-                                    {
-                                        q3 = q3.Substring(0, q3.Length - 12);
-                                    }
-                                }
-                                //  IG Package問題，未來修改
-                                //q3 = ModifyByIGPackage(q3);
-                                string q1 = ele.Short;
-                                if (ele.Short.Contains("，"))
-                                {
-                                    q1 = ele.Short.Split("，")[0];
-                                }
-                                //  IG Package問題，未來修改
-                                ig.AddQItem(q1 + " | " + ele.Path, GetProfileName(m.Identity, ig.Profiles), q3, ele.Type.FirstOrDefault()?.Code ?? string.Empty);
-                                //var q = new Tuple<string, string, string, string>(q1 + " | " + ele.Path, GetProfileName(m.Identity, ig.Profiles), q3, ele.Type.FirstOrDefault()?.Code ?? string.Empty);
-                                //qList.Add(q);
-                            }
-                        }
-                        // ApplyModel 外掛，for specimen
-
-                        // 依據第一個欄位排序
-                        //g.QList.Sort((x, y) => string.Compare(x.Item1, y.Item1, StringComparison.Ordinal));
-                    }
-                }
-        */
+        
         foreach (var item in ig.LogicModelList)
         {
             lbApplyModel.Items.Add(item);
@@ -1187,6 +1089,8 @@ public partial class FormIGAnalyzer : Form
             {
                 // Create a DateTimePicker for dateTime items
                 DateTimePicker dateTimePicker = new DateTimePicker();
+                dateTimePicker.Format = DateTimePickerFormat.Short; // Set the format of the DateTimePicker
+                dateTimePicker.Value = new DateTime(1900, 1, 1); // Set the minimum date
                 dateTimePicker.Name = name; // Set the name of the DateTimePicker
                 dateTimePicker.Width = 400; // Set the width of the DateTimePicker
                 dateTimePicker.Location = new Point(xPos, yPos); // Set the location of the DateTimePicker
@@ -1246,6 +1150,9 @@ public partial class FormIGAnalyzer : Form
             }
             else if (item is DateTimePicker dateTimePicker)
             {
+                DateTime dateTime = new DateTime(1900, 1, 1);
+                // Skip empty date time pickers
+                if (dateTimePicker.Value == dateTime) continue; // Skip empty date time pickers
                 string date = dateTimePicker.Value.ToString("yyyy-MM-dd");
                 // Convert to the desired format to yyyy-mm-dd
 
@@ -1698,6 +1605,11 @@ public partial class FormIGAnalyzer : Form
                     DisplayFHIRData("DiagnosticReport", diagnosticReports, lvMaster,
                         d => d.Code?.Text ?? "No Code");
                     break;
+                case "ImagingStudy":
+                    var imagingStudies = await LoadFHIRDataAsync<ImagingStudy>("ImagingStudy");
+                    DisplayFHIRData("ImagingStudy", imagingStudies, lvMaster,
+                        i => i.Description ?? "No Description");
+                    break;
                 default:
                     MessageBox.Show($"非輔助數據範圍，請重新選擇: {itemName}", "重新選擇", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     txtMsg.Text += $"Unsupported supplemental data type selected: {itemName}" + Environment.NewLine;
@@ -2101,11 +2013,11 @@ public partial class FormIGAnalyzer : Form
             data.Add("fhirdatapatient", "Patient/" + fhirData.Patient);
         }
 
-        foreach (var fhir in fhirData.IGData)
+        foreach (var fhir in fhirData.IGDataList)
         {
-            string role = fhir.Item1;
-            string profile = fhir.Item2;
-            string reference = fhir.Item3;
+            string role = fhir.Role;
+            string profile = fhir.Profile;
+            string reference = fhir.Reference;
 
             if (data.ContainsKey(role))
             {
@@ -3973,7 +3885,26 @@ public partial class FormIGAnalyzer : Form
         StructureMap map = new FhirJsonParser().Parse<StructureMap>(fumeTemplate);
 
         map.Id = lbStaging.SelectedItem?.ToString() ?? string.Empty;
-        map.Id = map.Id.Replace("-", "");
+        //map.Id = map.Id.Replace("-", "");
+
+        map.Url = "http://tmhtc.net/StructureMap/" + map.Id;
+        map.Name = map.Id;
+        map.Title = "FUME Template for " + map.Id;
+        map.Description = "FUME Template for " + map.Id;
+        map.Status = PublicationStatus.Active;
+        map.Experimental = true;    
+
+        map.Date = DateTimeOffset.Now.ToString("yyyy-MM-dd");
+        map.Publisher = "TMH-TC";
+
+        map.Identifier = new List<Identifier>
+        {
+            new Identifier
+            {
+                System = "http://tmhtc.net/StructureMap",
+                Value = map.Id
+            }
+        };
 
         var expression = new Expression();
         expression.Language = "application/vnd.outburn.fume";
@@ -3999,15 +3930,18 @@ public partial class FormIGAnalyzer : Form
 
         //Serialize the JSON string to a FHIR resource
         var resource = new FhirJsonParser().Parse<Resource>(jsonFHIR);
+        // using GUID as the resource ID if it is not set
+
+        resource.Id = Guid.NewGuid().ToString();
+
         // Save the resource to the server using "put" method
-
-
 
         Resource? result = null;
 
+
         try
         {
-            if (resource.TypeName == "StructureMap" || resource.Id != null)
+            if (resource.Id != null)
             {
                 result = await client.UpdateAsync(resource);
             }
@@ -4056,6 +3990,7 @@ public partial class FormIGAnalyzer : Form
         bool isMaster = false;
         bool isLogic = false;
         bool isBase = false;
+
         List<string> baseList = new List<string> { "Patient", "Practitioner", "Organization" };
         foreach (var profile in ig.Profiles)
         {
@@ -4139,9 +4074,32 @@ public partial class FormIGAnalyzer : Form
         }
 
         //add sList tp lbSupplemental
+        lbSupplemental.Items.Clear();
         foreach (var s in sList)
         {
             lbSupplemental.Items.Add(s);
+        }
+
+        fhirData.LoadIGDataFromFile(@"D:\Hongyu\Project\data\IGAnalyzer\staging\pas-ref.json");
+        List<FHIRData.IGDataItem> igDataItems = fhirData.IGDataList;
+        foreach (FHIRData.IGDataItem dataItem in igDataItems)
+        {
+            foreach (ListViewItem item in lvReference.Items)
+            {
+                if (item.SubItems[2].Text == dataItem.Profile && item.SubItems[3].Text == dataItem.Role)
+                {
+                    item.SubItems[1].Text = dataItem.Reference;
+                    break;
+                }
+            }
+            foreach (ListViewItem item in lvSupplemental.Items)
+            {
+                if (item.SubItems[2].Text == dataItem.Profile && item.SubItems[3].Text == dataItem.Role)
+                {
+                    item.SubItems[1].Text = dataItem.Reference;
+                    break;
+                }
+            }
         }
     }
 
@@ -5233,6 +5191,7 @@ public partial class FormIGAnalyzer : Form
                 fhirData.AddIGData(role, type, id);
                 break;
         }
+        fhirData.SaveIGDataToFile(txtDataDirectory.Text + stagingDirectory + cmbIG.Text + "-ref.json");
     }
     private async void btnMasterSelect_ClickAsync(object sender, EventArgs e)
     {
@@ -5654,11 +5613,11 @@ public partial class FormIGAnalyzer : Form
         {
             Type = Bundle.BundleType.Collection,
             Timestamp = DateTimeOffset.Now,
+            Id = Guid.NewGuid().ToString(), // Generate a new unique ID for the bundle
             Meta = new Meta
             {
                 Profile = new List<string> { "https://nhicore.nhi.gov.tw/pas/StructureDefinition/Bundle-twpas" }
             }
-
         };
 
         string reference = txtBundle.Text.Trim();
@@ -5678,7 +5637,8 @@ public partial class FormIGAnalyzer : Form
             {
                 Bundle.EntryComponent entry = new Bundle.EntryComponent
                 {
-                    Resource = await client.ReadAsync<Resource>(refID) // Read the resource from the FHIR server
+                    Resource = await client.ReadAsync<Resource>(refID), // Read the resource from the FHIR server
+                    FullUrl = refID // Set the full URL to the reference ID
                 };
                 bundle.Entry.Add(entry); // Add the entry to the bundle
             }
@@ -6034,11 +5994,11 @@ public partial class FormIGAnalyzer : Form
         {
             throw new InvalidOperationException("Resolver is not initialized. Cannot create validator.");
         }
-        if(validator != null)
+        if (validator != null)
         {
             return validator; // Return the existing validator if already created
         }
-        string tw_core_ig = @"D:\Hongyu\Project\data\IGAnalyzer\profiles\twcore\package-.tgz";
+        string tw_core_ig = @"D:\Hongyu\Project\data\IGAnalyzer\profiles\twcore\package.tgz";
         FhirPackageSource tw_core = new(ModelInfo.ModelInspector, new string[] { tw_core_ig });
 
         var multiResolver = new MultiResolver(resolver, tw_core);
@@ -6396,7 +6356,7 @@ public partial class FormIGAnalyzer : Form
         }
         return entryList;
     }
-    
+
     private void btnValidate_Click(object sender, EventArgs e)
     {
         // Validate the bundle in the txtValidateBundle text box
@@ -6508,5 +6468,53 @@ public partial class FormIGAnalyzer : Form
 
     }
 
+    private void btnSaveAll_Click(object sender, EventArgs e)
+    {
+        // Save all the data in the text boxes to a file
+        using (SaveFileDialog saveFileDialog = new SaveFileDialog())
+        {
+            saveFileDialog.Filter = "JSON Files (*.json)|*.json|All Files (*.*)|*.*";
+            if (saveFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                // Save the bundle text box content
+                if (!string.IsNullOrEmpty(txtBundle.Text))
+                {
+                    File.WriteAllText(saveFileDialog.FileName, txtBundle.Text);
+                }
+                else
+                {
+                    MessageBox.Show("Bundle text box is empty. Nothing to save.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            }
+        }
+    }
+    private void btnClear_Click(object sender, EventArgs e)
+    {
+        // Clear "D:\Hongyu\Project\data\IGAnalyzer\staging\pas-ref.json"
+        // Clear "D:\Hongyu\Project\data\IGAnalyzer\staging\pas.json"
 
+        string stagingFile = @"D:\Hongyu\Project\data\IGAnalyzer\staging\pas-ref.json";
+        string stagingFileRef = @"D:\Hongyu\Project\data\IGAnalyzer\staging\pas.json";
+
+        if (File.Exists(stagingFile))
+        {
+            File.WriteAllText(stagingFile, string.Empty); // Clear the content of the file
+            MessageBox.Show("Staging file cleared successfully.", "Clear Successful", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        else
+        {
+            MessageBox.Show("Staging file does not exist.", "Clear Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+        
+        if (File.Exists(stagingFileRef))
+        {
+            File.WriteAllText(stagingFileRef, string.Empty); // Clear the content of the file
+            MessageBox.Show("Staging reference file cleared successfully.", "Clear Successful", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        else
+        {
+            MessageBox.Show("Staging reference file does not exist.", "Clear Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+
+    }
 }

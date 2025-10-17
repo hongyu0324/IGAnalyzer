@@ -86,6 +86,7 @@ partial class FormIGAnalyzer : Form
         splitMaster1 = new SplitContainer();
         splitContainer4 = new SplitContainer();
         lvMaster = new ListView();
+        btnClear = new Button();
         txtMasterFHIR = new TextBox();
         btnMasterSelect = new Button();
         splitMaster2 = new SplitContainer();
@@ -162,6 +163,7 @@ partial class FormIGAnalyzer : Form
         rbDifferential = new RadioButton();
         rbSnapshot = new RadioButton();
         rbApplyModel = new RadioButton();
+        btnSaveAll = new Button();
         tabIG.SuspendLayout();
         tabConfiguration.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)splitBase).BeginInit();
@@ -312,7 +314,7 @@ partial class FormIGAnalyzer : Form
         // btnSelect
         // 
         btnSelect.BackColor = Color.LightBlue;
-        btnSelect.Location = new Point(347, 111);
+        btnSelect.Location = new Point(343, 110);
         btnSelect.Name = "btnSelect";
         btnSelect.Size = new Size(100, 40);
         btnSelect.TabIndex = 3;
@@ -327,7 +329,7 @@ partial class FormIGAnalyzer : Form
         txtPackage.Font = new Font("Microsoft JhengHei UI", 9F);
         txtPackage.Location = new Point(462, 117);
         txtPackage.Name = "txtPackage";
-        txtPackage.Size = new Size(600, 30);
+        txtPackage.Size = new Size(449, 30);
         txtPackage.TabIndex = 0;
         // 
         // tabIG
@@ -395,7 +397,7 @@ partial class FormIGAnalyzer : Form
         // 
         // txtFUMEServer
         // 
-        txtFUMEServer.Location = new Point(184, 68);
+        txtFUMEServer.Location = new Point(600, 29);
         txtFUMEServer.Name = "txtFUMEServer";
         txtFUMEServer.Size = new Size(263, 30);
         txtFUMEServer.TabIndex = 27;
@@ -404,7 +406,7 @@ partial class FormIGAnalyzer : Form
         // label5
         // 
         label5.AutoSize = true;
-        label5.Location = new Point(23, 64);
+        label5.Location = new Point(462, 32);
         label5.Name = "label5";
         label5.Size = new Size(126, 23);
         label5.TabIndex = 26;
@@ -443,7 +445,7 @@ partial class FormIGAnalyzer : Form
         // 
         // btnDataDir
         // 
-        btnDataDir.Location = new Point(600, 154);
+        btnDataDir.Location = new Point(600, 68);
         btnDataDir.Name = "btnDataDir";
         btnDataDir.Size = new Size(66, 34);
         btnDataDir.TabIndex = 22;
@@ -452,7 +454,7 @@ partial class FormIGAnalyzer : Form
         // 
         // txtDataDirectory
         // 
-        txtDataDirectory.Location = new Point(184, 154);
+        txtDataDirectory.Location = new Point(184, 72);
         txtDataDirectory.Name = "txtDataDirectory";
         txtDataDirectory.Size = new Size(400, 30);
         txtDataDirectory.TabIndex = 21;
@@ -460,7 +462,7 @@ partial class FormIGAnalyzer : Form
         // label3
         // 
         label3.AutoSize = true;
-        label3.Location = new Point(23, 157);
+        label3.Location = new Point(23, 75);
         label3.Name = "label3";
         label3.Size = new Size(100, 23);
         label3.TabIndex = 20;
@@ -471,7 +473,7 @@ partial class FormIGAnalyzer : Form
         cmbIG.Enabled = false;
         cmbIG.FormattingEnabled = true;
         cmbIG.Items.AddRange(new object[] { "pas", "ngs", "ci", "emr-dms", "emr-pmr", "emr-ic", "emr-image", "emr-ep", "emr-ds" });
-        cmbIG.Location = new Point(184, 117);
+        cmbIG.Location = new Point(184, 116);
         cmbIG.Name = "cmbIG";
         cmbIG.Size = new Size(146, 31);
         cmbIG.TabIndex = 19;
@@ -481,7 +483,7 @@ partial class FormIGAnalyzer : Form
         // label2
         // 
         label2.AutoSize = true;
-        label2.Location = new Point(23, 120);
+        label2.Location = new Point(23, 116);
         label2.Name = "label2";
         label2.Size = new Size(100, 23);
         label2.TabIndex = 18;
@@ -973,6 +975,7 @@ partial class FormIGAnalyzer : Form
         // 
         // splitContainer4.Panel2
         // 
+        splitContainer4.Panel2.Controls.Add(btnClear);
         splitContainer4.Panel2.Controls.Add(txtMasterFHIR);
         splitContainer4.Panel2.Controls.Add(btnMasterSelect);
         splitContainer4.Size = new Size(394, 418);
@@ -992,6 +995,17 @@ partial class FormIGAnalyzer : Form
         lvMaster.View = View.Details;
         lvMaster.DoubleClick += lvMaster_DoubleClickAsync;
         // 
+        // btnClear
+        // 
+        btnClear.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        btnClear.Location = new Point(279, 3);
+        btnClear.Name = "btnClear";
+        btnClear.Size = new Size(112, 34);
+        btnClear.TabIndex = 5;
+        btnClear.Text = "清除";
+        btnClear.UseVisualStyleBackColor = true;
+        btnClear.Click += btnClear_Click;
+        // 
         // txtMasterFHIR
         // 
         txtMasterFHIR.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
@@ -999,7 +1013,7 @@ partial class FormIGAnalyzer : Form
         txtMasterFHIR.Multiline = true;
         txtMasterFHIR.Name = "txtMasterFHIR";
         txtMasterFHIR.ScrollBars = ScrollBars.Both;
-        txtMasterFHIR.Size = new Size(389, 155);
+        txtMasterFHIR.Size = new Size(363, 155);
         txtMasterFHIR.TabIndex = 4;
         // 
         // btnMasterSelect
@@ -1754,7 +1768,6 @@ partial class FormIGAnalyzer : Form
         lbValidateBundleList.TabIndex = 8;
         lbValidateBundleList.SelectedIndexChanged += lbValidateBundleList_SelectedIndexChanged;
         // 
-        // 
         // btnValidate
         // 
         btnValidate.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
@@ -1886,9 +1899,8 @@ partial class FormIGAnalyzer : Form
         // statusLabel
         // 
         statusLabel.Name = "statusLabel";
-        statusLabel.Size = new Size(500, 23);
+        statusLabel.Size = new Size(72, 23);
         statusLabel.Text = "Status :";
-        statusLabel.AutoSize = true;
         // 
         // rbDifferential
         // 
@@ -1931,11 +1943,23 @@ partial class FormIGAnalyzer : Form
         rbApplyModel.Visible = false;
         rbApplyModel.CheckedChanged += lbProfile_SelectedIndexChanged;
         // 
+        // btnSaveAll
+        // 
+        btnSaveAll.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+        btnSaveAll.Location = new Point(731, 468);
+        btnSaveAll.Name = "btnSaveAll";
+        btnSaveAll.Size = new Size(112, 34);
+        btnSaveAll.TabIndex = 11;
+        btnSaveAll.Text = "儲存";
+        btnSaveAll.UseVisualStyleBackColor = true;
+        btnSaveAll.Click += btnSaveAll_Click;
+        // 
         // FormIGAnalyzer
         // 
         AutoScaleDimensions = new SizeF(11F, 23F);
         AutoScaleMode = AutoScaleMode.Font;
         ClientSize = new Size(961, 537);
+        Controls.Add(btnSaveAll);
         Controls.Add(rbSnapshot);
         Controls.Add(rbDifferential);
         Controls.Add(rbApplyModel);
@@ -2246,4 +2270,6 @@ partial class FormIGAnalyzer : Form
     private TextBox txtValidateFile;
     private TextBox txtValidateBundle;
     private TextBox txtValidateMsg;
+    private Button btnSaveAll;
+    private Button btnClear;
 }

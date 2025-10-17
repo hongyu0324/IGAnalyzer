@@ -14,7 +14,7 @@
             "Name": "Organization-twpas",
             "ResourceType": "Organization",
             "Display": "醫療機構",
-            "Role":"organization"
+            "Role":"hosphospId"
         },  
         {
             "Name": "Organization-twpas",
@@ -113,6 +113,86 @@
             "Role":"evaluatetestsinspectPdf"
         }  	
     ],
+    "SupplementalData":[
+        {
+            "Name": "Encounter-twpas",
+            "ResourceType": "Encounter",
+            "Display": "就醫科別",
+            "Role":"hospfuncType"
+        },
+        {
+            "Name": "DiagnosticReport-image-twpas",
+            "ResourceType": "DiagnosticReport",
+            "Display": "影像報告",
+            "Role":"diagnosisimageStudyimgItem"
+        },
+        {
+            "Name": "Observation-cancer-stage-twpas",
+            "ResourceType": "Observation",
+            "Display": "癌症分期量表",
+            "Role":"diagnosiscancerStageassessItem"
+        },
+        {
+            "Name": "DiagnosticReport-twpas",
+            "ResourceType": "DiagnosticReport",
+            "Display": "檢查報告",
+            "Role":"diagnosisexaminationReportreportResultreportResultPdf"
+        },
+        {
+            "Name": "Observation-diagnostic-twpas",
+            "ResourceType": "Observation",
+            "Display": "基因檢測代碼",
+            "Role":"genegenTestCode"
+        },
+        {
+            "Name": "Observation-laboratory-result-twpas",
+            "ResourceType": "Observation",
+            "Display": "檢驗(查)名稱或套組代碼",
+            "Role":"evaluatetestsinspect"
+        },
+        {
+            "Name": "Observation-pat-assessment-twpas",
+            "ResourceType": "Observation",
+            "Display": "病人狀態評估",
+            "Role":"evaluatepatientAssessmentpatAst"
+        },
+        {
+            "Name": "MedicationRequest-treat-twpas",
+            "ResourceType": "MedicationRequest",
+            "Display": "藥品代碼",
+            "Role":"treatmedicationRequestdrugCode"
+        },
+        {
+            "Name": "Procedure-twpas",
+            "ResourceType": "Procedure",
+            "Display": "放射治療",
+            "Role":"treatradiotherapyrt"
+        },
+        {
+            "Name": "Observation-tx-assessment-twpas",
+            "ResourceType": "Observation",
+            "Display": "治療後疾病狀態評估",
+            "Role":"resulttxAst"
+        },
+        {
+            "Name":"MedicationRequest-apply-twpas",
+            "ResourceType":"MedicationRequest",
+            "Display":"事前審查品項代碼",
+            "Role":"applycancerDrugType"
+        },
+        {
+            "Name":"Coverage-twpas",
+            "ResourceType":"Coverage",
+            "Display":"保險資訊",
+            "Role":"applyinsuranceplan"      
+        },
+        {
+            "Name":"ImagingStudy-twpas",
+            "ResourceType":"ImagingStudy",
+            "Display":"影像檢查",
+            "Role":"applyimagingStudy"
+        }
+    ],
     "BindingsAdd":[
         {
             "path":"MedicationRequest-treat-twpas.dosageInstruction.doseAndRate.doseQuantity.code",
@@ -207,6 +287,24 @@
             "profile": "DiagnosticReport-twpas",
             "path": "presentedForm.contentType",
             "type": "code"
+        },
+        {
+            "name": "健保事前審查計畫 | ApplyModel.apply.insurance.plan",
+            "profile": "Claim-twpas",
+            "path": "insurance.coverage.reference",
+            "type": "Reference"
+        },
+        {
+            "name": "非DICOM影像報告種類 | ApplyModel.diagnosis.imageStudy.imgNonDicom.type",
+            "profile": "Media-twpas",
+            "path": "content.contentType",
+            "type": "code"
+        },
+        {
+            "name":"病人資訊 | ApplyModel.apply.patient",
+            "profile":"Patient-twpas",
+            "path":"identifier.value",
+            "type":"string"
         }
     ],
     "StagingDefault":[
@@ -244,6 +342,27 @@
             "value":"final",
             "type":"code",
             "anchor":"code"
+        },
+        {
+            "profile":"Claim-twpas",
+            "element":"sequence",
+            "value":"1",
+            "type":"positiveInt",
+            "anchor":"date"
+        },
+        {
+            "profile":"Claim-twpas",
+            "element":"focal",
+            "value":"true",
+            "type":"bool",
+            "anchor":"coverage"
+        },
+        {
+            "profile":"Claim-twpas",
+            "element":"sequence",
+            "value":"1",
+            "type":"positiveInt",
+            "anchor":"productOrService"
         }
     ],
     "Constraints":[

@@ -29,7 +29,62 @@
           "lib/net8.0/Firely.Fhir.Packages.dll": {}
         }
       },
-      "Hl7.Fhir.Base/5.11.4": {
+      "Firely.Fhir.Validation/2.6.7": {
+        "type": "package",
+        "dependencies": {
+          "Hl7.Fhir.Base": "5.11.7",
+          "MessagePack.Annotations": "3.1.3",
+          "Newtonsoft.Json": "13.0.3",
+          "System.ValueTuple": "4.6.1"
+        },
+        "compile": {
+          "lib/net8.0/Firely.Fhir.Validation.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net8.0/Firely.Fhir.Validation.dll": {
+            "related": ".xml"
+          }
+        }
+      },
+      "Firely.Fhir.Validation.Compilation/2.6.7": {
+        "type": "package",
+        "dependencies": {
+          "Firely.Fhir.Validation": "2.6.7",
+          "Hl7.Fhir.Base": "5.11.7",
+          "Hl7.Fhir.Conformance": "5.11.7"
+        },
+        "compile": {
+          "lib/net8.0/Firely.Fhir.Validation.Compilation.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net8.0/Firely.Fhir.Validation.Compilation.dll": {
+            "related": ".xml"
+          }
+        }
+      },
+      "Firely.Fhir.Validation.R4/2.6.7": {
+        "type": "package",
+        "dependencies": {
+          "Firely.Fhir.Validation": "2.6.7",
+          "Firely.Fhir.Validation.Compilation": "2.6.7",
+          "Hl7.Fhir.R4": "5.11.7"
+        },
+        "compile": {
+          "lib/net8.0/Firely.Fhir.Validation.R4.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net8.0/Firely.Fhir.Validation.R4.dll": {
+            "related": ".xml"
+          }
+        }
+      },
+      "Hl7.Fhir.Base/5.11.7": {
         "type": "package",
         "dependencies": {
           "Fhir.Metrics": "1.3.0",
@@ -48,10 +103,10 @@
           }
         }
       },
-      "Hl7.Fhir.Conformance/5.11.4": {
+      "Hl7.Fhir.Conformance/5.11.7": {
         "type": "package",
         "dependencies": {
-          "Hl7.Fhir.Base": "5.11.4"
+          "Hl7.Fhir.Base": "5.11.7"
         },
         "compile": {
           "lib/net8.0/Hl7.Fhir.Conformance.dll": {
@@ -64,10 +119,10 @@
           }
         }
       },
-      "Hl7.Fhir.R4/5.11.4": {
+      "Hl7.Fhir.R4/5.11.7": {
         "type": "package",
         "dependencies": {
-          "Hl7.Fhir.Conformance": "5.11.4"
+          "Hl7.Fhir.Conformance": "5.11.7"
         },
         "compile": {
           "lib/net8.0/Hl7.Fhir.R4.dll": {
@@ -76,6 +131,32 @@
         },
         "runtime": {
           "lib/net8.0/Hl7.Fhir.R4.dll": {
+            "related": ".xml"
+          }
+        }
+      },
+      "HtmlAgilityPack/1.12.1": {
+        "type": "package",
+        "compile": {
+          "lib/net8.0/HtmlAgilityPack.dll": {
+            "related": ".deps.json;.pdb;.xml"
+          }
+        },
+        "runtime": {
+          "lib/net8.0/HtmlAgilityPack.dll": {
+            "related": ".deps.json;.pdb;.xml"
+          }
+        }
+      },
+      "MessagePack.Annotations/3.1.3": {
+        "type": "package",
+        "compile": {
+          "lib/netstandard2.0/MessagePack.Annotations.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/netstandard2.0/MessagePack.Annotations.dll": {
             "related": ".xml"
           }
         }
@@ -962,6 +1043,15 @@
         "runtime": {
           "lib/netcoreapp2.1/_._": {}
         }
+      },
+      "System.ValueTuple/4.6.1": {
+        "type": "package",
+        "compile": {
+          "lib/netcoreapp2.0/_._": {}
+        },
+        "runtime": {
+          "lib/netcoreapp2.0/_._": {}
+        }
       }
     }
   },
@@ -996,15 +1086,66 @@
         "lib/netstandard2.0/Firely.Fhir.Packages.dll"
       ]
     },
-    "Hl7.Fhir.Base/5.11.4": {
-      "sha512": "olX8fKRABT/nn3UOW6da6fzH/mHxwX6hIyI3PNGw6r9hFHlv5uYkbipfiRVeZy9UQUpvAOde60xhlUROSzZwSA==",
+    "Firely.Fhir.Validation/2.6.7": {
+      "sha512": "G1rXZ1kau1ydV6wStPmCG45CR4KzfILwJL15wPRn2EQ9KEaSk0OTvlfSyG0d4DNy4CdkQN1fJmM6LNLI6KRTQQ==",
       "type": "package",
-      "path": "hl7.fhir.base/5.11.4",
+      "path": "firely.fhir.validation/2.6.7",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE",
+        "README.md",
+        "firely.fhir.validation.2.6.7.nupkg.sha512",
+        "firely.fhir.validation.nuspec",
+        "lib/net8.0/Firely.Fhir.Validation.dll",
+        "lib/net8.0/Firely.Fhir.Validation.xml",
+        "lib/netstandard2.1/Firely.Fhir.Validation.dll",
+        "lib/netstandard2.1/Firely.Fhir.Validation.xml"
+      ]
+    },
+    "Firely.Fhir.Validation.Compilation/2.6.7": {
+      "sha512": "UsQL5KnprbWYi4KPLox/tqGkWo3kPk/+dd/+KzLuzfo+LhOCYO+RMdjh7WTNLBi4JC5N2T0n8QYOvdyDUT8prQ==",
+      "type": "package",
+      "path": "firely.fhir.validation.compilation/2.6.7",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE",
+        "README.md",
+        "firely.fhir.validation.compilation.2.6.7.nupkg.sha512",
+        "firely.fhir.validation.compilation.nuspec",
+        "lib/net8.0/Firely.Fhir.Validation.Compilation.dll",
+        "lib/net8.0/Firely.Fhir.Validation.Compilation.xml",
+        "lib/netstandard2.1/Firely.Fhir.Validation.Compilation.dll",
+        "lib/netstandard2.1/Firely.Fhir.Validation.Compilation.xml"
+      ]
+    },
+    "Firely.Fhir.Validation.R4/2.6.7": {
+      "sha512": "VGhaQodGFPvtYl/Sa/Xkn6AfyS7lrKfVnUOCSGpWsT/tGI1k+MSKIshahi236/25tP9VwIoUb+ZlqSTkWM17tw==",
+      "type": "package",
+      "path": "firely.fhir.validation.r4/2.6.7",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE",
+        "README.md",
+        "firely.fhir.validation.r4.2.6.7.nupkg.sha512",
+        "firely.fhir.validation.r4.nuspec",
+        "lib/net8.0/Firely.Fhir.Validation.R4.dll",
+        "lib/net8.0/Firely.Fhir.Validation.R4.xml",
+        "lib/netstandard2.1/Firely.Fhir.Validation.R4.dll",
+        "lib/netstandard2.1/Firely.Fhir.Validation.R4.xml"
+      ]
+    },
+    "Hl7.Fhir.Base/5.11.7": {
+      "sha512": "rhSnm+Sg6e91RjCBYLe8hHVtOjJEffCvwdLJhI6CDRTzxa/DYqwrt9heDbHlMimQaPuY/T4iL1Lup3pKk5vywg==",
+      "type": "package",
+      "path": "hl7.fhir.base/5.11.7",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
         "README.md",
-        "hl7.fhir.base.5.11.4.nupkg.sha512",
+        "hl7.fhir.base.5.11.7.nupkg.sha512",
         "hl7.fhir.base.nuspec",
         "icon-firely-sdk-128.png",
         "lib/net8.0/Hl7.Fhir.Base.dll",
@@ -1013,15 +1154,15 @@
         "lib/netstandard2.0/Hl7.Fhir.Base.xml"
       ]
     },
-    "Hl7.Fhir.Conformance/5.11.4": {
-      "sha512": "v2J8tAX34ljUsB4txXDtXfpLhr1Mb9obRUEK9hTRTVvtxuCneGs6xdIFW1dr54/N7xjv+vk7i6n9BAIBuVY4ZA==",
+    "Hl7.Fhir.Conformance/5.11.7": {
+      "sha512": "VC7BYM+DmBG1GsQLirtRY3gdI/ROt26TDS01rR7MRX/Pc1mj6Frr+Hi/fBwgmqDgMUicujkvZGIMI8uC2s+bsw==",
       "type": "package",
-      "path": "hl7.fhir.conformance/5.11.4",
+      "path": "hl7.fhir.conformance/5.11.7",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
         "README.md",
-        "hl7.fhir.conformance.5.11.4.nupkg.sha512",
+        "hl7.fhir.conformance.5.11.7.nupkg.sha512",
         "hl7.fhir.conformance.nuspec",
         "icon-firely-sdk-128.png",
         "lib/net8.0/Hl7.Fhir.Conformance.dll",
@@ -1030,21 +1171,79 @@
         "lib/netstandard2.0/Hl7.Fhir.Conformance.xml"
       ]
     },
-    "Hl7.Fhir.R4/5.11.4": {
-      "sha512": "eVE9GBTxcl3Ia+xTLjbsixy48NbxWneTKCF/QjHZhwLhvZtHmeBSa/B6OUUOxZEtI/alRGOtzT3vHF2sj0idAg==",
+    "Hl7.Fhir.R4/5.11.7": {
+      "sha512": "v+3OyuyWJYTCXVFdGemAkC4lp+L2ppZecHKkdtx2ED+qcUEVeZxLMvJc/dVYUODnU6JBR/vFAXzkvfjPoCWdNA==",
       "type": "package",
-      "path": "hl7.fhir.r4/5.11.4",
+      "path": "hl7.fhir.r4/5.11.7",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
         "README.md",
-        "hl7.fhir.r4.5.11.4.nupkg.sha512",
+        "hl7.fhir.r4.5.11.7.nupkg.sha512",
         "hl7.fhir.r4.nuspec",
         "icon-firely-sdk-128.png",
         "lib/net8.0/Hl7.Fhir.R4.dll",
         "lib/net8.0/Hl7.Fhir.R4.xml",
         "lib/netstandard2.0/Hl7.Fhir.R4.dll",
         "lib/netstandard2.0/Hl7.Fhir.R4.xml"
+      ]
+    },
+    "HtmlAgilityPack/1.12.1": {
+      "sha512": "SP6/2Y26CXtxjXn0Wwsom9Ek35SNWKHEu/IWhNEFejBSSVWWXPRSlpqpBSYWv1SQhYFnwMO01xVbEdK3iRR4hg==",
+      "type": "package",
+      "path": "htmlagilitypack/1.12.1",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "htmlagilitypack.1.12.1.nupkg.sha512",
+        "htmlagilitypack.nuspec",
+        "lib/Net35/HtmlAgilityPack.dll",
+        "lib/Net35/HtmlAgilityPack.pdb",
+        "lib/Net35/HtmlAgilityPack.xml",
+        "lib/Net40-client/HtmlAgilityPack.dll",
+        "lib/Net40-client/HtmlAgilityPack.pdb",
+        "lib/Net40-client/HtmlAgilityPack.xml",
+        "lib/Net40/HtmlAgilityPack.XML",
+        "lib/Net40/HtmlAgilityPack.dll",
+        "lib/Net40/HtmlAgilityPack.pdb",
+        "lib/Net45/HtmlAgilityPack.XML",
+        "lib/Net45/HtmlAgilityPack.dll",
+        "lib/Net45/HtmlAgilityPack.pdb",
+        "lib/NetCore45/HtmlAgilityPack.XML",
+        "lib/NetCore45/HtmlAgilityPack.dll",
+        "lib/NetCore45/HtmlAgilityPack.pdb",
+        "lib/net8.0/HtmlAgilityPack.deps.json",
+        "lib/net8.0/HtmlAgilityPack.dll",
+        "lib/net8.0/HtmlAgilityPack.pdb",
+        "lib/net8.0/HtmlAgilityPack.xml",
+        "lib/netstandard2.0/HtmlAgilityPack.deps.json",
+        "lib/netstandard2.0/HtmlAgilityPack.dll",
+        "lib/netstandard2.0/HtmlAgilityPack.pdb",
+        "lib/netstandard2.0/HtmlAgilityPack.xml",
+        "lib/portable-net45+netcore45+wp8+MonoAndroid+MonoTouch/HtmlAgilityPack.XML",
+        "lib/portable-net45+netcore45+wp8+MonoAndroid+MonoTouch/HtmlAgilityPack.dll",
+        "lib/portable-net45+netcore45+wp8+MonoAndroid+MonoTouch/HtmlAgilityPack.pdb",
+        "lib/portable-net45+netcore45+wpa81+wp8+MonoAndroid+MonoTouch/HtmlAgilityPack.XML",
+        "lib/portable-net45+netcore45+wpa81+wp8+MonoAndroid+MonoTouch/HtmlAgilityPack.dll",
+        "lib/portable-net45+netcore45+wpa81+wp8+MonoAndroid+MonoTouch/HtmlAgilityPack.pdb",
+        "lib/uap10.0/HtmlAgilityPack.XML",
+        "lib/uap10.0/HtmlAgilityPack.dll",
+        "lib/uap10.0/HtmlAgilityPack.pdb",
+        "lib/uap10.0/HtmlAgilityPack.pri",
+        "readme.md"
+      ]
+    },
+    "MessagePack.Annotations/3.1.3": {
+      "sha512": "XTy4njgTAf6UVBKFj7c7ad5R0WVKbvAgkbYZy4f00kplzX2T3VOQ34AUke/Vn/QgQZ7ETdd34/IDWS3KBInSGA==",
+      "type": "package",
+      "path": "messagepack.annotations/3.1.3",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "lib/netstandard2.0/MessagePack.Annotations.dll",
+        "lib/netstandard2.0/MessagePack.Annotations.xml",
+        "messagepack.annotations.3.1.3.nupkg.sha512",
+        "messagepack.annotations.nuspec"
       ]
     },
     "Microsoft.NETCore.Platforms/1.1.1": {
@@ -3360,12 +3559,40 @@
         "system.threading.tasks.extensions.4.6.2.nupkg.sha512",
         "system.threading.tasks.extensions.nuspec"
       ]
+    },
+    "System.ValueTuple/4.6.1": {
+      "sha512": "+RJT4qaekpZ7DDLhf+LTjq+E48jieKiY9ulJ+BoxKmZblIJfIJT8Ufcaa/clQqnYvWs8jugfGSMu8ylS0caG0w==",
+      "type": "package",
+      "path": "system.valuetuple/4.6.1",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "Icon.png",
+        "PACKAGE.md",
+        "build/net471/System.ValueTuple.targets",
+        "buildTransitive/net461/System.ValueTuple.targets",
+        "buildTransitive/net462/_._",
+        "buildTransitive/net471/System.ValueTuple.targets",
+        "lib/net462/System.ValueTuple.dll",
+        "lib/net462/System.ValueTuple.xml",
+        "lib/net47/System.ValueTuple.dll",
+        "lib/net47/System.ValueTuple.xml",
+        "lib/net471/_._",
+        "lib/netcoreapp2.0/_._",
+        "lib/netstandard2.0/_._",
+        "system.valuetuple.4.6.1.nupkg.sha512",
+        "system.valuetuple.nuspec"
+      ]
     }
   },
   "projectFileDependencyGroups": {
     "net9.0-windows7.0": [
       "Firely.Fhir.Packages >= 4.9.1",
-      "Hl7.Fhir.R4 >= 5.11.4"
+      "Firely.Fhir.Validation >= 2.6.7",
+      "Firely.Fhir.Validation.Compilation >= 2.6.7",
+      "Firely.Fhir.Validation.R4 >= 2.6.7",
+      "Hl7.Fhir.R4 >= 5.11.7",
+      "HtmlAgilityPack >= 1.12.1"
     ]
   },
   "packageFolders": {
@@ -3375,11 +3602,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\Hongyu\\Project\\IGAnalyzer\\IGAnalyzer.csproj",
+      "projectUniqueName": "D:\\Hongyu\\Project\\IGCooker\\IGAnalyzer\\IGAnalyzer.csproj",
       "projectName": "IGAnalyzer",
-      "projectPath": "D:\\Hongyu\\Project\\IGAnalyzer\\IGAnalyzer.csproj",
+      "projectPath": "D:\\Hongyu\\Project\\IGCooker\\IGAnalyzer\\IGAnalyzer.csproj",
       "packagesPath": "C:\\Users\\hongyu\\.nuget\\packages\\",
-      "outputPath": "D:\\Hongyu\\Project\\IGAnalyzer\\obj\\",
+      "outputPath": "D:\\Hongyu\\Project\\IGCooker\\IGAnalyzer\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -3422,9 +3649,25 @@
             "target": "Package",
             "version": "[4.9.1, )"
           },
+          "Firely.Fhir.Validation": {
+            "target": "Package",
+            "version": "[2.6.7, )"
+          },
+          "Firely.Fhir.Validation.Compilation": {
+            "target": "Package",
+            "version": "[2.6.7, )"
+          },
+          "Firely.Fhir.Validation.R4": {
+            "target": "Package",
+            "version": "[2.6.7, )"
+          },
           "Hl7.Fhir.R4": {
             "target": "Package",
-            "version": "[5.11.4, )"
+            "version": "[5.11.7, )"
+          },
+          "HtmlAgilityPack": {
+            "target": "Package",
+            "version": "[1.12.1, )"
           }
         },
         "imports": [
@@ -3446,7 +3689,7 @@
             "privateAssets": "none"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.300/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.306/PortableRuntimeIdentifierGraph.json"
       }
     }
   }
